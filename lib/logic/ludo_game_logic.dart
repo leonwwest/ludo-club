@@ -38,6 +38,20 @@ class Piece {
 
   @override
   int get hashCode => color.hashCode ^ id.hashCode;
+
+  static Piece fromString(String s) {
+    final parts = s.split(',');
+    final color = PlayerColor.values.firstWhere((e) => e.toString() == parts[0]);
+    final id = int.parse(parts[1]);
+    final position = PiecePosition(int.parse(parts[2]), isHome: parts[3] == 'true');
+    final isSafe = parts[4] == 'true';
+    return Piece(color, id, position, isSafe: isSafe);
+  }
+
+  @override
+  String toString() {
+    return '${color.toString()},$id,${position.fieldId},${position.isHome},$isSafe';
+  }
 }
 
 class LudoGame {

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ludo_club/providers/game_provider.dart';
 import 'package:ludo_club/models/game_state.dart';
+import 'dart:math' as math;
 import 'package:ludo_club/logic/ludo_game_logic.dart';
 
 class GameScreen extends StatefulWidget {
@@ -55,7 +56,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       if (_diceAnimationController.value > 0.5 &&
           _diceAnimationController.value < 0.6) {
         setState(() {
-          _displayDiceValue = Random().nextInt(6) + 1;
+          _displayDiceValue = math.Random().nextInt(6) + 1;
         });
       }
     });
@@ -359,7 +360,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                           animation: _diceAnimation,
                           builder: (context, child) {
                             return Transform.rotate(
-                              angle: _diceAnimation.value * 2 * pi,
+                              angle: _diceAnimation.value * 2 * math.pi,
                               child: Container(
                                 width: 80,
                                 height: 80,
@@ -498,8 +499,47 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 left: pieceScreenPos.dx - fieldSize / 2,
                 top: pieceScreenPos.dy - fieldSize / 2,
                 child: GestureDetector(
-                  onTap: () =>
-                      _initiatePawnAnimation(gameProvider, movablePiece, boardSize),
+                  onTap: () {
+                    int targetFieldIdDisplay = movablePiece.position.fieldId;
+                    int dice = gameProvider.currentDiceValue;
+
+                    if (!movablePiece.position.isHome) {
+                      targetFieldIdDisplay = movablePiece.position.fieldId + dice;
+
+                      const int displayMainPathLength = 40;
+                      const int displayHomeLength = 4;
+
+                      if (movablePiece.position.fieldId <
+                              displayMainPathLength &&
+                          targetFieldIdDisplay >= displayMainPathLength) {
+                        int stepsIntoHome =
+                            targetFieldIdDisplay - displayMainPathLength;
+                        if (stepsIntoHome >= displayHomeLength) {
+                          targetFieldIdDisplay = displayHomeLength - 1;
+                        } else {
+                          targetFieldIdDisplay = stepsIntoHome;
+                        }
+                      } else if (movablePiece.position.fieldId >=
+                              displayMainPathLength &&
+                          movablePiece.position.fieldId <
+                              (displayMainPathLength + displayHomeLength)) {
+                        if (targetFieldIdDisplay >=
+                            displayMainPathLength + displayHomeLength) {
+                          targetFieldIdDisplay = displayHomeLength - 1;
+                        } else {
+                          targetFieldIdDisplay =
+                              targetFieldIdDisplay - displayMainPathLength;
+                        }
+                      } else {
+                        targetFieldIdDisplay =
+                            targetFieldIdDisplay % displayMainPathLength;
+                      }
+                    } else {
+                      targetFieldIdDisplay = 0;
+                    }
+                    _initiatePawnAnimation(gameProvider, movablePiece,
+                        targetFieldIdDisplay, boardSize);
+                  },
                   child: Container(
                     width: fieldSize,
                     height: fieldSize,
@@ -590,7 +630,46 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         onTap: canBeMoved &&
                 !gameProvider.isAnimating &&
                 gameProvider.currentDiceValue > 0
-            ? () => _initiatePawnAnimation(gameProvider, piece, boardSize)
+            ? () {
+                int targetFieldIdDisplay = piece.position.fieldId;
+                int dice = gameProvider.currentDiceValue;
+
+                if (!piece.position.isHome) {
+                  targetFieldIdDisplay = piece.position.fieldId + dice;
+
+                  const int displayMainPathLength = 40;
+                  const int displayHomeLength = 4;
+
+                  if (piece.position.fieldId < displayMainPathLength &&
+                      targetFieldIdDisplay >= displayMainPathLength) {
+                    int stepsIntoHome =
+                        targetFieldIdDisplay - displayMainPathLength;
+                    if (stepsIntoHome >= displayHomeLength) {
+                      targetFieldIdDisplay = displayHomeLength - 1;
+                    } else {
+                      targetFieldIdDisplay = stepsIntoHome;
+                    }
+                  } else if (piece.position.fieldId >=
+                          displayMainPathLength &&
+                      piece.position.fieldId <
+                          (displayMainPathLength + displayHomeLength)) {
+                    if (targetFieldIdDisplay >=
+                        displayMainPathLength + displayHomeLength) {
+                      targetFieldIdDisplay = displayHomeLength - 1;
+                    } else {
+                      targetFieldIdDisplay =
+                          targetFieldIdDisplay - displayMainPathLength;
+                    }
+                  } else {
+                    targetFieldIdDisplay =
+                        targetFieldIdDisplay % displayMainPathLength;
+                  }
+                } else {
+                  targetFieldIdDisplay = 0;
+                }
+                _initiatePawnAnimation(
+                    gameProvider, piece, targetFieldIdDisplay, boardSize);
+              }
             : null,
         child: Container(
           width: fieldSize,
@@ -801,7 +880,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     pathMapping[202] = [13, 7];
     pathMapping[203] = [7, 13];
 
-    double angle = (boardIndex / 40.0) * 2 * pi;
+    double angle = (boardIndex / 40.0) * 2 * math.pi;
     double radius = boardSize * 0.4;
     Offset center = Offset(boardSize / 2, boardSize / 2);
     if (pathMapping.containsKey(boardIndex)) {
