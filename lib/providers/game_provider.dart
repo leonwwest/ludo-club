@@ -123,7 +123,7 @@ class GameProvider extends ChangeNotifier {
         _captureEffectBoardIndex = pieceToMove.position.fieldId;
 
         await _audioService.playCaptureSound();
-        final capturedPlayerMeta = getPlayerMeta(newOpponentPiece.color);
+        final Player capturedPlayerMeta = getPlayerMeta(newOpponentPiece.color);
         await _statisticsService.incrementPawnsCaptured(movingPlayerMeta.name);
         await _statisticsService.incrementPawnsLost(capturedPlayerMeta.name);
         break;

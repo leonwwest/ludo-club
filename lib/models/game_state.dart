@@ -86,7 +86,7 @@ class GameState {
         (key, value) => MapEntry(
           PlayerColor.values
               .firstWhere((e) => e.toString() == key, orElse: () => PlayerColor.red),
-          (value as List<dynamic>).map((p) => Piece.fromString(p)).toList(),
+          (value as List<dynamic>).map((p) => Piece.fromString(p.toString())).toList(),
         ),
       ),
     );
@@ -110,23 +110,8 @@ class GameState {
       currentRollCount: currentRollCount,
       winnerId: winnerId,
       gameId: gameId,
-      pieces: pieces.map((key, value) => MapEntry(key, value.map((p) => Piece.fromString(p.toString())).toList())),
+      pieces: pieces.map((key, value) => MapEntry(key, value.map((p) => Piece(p.color, p.id, p.position, isSafe: p.isSafe)).toList())),
     );
   }
 }
 
-extension on Piece {
-  static Piece fromString(String s) {
-    final parts = s.split(',');
-    final color = PlayerColor.values.firstWhere((e) => e.toString() == parts[0]);
-    final id = int.parse(parts[1]);
-    final position = PiecePosition(int.parse(parts[2]), isHome: parts[3] == 'true');
-    final isSafe = parts[4] == 'true';
-    return Piece(color, id, position, isSafe: isSafe);
-  }
-
-  @override
-  String toString() {
-    return '${color.toString()},$id,${position.fieldId},${position.isHome},$isSafe';
-  }
-}
