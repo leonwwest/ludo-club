@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import '../providers/game_provider.dart';
-import 'game_screen.dart';
+import 'package:ludo_club/providers/game_provider.dart';
+import 'package:ludo_club/ui/game_screen.dart';
 
 class SavedGamesScreen extends StatefulWidget {
   const SavedGamesScreen({Key? key}) : super(key: key);
@@ -40,7 +40,7 @@ class _SavedGamesScreenState extends State<SavedGamesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Gespeicherte Spiele'),
+        title: const Text('Saved Games'),
         backgroundColor: Colors.blue.shade700,
       ),
       body: Container(
@@ -60,7 +60,7 @@ class _SavedGamesScreenState extends State<SavedGamesScreen> {
             : _savedGames.isEmpty
                 ? const Center(
                     child: Text(
-                      'Keine gespeicherten Spiele vorhanden.',
+                      'No saved games available.',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 18,
@@ -95,7 +95,7 @@ class _SavedGamesScreenState extends State<SavedGamesScreen> {
                           subtitle: Padding(
                             padding: const EdgeInsets.only(top: 8.0),
                             child: Text(
-                              'Gespeichert am: ${_dateFormatter.format(saveDate)}',
+                              'Saved on: ${_dateFormatter.format(saveDate)}',
                               style: const TextStyle(
                                 fontSize: 14,
                               ),
@@ -108,13 +108,13 @@ class _SavedGamesScreenState extends State<SavedGamesScreen> {
                                 icon: const Icon(Icons.play_arrow),
                                 color: Colors.green,
                                 onPressed: () => _loadGame(index),
-                                tooltip: 'Spiel laden',
+                                tooltip: 'Load Game',
                               ),
                               IconButton(
                                 icon: const Icon(Icons.delete),
                                 color: Colors.red,
                                 onPressed: () => _deleteGame(index),
-                                tooltip: 'Löschen',
+                                tooltip: 'Delete',
                               ),
                             ],
                           ),
@@ -140,7 +140,6 @@ class _SavedGamesScreenState extends State<SavedGamesScreen> {
     });
 
     if (success) {
-      // Navigator.pop entfernen, damit wir nicht auf den HomeScreen zurückgehen
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -150,7 +149,7 @@ class _SavedGamesScreenState extends State<SavedGamesScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Fehler beim Laden des Spiels'),
+          content: Text('Error loading game'),
           backgroundColor: Colors.red,
         ),
       );
@@ -162,19 +161,19 @@ class _SavedGamesScreenState extends State<SavedGamesScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Spielstand löschen'),
+          title: const Text('Delete Save'),
           content: const Text(
-            'Möchtest du diesen Spielstand wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.',
+            'Are you sure you want to delete this save? This action cannot be undone.',
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Abbrechen'),
+              child: const Text('Cancel'),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
               child: const Text(
-                'Löschen',
+                'Delete',
                 style: TextStyle(color: Colors.red),
               ),
             ),
@@ -192,19 +191,19 @@ class _SavedGamesScreenState extends State<SavedGamesScreen> {
       final success = await gameProvider.deleteGame(index);
 
       if (success) {
-        await _loadSavedGames(); // Liste aktualisieren
+        await _loadSavedGames();
       } else {
         setState(() {
           _isLoading = false;
         });
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Fehler beim Löschen des Spiels'),
+            content: Text('Error deleting game'),
             backgroundColor: Colors.red,
           ),
         );
       }
     }
   }
-} 
+}

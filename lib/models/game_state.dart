@@ -1,55 +1,35 @@
-import '../logic/ludo_game_logic.dart';
+import 'package:ludo_club/logic/ludo_game_logic.dart';
 
 class Player {
-  final PlayerColor id;
+  final String id;
   final String name;
   final bool isAI;
+  final PlayerColor color;
 
-  // -1: in der Basis
-  // 0-39: auf dem Hauptspielfeld
-  // 40-43: auf dem Heimweg (Zielgerade)
-  // 99: im Ziel (finished)
-  Player(this.id, this.name, {this.isAI = false});
+  Player(
+      {required this.id,
+      required this.name,
+      this.isAI = false,
+      required this.color});
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id.toString(),
+      'id': id,
       'name': name,
       'isAI': isAI,
+      'color': color.toString(),
     };
   }
 
   factory Player.fromJson(Map<String, dynamic> json) {
     return Player(
-      PlayerColor.values.firstWhere((e) => e.toString() == json['id'] as String, orElse: () => PlayerColor.red),
-      json['name'] as String,
+      id: json['id'] as String,
+      name: json['name'] as String,
       isAI: json['isAI'] as bool,
+      color: PlayerColor.values.firstWhere(
+          (e) => e.toString() == json['color'] as String,
+          orElse: () => PlayerColor.red),
     );
-  }
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is Player &&
-          runtimeType == other.runtimeType &&
-          id == other.id &&
-          name == other.name &&
-          isAI == other.isAI;
-
-  @override
-  int get hashCode =>
-      id.hashCode ^
-      name.hashCode ^
-      isAI.hashCode;
-
-  // Helper for list equality
-  bool _listEquals<T>(List<T>? a, List<T>? b) {
-    if (a == null) return b == null;
-    if (b == null || a.length != b.length) return false;
-    for (int i = 0; i < a.length; i++) {
-      if (a[i] != b[i]) return false;
-    }
-    return true;
   }
 }
 
@@ -58,8 +38,9 @@ class GameState {
   PlayerColor currentTurnPlayerId;
   int? lastDiceValue;
   int currentRollCount;
-  PlayerColor? winnerId; // ID des Spielers, der gewonnen hat (null wenn Spiel läuft)
-  String? gameId; // Unique ID for the game instance, useful for save slots
+  PlayerColor? winnerId;
+  String? gameId;
+  final Map<PlayerColor, List<Piece>> pieces;
 
   GameState({
     required this.players,
@@ -68,6 +49,7 @@ class GameState {
     this.currentRollCount = 0,
     this.winnerId,
     this.gameId,
+    required this.pieces,
   });
 
   Map<String, dynamic> toJson() {
@@ -78,99 +60,73 @@ class GameState {
       'currentRollCount': currentRollCount,
       'winnerId': winnerId?.toString(),
       'gameId': gameId,
+      'pieces': pieces.map((key, value) => MapEntry(
+          key.toString(), value.map((p) => p.toString()).toList())),
     };
-  }
-
-  PlayerColor _parsePlayerColor(String? colorString) {
-    if (colorString == null) return PlayerColor.red; // Fallback oder Fehlerbehandlung
-    return PlayerColor.values.firstWhere((e) => e.toString() == colorString, orElse: () => PlayerColor.red); // Default fallback
   }
 
   factory GameState.fromJson(Map<String, dynamic> json) {
     return GameState(
       players: (json['players'] as List<dynamic>)
-          .map((playerJson) => Player.fromJson(playerJson as Map<String, dynamic>))
+          .map((playerJson) =>
+              Player.fromJson(playerJson as Map<String, dynamic>))
           .toList(),
-      currentTurnPlayerId: PlayerColor.values.firstWhere((e) => e.toString() == json['currentTurnPlayerId'] as String, orElse: () => PlayerColor.red),
+      currentTurnPlayerId: PlayerColor.values.firstWhere(
+          (e) => e.toString() == json['currentTurnPlayerId'] as String,
+          orElse: () => PlayerColor.red),
       lastDiceValue: json['lastDiceValue'] as int?,
       currentRollCount: json['currentRollCount'] as int,
-      winnerId: json['winnerId'] == null ? null : PlayerColor.values.firstWhere((e) => e.toString() == json['winnerId'] as String, orElse: () => PlayerColor.red),
+      winnerId: json['winnerId'] == null
+          ? null
+          : PlayerColor.values.firstWhere(
+              (e) => e.toString() == json['winnerId'] as String,
+              orElse: () => PlayerColor.red),
       gameId: json['gameId'] as String?,
+      pieces: (json['pieces'] as Map<String, dynamic>).map(
+        (key, value) => MapEntry(
+          PlayerColor.values
+              .firstWhere((e) => e.toString() == key, orElse: () => PlayerColor.red),
+          (value as List<dynamic>).map((p) => Piece.fromString(p)).toList(),
+        ),
+      ),
     );
   }
 
-  /// Gibt den aktuellen Spieler zurück
-  Player get currentPlayer => players.firstWhere((p) => p.id == currentTurnPlayerId);
-  
-  /// Prüft, ob der aktuelle Spieler eine KI ist
+  Player get currentPlayer =>
+      players.firstWhere((p) => p.color == currentTurnPlayerId);
+
   bool get isCurrentPlayerAI => currentPlayer.isAI;
-  
-  /// Gibt den Gewinner zurück, falls es einen gibt
-  Player? get winner => winnerId != null
-      ? players.firstWhere((p) => p.id == winnerId)
-      : null;
-  
-  /// Prüft, ob das Spiel beendet ist
+
+  Player? get winner =>
+      winnerId != null ? players.firstWhere((p) => p.color == winnerId) : null;
+
   bool get isGameOver => winnerId != null;
-  
-  /// Erstellt eine Kopie des aktuellen GameState
+
   GameState copy() {
     return GameState(
-      players: players.map((p) => Player(p.id, p.name, isAI: p.isAI)).toList(),
+      players: players.map((p) => Player(id: p.id, name: p.name, isAI: p.isAI, color: p.color)).toList(),
       currentTurnPlayerId: currentTurnPlayerId,
       lastDiceValue: lastDiceValue,
       currentRollCount: currentRollCount,
       winnerId: winnerId,
       gameId: gameId,
+      pieces: pieces.map((key, value) => MapEntry(key, value.map((p) => Piece.fromString(p.toString())).toList())),
     );
   }
+}
+
+extension on Piece {
+  static Piece fromString(String s) {
+    final parts = s.split(',');
+    final color = PlayerColor.values.firstWhere((e) => e.toString() == parts[0]);
+    final id = int.parse(parts[1]);
+    final position = PiecePosition(int.parse(parts[2]), isHome: parts[3] == 'true');
+    final isSafe = parts[4] == 'true';
+    return Piece(color, id, position, isSafe: isSafe);
+  }
 
   @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is GameState &&
-          runtimeType == other.runtimeType &&
-          listEquals(players, other.players) &&
-          currentTurnPlayerId == other.currentTurnPlayerId &&
-          lastDiceValue == other.lastDiceValue &&
-          currentRollCount == other.currentRollCount &&
-          winnerId == other.winnerId &&
-          gameId == other.gameId;
-          // Note: hashCode needs to be consistent with this.
-
-  @override
-  int get hashCode =>
-      players.fold(0, (prev, player) => prev ^ player.hashCode) ^
-      currentTurnPlayerId.hashCode ^
-      lastDiceValue.hashCode ^
-      currentRollCount.hashCode ^
-      winnerId.hashCode ^
-      gameId.hashCode;
-
-  // Helper for map equality
-  bool mapEquals<K, V>(Map<K, V>? a, Map<K, V>? b) {
-    if (a == null) return b == null;
-    if (b == null || a.length != b.length) return false;
-    for (final k in a.keys) {
-      if (!b.containsKey(k) || a[k] != b[k]) return false;
-    }
-    return true;
-  }
-   // Helper for list equality (already present in Player, but good for standalone GameState too)
-  bool listEquals<T>(List<T>? a, List<T>? b) {
-    if (a == null) return b == null;
-    if (b == null || a.length != b.length) return false;
-    for (int i = 0; i < a.length; i++) {
-      if (a[i] != b[i]) return false;
-    }
-    return true;
-  }
-   // Helper for map hash code
-  int mapHashCode<K,V>(Map<K,V> map) {
-    int hash = 0;
-    map.forEach((key, value) {
-      hash = hash ^ key.hashCode ^ value.hashCode;
-    });
-    return hash;
+  String toString() {
+    return '${color.toString()},$id,${position.fieldId},${position.isHome},$isSafe';
   }
 }

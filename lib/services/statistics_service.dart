@@ -2,11 +2,11 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class PlayerStats {
-  final String playerName; // Display name
+  final String playerName;
   int gamesPlayed;
   int gamesWon;
-  int pawnsCaptured; // Pawns captured by this player
-  int pawnsLost;     // Pawns of this player captured by others
+  int pawnsCaptured;
+  int pawnsLost;
   int sixesRolled;
 
   PlayerStats({
@@ -18,7 +18,6 @@ class PlayerStats {
     this.sixesRolled = 0,
   });
 
-  // Method to create a copy with updated values
   PlayerStats copyWith({
     String? playerName,
     int? gamesPlayed,
@@ -37,11 +36,9 @@ class PlayerStats {
     );
   }
 
-  // Factory constructor to create PlayerStats from JSON
-  // playerName is passed separately as it's not in the JSON map itself but used as a key.
   factory PlayerStats.fromJson(String playerName, Map<String, dynamic> json) {
     return PlayerStats(
-      playerName: playerName, // Use the provided display name
+      playerName: playerName,
       gamesPlayed: json['gamesPlayed'] as int? ?? 0,
       gamesWon: json['gamesWon'] as int? ?? 0,
       pawnsCaptured: json['pawnsCaptured'] as int? ?? 0,
@@ -50,7 +47,6 @@ class PlayerStats {
     );
   }
 
-  // Method to convert PlayerStats to JSON (omitting playerName)
   Map<String, dynamic> toJson() {
     return {
       'gamesPlayed': gamesPlayed,
@@ -71,28 +67,30 @@ class PlayerStats {
 
 class StatisticsService {
   static const String _playerStatsListKey = 'statPlayerNames';
-  String _playerStatsKey(String playerName) => 'stats_${playerName.toLowerCase().trim()}';
+  String _playerStatsKey(String playerName) =>
+      'stats_${playerName.toLowerCase().trim()}';
 
-  Future<SharedPreferences> get _prefs async => SharedPreferences.getInstance();
+  Future<SharedPreferences> get _prefs async =>
+      SharedPreferences.getInstance();
 
-  // Gets stats for a given player.
-  // Player names are handled case-insensitively for retrieval.
   Future<PlayerStats> getPlayerStats(String playerName) async {
     final prefs = await _prefs;
     final normalizedName = playerName.toLowerCase().trim();
-    final String key = _playerStatsKey(playerName); // uses normalized name for key
-    
+    final String key = _playerStatsKey(playerName);
+
     final String? statsJson = prefs.getString(key);
-    
+
     if (statsJson != null && statsJson.isNotEmpty) {
       try {
-        final Map<String, dynamic> jsonMap = jsonDecode(statsJson) as Map<String, dynamic>;
-        final displayPlayerName = await _getDisplayPlayerName(playerName) ?? playerName;
+        final Map<String, dynamic> jsonMap =
+            jsonDecode(statsJson) as Map<String, dynamic>;
+        final displayPlayerName =
+            await _getDisplayPlayerName(playerName) ?? playerName;
 
         return PlayerStats.fromJson(displayPlayerName, jsonMap);
       } catch (e) {
-        // Handle potential parsing errors, corruption etc.
-        final displayPlayerName = await _getDisplayPlayerName(playerName) ?? playerName;
+        final displayPlayerName =
+            await _getDisplayPlayerName(playerName) ?? playerName;
         return PlayerStats(playerName: displayPlayerName);
       }
     } else {
@@ -100,10 +98,10 @@ class StatisticsService {
     }
   }
 
-  // Helper to find the canonical (original case) player name
   Future<String?> _getDisplayPlayerName(String queryPlayerName) async {
     final prefs = await _prefs;
-    final List<String> playerNames = prefs.getStringList(_playerStatsListKey) ?? [];
+    final List<String> playerNames =
+        prefs.getStringList(_playerStatsListKey) ?? [];
     final queryNormalized = queryPlayerName.toLowerCase().trim();
     for (String nameInList in playerNames) {
       if (nameInList.toLowerCase().trim() == queryNormalized) {
@@ -113,52 +111,46 @@ class StatisticsService {
     return null;
   }
 
-  // Saves PlayerStats. playerName is the display name.
   Future<void> _savePlayerStats(String playerName, PlayerStats stats) async {
     final prefs = await _prefs;
-    final displayPlayerName = playerName.trim(); // Use the provided name for display list
-    final String key = _playerStatsKey(displayPlayerName); // Key uses normalized name
+    final displayPlayerName = playerName.trim();
+    final String key = _playerStatsKey(displayPlayerName);
 
     await prefs.setString(key, jsonEncode(stats.toJson()));
 
-    // Update the list of player names (stores display names)
-    final List<String> playerNames = prefs.getStringList(_playerStatsListKey) ?? [];
+    final List<String> playerNames =
+        prefs.getStringList(_playerStatsListKey) ?? [];
     final normalizedCurrentName = displayPlayerName.toLowerCase().trim();
-    
-    // Check if a name that normalizes to the same thing already exists
+
     bool foundMatch = false;
     for (int i = 0; i < playerNames.length; i++) {
-        if (playerNames[i].toLowerCase().trim() == normalizedCurrentName) {
-            // If we want to update the stored display name to the latest casing:
-            // playerNames[i] = displayPlayerName; 
-            foundMatch = true;
-            break;
-        }
+      if (playerNames[i].toLowerCase().trim() == normalizedCurrentName) {
+        foundMatch = true;
+        break;
+      }
     }
     if (!foundMatch) {
-        playerNames.add(displayPlayerName);
+      playerNames.add(displayPlayerName);
     }
     await prefs.setStringList(_playerStatsListKey, playerNames);
   }
 
   Future<List<PlayerStats>> getAllPlayerStats() async {
     final prefs = await _prefs;
-    final List<String> displayPlayerNames = prefs.getStringList(_playerStatsListKey) ?? [];
+    final List<String> displayPlayerNames =
+        prefs.getStringList(_playerStatsListKey) ?? [];
     final List<PlayerStats> allStats = [];
 
     for (String displayName in displayPlayerNames) {
-      // getPlayerStats will use the displayName, then normalize for key lookup,
-      // and then use the stored display name (which should be this displayName) for PlayerStats.playerName
       allStats.add(await getPlayerStats(displayName));
     }
     return allStats;
   }
 
-  // --- Incrementer Methods ---
-  Future<void> _updateStat(String playerName, Function(PlayerStats stats) updater) async {
+  Future<void> _updateStat(
+      String playerName, Function(PlayerStats stats) updater) async {
     PlayerStats stats = await getPlayerStats(playerName);
     updater(stats);
-    // When saving, use stats.playerName because getPlayerStats should have returned the canonical display name
     await _savePlayerStats(stats.playerName, stats);
   }
 
@@ -170,7 +162,8 @@ class StatisticsService {
     await _updateStat(playerName, (stats) => stats.gamesWon += count);
   }
 
-  Future<void> incrementPawnsCaptured(String playerName, {int count = 1}) async {
+  Future<void> incrementPawnsCaptured(String playerName,
+      {int count = 1}) async {
     await _updateStat(playerName, (stats) => stats.pawnsCaptured += count);
   }
 
@@ -181,20 +174,26 @@ class StatisticsService {
   Future<void> incrementSixesRolled(String playerName, {int count = 1}) async {
     await _updateStat(playerName, (stats) => stats.sixesRolled += count);
   }
-  
+
   Future<void> recordGamePlayed(List<String> playerNames) async {
     for (String name in playerNames) {
-      PlayerStats stats = await getPlayerStats(name); 
+      PlayerStats stats = await getPlayerStats(name);
       stats.gamesPlayed = stats.gamesPlayed + 1;
-      await _savePlayerStats(stats.playerName, stats); // Use stats.playerName as it's canonical
+      await _savePlayerStats(stats.playerName, stats);
     }
   }
 
   Future<void> resetAllStatistics() async {
     final prefs = await SharedPreferences.getInstance();
-    final List<String> allPlayerStatsKeys = prefs.getKeys().where((key) => key.startsWith('playerStats_')).toList();
+    final List<String> allPlayerStatsKeys = prefs
+        .getKeys()
+        .where((key) => key.startsWith('stats_'))
+        .toList();
+
     for (String key in allPlayerStatsKeys) {
       await prefs.remove(key);
     }
+
+    await prefs.remove(_playerStatsListKey);
   }
 }

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/game_provider.dart';
-import '../models/game_state.dart';
-import 'game_screen.dart';
-import 'saved_games_screen.dart';
-import 'player_stats_screen.dart'; // Import PlayerStatsScreen
+import 'package:ludo_club/providers/game_provider.dart';
+import 'package:ludo_club/models/game_state.dart';
+import 'package:ludo_club/ui/game_screen.dart';
+import 'package:ludo_club/ui/saved_games_screen.dart';
+import 'package:ludo_club/ui/player_stats_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -17,8 +17,8 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Player> _players = [];
   final List<bool> _isAI = [false, true, true, true];
   final List<TextEditingController> _nameControllers = List.generate(
-    4, 
-    (index) => TextEditingController(text: 'Spieler ${index + 1}')
+    4,
+    (index) => TextEditingController(text: 'Player ${index + 1}'),
   );
   int _playerCount = 2;
 
@@ -62,7 +62,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Spieleinstellungen',
+                        'Game Settings',
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -70,7 +70,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 16),
                       const Text(
-                        'Anzahl der Spieler:',
+                        'Number of Players:',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w500,
@@ -90,7 +90,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 16),
                       const Text(
-                        'Spieler:',
+                        'Players:',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w500,
@@ -106,7 +106,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 child: TextField(
                                   controller: _nameControllers[index],
                                   decoration: InputDecoration(
-                                    labelText: 'Spieler ${index + 1}',
+                                    labelText: 'Player ${index + 1}',
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(8),
                                     ),
@@ -114,10 +114,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                               ),
                               const SizedBox(width: 16),
-                              if (index > 0) // Erster Spieler ist immer menschlich
+                              if (index > 0)
                                 Row(
                                   children: [
-                                    const Text('KI:'),
+                                    const Text('AI:'),
                                     Switch(
                                       value: _isAI[index],
                                       onChanged: (value) {
@@ -150,7 +150,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       child: const Text(
-                        'Neues Spiel',
+                        'New Game',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -165,7 +165,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 onPressed: _openSavedGames,
                 icon: const Icon(Icons.save),
                 label: const Text(
-                  'Gespeicherte Spiele',
+                  'Saved Games',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -179,7 +179,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 16), // Add space before the new button
+              const SizedBox(height: 16),
               ElevatedButton.icon(
                 icon: const Icon(Icons.bar_chart),
                 label: const Text(
@@ -188,11 +188,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 onPressed: () {
                   Navigator.of(context).push(
-                    MaterialPageRoute(builder: (context) => const PlayerStatsScreen()),
+                    MaterialPageRoute(
+                        builder: (context) => const PlayerStatsScreen()),
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal, // Different color for distinction
+                  backgroundColor: Colors.teal,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -207,21 +208,21 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _startGame() {
-    // Spielerliste erstellen
     _players.clear();
     for (int i = 0; i < _playerCount; i++) {
       _players.add(Player(
-        'player${i + 1}',
-        _nameControllers[i].text.isNotEmpty ? _nameControllers[i].text : 'Spieler ${i + 1}',
-        isAI: i > 0 && _isAI[i], // Erster Spieler ist immer menschlich
+        id: 'player${i + 1}',
+        name: _nameControllers[i].text.isNotEmpty
+            ? _nameControllers[i].text
+            : 'Player ${i + 1}',
+        isAI: i > 0 && _isAI[i],
+        color: PlayerColor.values[i],
       ));
     }
 
-    // Spiel starten
     final gameProvider = Provider.of<GameProvider>(context, listen: false);
     gameProvider.startNewGame(_players);
 
-    // Zum Spielbildschirm navigieren
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => const GameScreen(),
