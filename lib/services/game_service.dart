@@ -86,7 +86,7 @@ class GameService {
         if (otherPlayer.color != playerColor) {
           for (final otherPiece in otherPlayer.pieces) {
             if (otherPiece.position.fieldId == targetPosition) {
-              otherPiece.position = PiecePosition(GameState.basePosition);
+              otherPiece.position = const PiecePosition(GameState.basePosition);
               capturedPiecePlayerId = otherPlayer.id;
               break;
             }

@@ -75,7 +75,6 @@ class StatisticsService {
 
   Future<PlayerStats> getPlayerStats(String playerName) async {
     final prefs = await _prefs;
-    final normalizedName = playerName.toLowerCase().trim();
     final String key = _playerStatsKey(playerName);
 
     final String? statsJson = prefs.getString(key);

@@ -1,4 +1,4 @@
-'''import 'dart:math';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:ludo_club/models/game_state.dart';
 import 'package:ludo_club/logic/ludo_game_logic.dart';
@@ -35,7 +35,7 @@ class GameProvider extends ChangeNotifier {
               id: c.toString(),
               name: c.toString().split('.').last,
               color: c,
-              pieces: List.generate(4, (i) => Piece(c, i, PiecePosition(GameState.basePosition)))))
+              pieces: List.generate(4, (i) => Piece(c, i, const PiecePosition(GameState.basePosition)))))
           .toList(),
       currentTurnPlayerId: _ludoGame.currentTurn,
       startIndices: LudoGame.startFields,
@@ -203,7 +203,7 @@ class GameProvider extends ChangeNotifier {
 
     final playerNames = playersFromUI.map((p) => p.name).toList();
     _statisticsService.recordGamePlayed(playerNames).catchError((e) {
-      print("Error recording game played stats: $e");
+      debugPrint("Error recording game played stats: $e");
     });
 
     notifyListeners();
@@ -264,4 +264,3 @@ class GameProvider extends ChangeNotifier {
     }
   }
 }
-'''
