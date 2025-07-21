@@ -12,10 +12,10 @@ void main() {
       PlayerColor.yellow: 30,
     };
     final players = [
-      Player(id: 'player1', name: 'Player 1', color: PlayerColor.red),
-      Player(id: 'player2', name: 'Player 2', isAI: true, color: PlayerColor.green),
-      Player(id: 'player3', name: 'Player 3', color: PlayerColor.blue),
-      Player(id: 'player4', name: 'Player 4', isAI: true, color: PlayerColor.yellow),
+      Player(id: 'player1', name: 'Player 1', color: PlayerColor.red, pieces: []),
+      Player(id: 'player2', name: 'Player 2', isAI: true, color: PlayerColor.green, pieces: []),
+      Player(id: 'player3', name: 'Player 3', color: PlayerColor.blue, pieces: []),
+      Player(id: 'player4', name: 'Player 4', isAI: true, color: PlayerColor.yellow, pieces: []),
     ];
 
     final pieces = {
@@ -33,7 +33,6 @@ void main() {
           startIndices: startIndices,
           players: players,
           currentTurnPlayerId: PlayerColor.red,
-          pieces: pieces,
         );
         expect(gameState.isSafeField(0), isTrue);
         expect(gameState.isSafeField(10), isTrue);
@@ -46,7 +45,6 @@ void main() {
           startIndices: startIndices,
           players: players,
           currentTurnPlayerId: PlayerColor.red,
-          pieces: pieces,
         );
         expect(gameState.isSafeField(1), isFalse);
         expect(gameState.isSafeField(11), isFalse);
@@ -56,8 +54,8 @@ void main() {
     group('copy', () {
       test('should copy all fields correctly', () {
         final testPlayers = [
-          Player(id: 'player1', name: 'Player 1', color: PlayerColor.red),
-          Player(id: 'player2', name: 'Player 2', isAI: true, color: PlayerColor.green),
+          Player(id: 'player1', name: 'Player 1', color: PlayerColor.red, pieces: []),
+          Player(id: 'player2', name: 'Player 2', isAI: true, color: PlayerColor.green, pieces: []),
         ];
         final originalState = GameState(
           startIndices: startIndices,
@@ -65,7 +63,6 @@ void main() {
           currentTurnPlayerId: PlayerColor.red,
           lastDiceValue: 6,
           winnerId: PlayerColor.green,
-          pieces: pieces,
         );
         final copiedState = originalState.copy();
 
@@ -83,21 +80,20 @@ void main() {
 
       test('modifications to copied state should not affect original state', () {
         final testPlayersForModification = [
-          Player(id: 'player1', name: 'Player 1', color: PlayerColor.red),
-          Player(id: 'player2', name: 'Player 2', isAI: true, color: PlayerColor.green),
+          Player(id: 'player1', name: 'Player 1', color: PlayerColor.red, pieces: []),
+          Player(id: 'player2', name: 'Player 2', isAI: true, color: PlayerColor.green, pieces: []),
         ];
         final originalState = GameState(
           startIndices: startIndices,
           players: testPlayersForModification,
           currentTurnPlayerId: PlayerColor.red,
-          pieces: pieces,
         );
         final copiedState = originalState.copy();
 
         final player1Copied = copiedState.players.firstWhere((p) => p.id == 'player1');
         
         if (copiedState.players.length > 1) { 
-          copiedState.players[0] = Player(id: 'newPlayer', name: 'New Player', color: PlayerColor.red); 
+          copiedState.players[0] = Player(id: 'newPlayer', name: 'New Player', color: PlayerColor.red, pieces: []); 
            expect(originalState.players[0].id, 'player1'); 
         }
        
@@ -122,7 +118,6 @@ void main() {
           startIndices: startIndices,
           players: players,
           currentTurnPlayerId: PlayerColor.green,
-          pieces: pieces,
         );
         expect(gameState.currentPlayer.id, 'player2');
         expect(gameState.currentPlayer.name, 'Player 2');
@@ -133,7 +128,6 @@ void main() {
           startIndices: startIndices,
           players: players,
           currentTurnPlayerId: PlayerColor.green, 
-          pieces: pieces,
         );
         expect(gameState.isCurrentPlayerAI, isTrue);
       });
@@ -143,7 +137,6 @@ void main() {
           startIndices: startIndices,
           players: players,
           currentTurnPlayerId: PlayerColor.red, 
-          pieces: pieces,
         );
         expect(gameState.isCurrentPlayerAI, isFalse);
       });
@@ -154,7 +147,6 @@ void main() {
           players: players,
           currentTurnPlayerId: PlayerColor.red,
           winnerId: PlayerColor.yellow,
-          pieces: pieces,
         );
         expect(gameState.winner?.id, 'player4');
         expect(gameState.winner?.name, 'Player 4');
@@ -165,7 +157,6 @@ void main() {
           startIndices: startIndices,
           players: players,
           currentTurnPlayerId: PlayerColor.red,
-          pieces: pieces,
         );
         expect(gameState.winner, isNull);
       });
@@ -176,7 +167,6 @@ void main() {
           players: players,
           currentTurnPlayerId: PlayerColor.red,
           winnerId: PlayerColor.blue,
-          pieces: pieces,
         );
         expect(gameState.isGameOver, isTrue);
       });
@@ -186,7 +176,6 @@ void main() {
           startIndices: startIndices,
           players: players,
           currentTurnPlayerId: PlayerColor.red,
-          pieces: pieces,
         );
         expect(gameState.isGameOver, isFalse);
       });

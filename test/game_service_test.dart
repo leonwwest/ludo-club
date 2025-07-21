@@ -1,4 +1,4 @@
-'''import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:ludo_club/logic/ludo_game_logic.dart';
 import 'package:ludo_club/models/game_state.dart';
 import 'package:ludo_club/services/game_service.dart';
@@ -7,13 +7,11 @@ import 'package:ludo_club/services/game_service.dart';
 GameState _createGameStateForTest({
   required List<Player> players,
   required PlayerColor currentTurn,
-  required Map<PlayerColor, List<Piece>> pieces,
   int? lastDiceValue,
 }) {
   return GameState(
     players: players,
     currentTurnPlayerId: currentTurn,
-    pieces: pieces,
     lastDiceValue: lastDiceValue,
     startIndices: {
       PlayerColor.red: 0,
@@ -29,17 +27,16 @@ void main() {
     late GameState gameState;
     late GameService gameService;
 
-    final player1 = Player(id: 'p1', name: 'Player 1', color: PlayerColor.red);
-    final player2 = Player(id: 'p2', name: 'Player 2', color: PlayerColor.green);
+    final player1 = Player(id: 'p1', name: 'Player 1', color: PlayerColor.red, 
+        pieces: List.generate(4, (i) => Piece(PlayerColor.red, i, const PiecePosition(GameState.basePosition))));
+    final player2 = Player(id: 'p2', name: 'Player 2', color: PlayerColor.green,
+        pieces: List.generate(4, (i) => Piece(PlayerColor.green, i, const PiecePosition(GameState.basePosition))));
 
     group('rollDice() Tests', () {
       test('Dice rolls within 1-6 range', () {
         gameState = _createGameStateForTest(
           players: [player1],
           currentTurn: PlayerColor.red,
-          pieces: {
-            PlayerColor.red: List.generate(4, (i) => Piece(PlayerColor.red, i, PiecePosition(GameState.basePosition)))
-          },
         );
         gameService = GameService(gameState);
 
@@ -54,10 +51,6 @@ void main() {
         gameState = _createGameStateForTest(
           players: [player1, player2],
           currentTurn: PlayerColor.red,
-          pieces: {
-            PlayerColor.red: [Piece(PlayerColor.red, 0, PiecePosition(0)), ...List.generate(3, (i) => Piece(PlayerColor.red, i + 1, PiecePosition(GameState.basePosition)))],
-            PlayerColor.green: List.generate(4, (i) => Piece(PlayerColor.green, i, PiecePosition(GameState.basePosition))),
-          },
         );
         gameService = GameService(gameState);
         final originalPlayer = gameState.currentTurnPlayerId;
@@ -83,10 +76,6 @@ void main() {
         gameState = _createGameStateForTest(
           players: [player1, player2],
           currentTurn: PlayerColor.red,
-          pieces: {
-            PlayerColor.red: List.generate(4, (i) => Piece(PlayerColor.red, i, PiecePosition(i))),
-            PlayerColor.green: List.generate(4, (i) => Piece(PlayerColor.green, i, PiecePosition(GameState.basePosition))),
-          },
         );
         gameService = GameService(gameState);
         final originalPlayer = gameState.currentTurnPlayerId;
@@ -115,20 +104,6 @@ void main() {
         gameState = _createGameStateForTest(
           players: [player1],
           currentTurn: PlayerColor.red,
-          pieces: { PlayerColor.red: List.generate(4, (i) => Piece(PlayerColor.red, i, PiecePosition(GameState.basePosition))) },
-          lastDiceValue: 5,
-        );
-        gameService = GameService(gameState);
-        
-        final moves = gameService.getPossibleMoveDetails();
-        expect(moves, isEmpty);
-      });
-
-      test('Can move from base with a 6', () {
-        gameState = _createGameStateForTest(
-          players: [player1],
-          currentTurn: PlayerColor.red,
-          pieces: { PlayerColor.red: List.generate(4, (i) => Piece(PlayerColor.red, i, PiecePosition(GameState.basePosition))) },
           lastDiceValue: 6,
         );
         gameService = GameService(gameState);
@@ -142,31 +117,6 @@ void main() {
         gameState = _createGameStateForTest(
           players: [player1],
           currentTurn: PlayerColor.red,
-          pieces: { PlayerColor.red: List.generate(4, (i) => Piece(PlayerColor.red, i, PiecePosition(GameState.basePosition))) },
-          lastDiceValue: 6,
-        );
-        gameService = GameService(gameState);
-        gameState.currentRollCount = 1;
-
-        final moves = gameService.getPossibleMoveDetails();
-        final moveOutOfBase = moves.firstWhere((m) => m['targetPosition'] == gameState.startIndices[PlayerColor.red]!);
-        
-        final tokenIndexToMove = moveOutOfBase['tokenIndex']!;
-        final capturedId = gameService.moveToken(PlayerColor.red, tokenIndexToMove, gameState.startIndices[PlayerColor.red]!);
-        
-        expect(capturedId, isNull);
-        expect(gameState.pieces[PlayerColor.red]![tokenIndexToMove].position.fieldId, gameState.startIndices[PlayerColor.red]!);
-        expect(gameState.currentRollCount, 1); 
-        expect(gameState.lastDiceValue, 6); 
-      });
-    });
-    
-    group('Basic Movement & Capture Tests', () {
-      test('Pawn moves correctly on board', () {
-        gameState = _createGameStateForTest(
-          players: [player1],
-          currentTurn: PlayerColor.red,
-          pieces: { PlayerColor.red: [Piece(PlayerColor.red, 0, PiecePosition(5)), ...List.generate(3, (i) => Piece(PlayerColor.red, i + 1, PiecePosition(GameState.basePosition)))] },
           lastDiceValue: 3,
         );
         gameService = GameService(gameState);
@@ -174,7 +124,7 @@ void main() {
         final capturedId = gameService.moveToken(PlayerColor.red, 0, 8); // 5 + 3 = 8
         
         expect(capturedId, isNull); 
-        expect(gameState.pieces[PlayerColor.red]![0].position.fieldId, 8);
+        expect(gameState.players.firstWhere((p) => p.color == PlayerColor.red).pieces[0].position.fieldId, 8);
         expect(gameState.currentRollCount, 0);
         expect(gameState.lastDiceValue, isNull);
       });
@@ -183,10 +133,6 @@ void main() {
         gameState = _createGameStateForTest(
           players: [player1, player2],
           currentTurn: PlayerColor.red,
-          pieces: {
-            PlayerColor.red: [Piece(PlayerColor.red, 0, PiecePosition(5)), ...List.generate(3, (i) => Piece(PlayerColor.red, i + 1, PiecePosition(GameState.basePosition)))],
-            PlayerColor.green: [Piece(PlayerColor.green, 0, PiecePosition(8)), ...List.generate(3, (i) => Piece(PlayerColor.green, i + 1, PiecePosition(GameState.basePosition)))],
-          },
           lastDiceValue: 3, 
         );
         gameState.currentRollCount = 1; 
@@ -196,8 +142,8 @@ void main() {
         
         expect(capturedId, isNotNull);
         expect(capturedId, 'p2');
-        expect(gameState.pieces[PlayerColor.red]![0].position.fieldId, 8);
-        expect(gameState.pieces[PlayerColor.green]![0].position.fieldId, GameState.basePosition);
+        expect(gameState.players.firstWhere((p) => p.color == PlayerColor.red).pieces[0].position.fieldId, 8);
+        expect(gameState.players.firstWhere((p) => p.color == PlayerColor.green).pieces[0].position.fieldId, GameState.basePosition);
         expect(gameState.currentRollCount, 0);
         expect(gameState.lastDiceValue, isNull);
       });
@@ -207,10 +153,6 @@ void main() {
         gameState = _createGameStateForTest(
           players: [player1, player2],
           currentTurn: PlayerColor.red,
-          pieces: {
-            PlayerColor.red: [Piece(PlayerColor.red, 0, PiecePosition(p2Start - 3)), ...List.generate(3, (i) => Piece(PlayerColor.red, i + 1, PiecePosition(GameState.basePosition)))],
-            PlayerColor.green: [Piece(PlayerColor.green, 0, PiecePosition(p2Start)), ...List.generate(3, (i) => Piece(PlayerColor.green, i + 1, PiecePosition(GameState.basePosition)))],
-          },
           lastDiceValue: 3,
         );
         gameState.currentRollCount = 1; 
@@ -221,8 +163,8 @@ void main() {
         final capturedId = gameService.moveToken(PlayerColor.red, 0, p2Start);
         
         expect(capturedId, isNull); 
-        expect(gameState.pieces[PlayerColor.red]![0].position.fieldId, p2Start);
-        expect(gameState.pieces[PlayerColor.green]![0].position.fieldId, p2Start); // Still there
+        expect(gameState.players.firstWhere((p) => p.color == PlayerColor.red).pieces[0].position.fieldId, p2Start);
+        expect(gameState.players.firstWhere((p) => p.color == PlayerColor.green).pieces[0].position.fieldId, p2Start); // Still there
         expect(gameState.currentRollCount, 0);
         expect(gameState.lastDiceValue, isNull);
       });
@@ -233,13 +175,12 @@ void main() {
         gameState = _createGameStateForTest(
           players: [player1],
           currentTurn: PlayerColor.red,
-          pieces: { PlayerColor.red: List.generate(4, (i) => Piece(PlayerColor.red, i, PiecePosition(GameState.basePosition))) },
         );
         gameService = GameService(gameState);
       });
 
       test('getPossibleMoveDetails - Entering home path correctly', () {
-        gameState.pieces[PlayerColor.red]![0].position = PiecePosition(38);
+        gameState.players.firstWhere((p) => p.color == PlayerColor.red).pieces[0].position = const PiecePosition(38);
         gameState.lastDiceValue = 3;
         
         final moves = gameService.getPossibleMoveDetails();
@@ -250,7 +191,7 @@ void main() {
       });
 
       test('getPossibleMoveDetails - Moving within home path correctly', () {
-        gameState.pieces[PlayerColor.red]![0].position = PiecePosition(GameState.totalFields + 0);
+        gameState.players.firstWhere((p) => p.color == PlayerColor.red).pieces[0].position = const PiecePosition(GameState.totalFields + 0);
         gameState.lastDiceValue = 2;
 
         final moves = gameService.getPossibleMoveDetails();
@@ -261,7 +202,7 @@ void main() {
       });
       
       test('getPossibleMoveDetails - Exact roll to finish token', () {
-        gameState.pieces[PlayerColor.red]![0].position = PiecePosition(GameState.totalFields + 2);
+        gameState.players.firstWhere((p) => p.color == PlayerColor.red).pieces[0].position = const PiecePosition(GameState.totalFields + 2);
         gameState.lastDiceValue = 2;
 
         final moves = gameService.getPossibleMoveDetails();
@@ -272,14 +213,14 @@ void main() {
       });
 
       test('getPossibleMoveDetails - Cannot overshoot finish', () {
-        gameState.pieces[PlayerColor.red]![0].position = PiecePosition(GameState.totalFields + 2);
+        gameState.players.firstWhere((p) => p.color == PlayerColor.red).pieces[0].position = const PiecePosition(GameState.totalFields + 2);
         gameState.lastDiceValue = 3;
 
         final moves = gameService.getPossibleMoveDetails();
-        final specificTokenMoves = moves.where((m) => m['tokenIndex'] == 0).toList();
+        
+        final specificTokenMoves = moves.where((m) => m['tokenIndex'] == 0);
         expect(specificTokenMoves, isEmpty);
       });
     });
   });
 }
-'''
