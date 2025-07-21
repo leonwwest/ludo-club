@@ -5,7 +5,6 @@ import 'package:ludo_club/models/game_state.dart';
 import 'package:ludo_club/ui/game_screen.dart';
 import 'package:ludo_club/ui/saved_games_screen.dart';
 import 'package:ludo_club/ui/player_stats_screen.dart';
-import 'package:ludo_club/models/game_state.dart';
 import 'package:ludo_club/logic/ludo_game_logic.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -219,6 +218,7 @@ class _HomeScreenState extends State<HomeScreen> {
             : 'Player ${i + 1}',
         isAI: i > 0 && _isAI[i],
         color: PlayerColor.values[i],
+        pieces: List.generate(4, (j) => Piece(PlayerColor.values[i], j, const PiecePosition(GameState.basePosition))),
       ));
     }
 

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 
 class AudioService {
@@ -36,7 +37,7 @@ class AudioService {
 
       _setVolumeForAllPlayers();
     } catch (e) {
-      print('Error loading sound effects: $e');
+      debugPrint('Error loading sound effects: $e');
     }
   }
 
@@ -68,7 +69,7 @@ class AudioService {
       await _dicePlayer.seek(Duration.zero);
       await _dicePlayer.play();
     } catch (e) {
-      print('Error playing dice sound: $e');
+      debugPrint('Error playing dice sound: $e');
     }
   }
 
@@ -79,7 +80,7 @@ class AudioService {
       await _movePlayer.seek(Duration.zero);
       await _movePlayer.play();
     } catch (e) {
-      print('Error playing move sound: $e');
+      debugPrint('Error playing move sound: $e');
     }
   }
 
@@ -90,7 +91,7 @@ class AudioService {
       await _capturePlayer.seek(Duration.zero);
       await _capturePlayer.play();
     } catch (e) {
-      print('Error playing capture sound: $e');
+      debugPrint('Error playing capture sound: $e');
     }
   }
 
@@ -101,7 +102,7 @@ class AudioService {
       await _finishPlayer.seek(Duration.zero);
       await _finishPlayer.play();
     } catch (e) {
-      print('Error playing finish sound: $e');
+      debugPrint('Error playing finish sound: $e');
     }
   }
 
@@ -112,7 +113,7 @@ class AudioService {
       await _victoryPlayer.seek(Duration.zero);
       await _victoryPlayer.play();
     } catch (e) {
-      print('Error playing victory sound: $e');
+      debugPrint('Error playing victory sound: $e');
     }
   }
 

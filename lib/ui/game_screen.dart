@@ -22,23 +22,19 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late AnimationController _pawnAnimationController;
   late Animation<Offset> _pawnAnimation;
   Piece? _animatingPiece;
-  PlayerColor? _animatingPlayerColor;
   Offset? _animationCurrentOffset;
-  PlayerColor? _actualPlayerColorForMove;
-  int? _actualTargetLogicalPosition;
 
   late AnimationController _captureAnimationController;
   late Animation<double> _captureSparkleAnimation;
   Offset? _captureEffectScreenPosition;
   bool _isCaptureAnimating = false;
-  Color _effectColor = Colors.orangeAccent;
+  final Color _effectColor = Colors.orangeAccent;
 
   late AnimationController _reachedHomeAnimationController;
   late Animation<double> _reachedHomeShineAnimation;
   Offset? _reachedHomeEffectScreenPosition;
   bool _isReachedHomeAnimating = false;
-  PlayerColor? _reachedHomeAnimatingPlayerColor;
-  int? _reachedHomeAnimatingPieceId;
+
   Color _reachedHomeEffectColor = Colors.amber;
 
   @override
@@ -83,10 +79,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         }
         setState(() {
           _animatingPiece = null;
-          _animatingPlayerColor = null;
           _animationCurrentOffset = null;
-          _actualPlayerColorForMove = null;
-          _actualTargetLogicalPosition = null;
           if (gameProvider.isAnimating) {
             gameProvider.isAnimating = false;
           }
@@ -96,10 +89,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         final gameProvider = Provider.of<GameProvider>(context, listen: false);
         setState(() {
           _animatingPiece = null;
-          _animatingPlayerColor = null;
           _animationCurrentOffset = null;
-          _actualPlayerColorForMove = null;
-          _actualTargetLogicalPosition = null;
           if (gameProvider.isAnimating) {
             gameProvider.isAnimating = false;
           }
@@ -156,8 +146,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         setState(() {
           _isReachedHomeAnimating = false;
           _reachedHomeEffectScreenPosition = null;
-          _reachedHomeAnimatingPlayerColor = null;
-          _reachedHomeAnimatingPieceId = null;
         });
         Provider.of<GameProvider>(context, listen: false)
             .clearReachedHomeEffect();
@@ -165,8 +153,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         setState(() {
           _isReachedHomeAnimating = false;
           _reachedHomeEffectScreenPosition = null;
-          _reachedHomeAnimatingPlayerColor = null;
-          _reachedHomeAnimatingPieceId = null;
         });
         Provider.of<GameProvider>(context, listen: false)
             .clearReachedHomeEffect();
@@ -183,22 +169,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  void _startCaptureAnimation(
-      GameProvider gameProvider, int boardIndex, double boardSize) {
-    _effectColor = Colors.orangeAccent;
-    if (gameProvider.captureEffectBoardIndex != null) {}
-  }
 
-  void _startReachedHomeAnimation(GameProvider gameProvider,
-      PlayerColor playerColor, int pieceId, double boardSize) {
-    _reachedHomeEffectColor = _getDisplayColorForPlayer(playerColor);
-    setState(() {
-      _isReachedHomeAnimating = true;
-      _reachedHomeAnimatingPlayerColor = playerColor;
-      _reachedHomeAnimatingPieceId = pieceId;
-    });
-    _reachedHomeAnimationController.forward(from: 0.0);
-  }
+
+
 
   Color _getDisplayColorForPlayer(PlayerColor playerColor) {
     switch (playerColor) {
@@ -467,7 +440,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             Piece finishedPieceForEffect = Piece(
                 gameProvider.reachedHomePlayerId!,
                 gameProvider.reachedHomeTokenIndex!,
-                PiecePosition(0, isHome: false),
+                const PiecePosition(0, isHome: false),
                 isSafe: true);
             _reachedHomeEffectScreenPosition = _getOffsetForLogicalPosition(
                 finishedPieceForEffect, boardSize, gameProvider);
@@ -476,10 +449,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             if (_reachedHomeEffectScreenPosition != null) {
               setState(() {
                 _isReachedHomeAnimating = true;
-                _reachedHomeAnimatingPlayerColor =
-                    gameProvider.reachedHomePlayerId;
-                _reachedHomeAnimatingPieceId =
-                    gameProvider.reachedHomeTokenIndex;
+
               });
               _reachedHomeAnimationController.forward(from: 0.0);
             }
@@ -720,11 +690,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       if (piece.position.fieldId == targetLogicalPosition) {}
     }
 
-    _actualPlayerColorForMove = piece.color;
-    _actualTargetLogicalPosition = targetLogicalPosition;
-
     _animatingPiece = piece;
-    _animatingPlayerColor = piece.color;
     _animationCurrentOffset = startOffset;
 
     _pawnAnimation = Tween<Offset>(begin: startOffset, end: endOffset).animate(
@@ -754,8 +720,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   Offset _calculateBasePosition(
       PlayerColor playerColor, int pieceId, double boardSize, double fieldSize) {
-    double baseX = 0, baseY = 0;
-
     Map<PlayerColor, Offset> playerCornerOffsets = {
       PlayerColor.green: Offset(0 * fieldSize, 0 * fieldSize),
       PlayerColor.yellow: Offset(9 * fieldSize, 0 * fieldSize),
@@ -763,7 +727,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       PlayerColor.blue: Offset(9 * fieldSize, 9 * fieldSize),
     };
 
-    Offset cornerOffset = playerCornerOffsets[playerColor] ?? Offset(0, 0);
+    Offset cornerOffset = playerCornerOffsets[playerColor] ?? const Offset(0, 0);
 
     List<Offset> pieceRelativeOffsets = [
       Offset(cornerOffset.dx + 2.0 * fieldSize,
@@ -808,26 +772,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     }
   }
 
-  Offset _calculateHomePathPosition(PlayerColor playerColor, int homePathIndex,
-      double boardSize, double fieldSize) {
-    Map<PlayerColor, List<Offset>> homePathCoords = {
-      PlayerColor.green: List.generate(
-          5, (i) => Offset(7.5 * fieldSize, (1.5 + i) * fieldSize)),
-      PlayerColor.yellow: List.generate(
-          5, (i) => Offset((9.5 + i) * fieldSize, 7.5 * fieldSize)),
-      PlayerColor.red: List.generate(
-          5, (i) => Offset(7.5 * fieldSize, (13.5 - i) * fieldSize)),
-      PlayerColor.blue: List.generate(
-          5, (i) => Offset((5.5 - i) * fieldSize, 7.5 * fieldSize)),
-    };
 
-    if (homePathCoords.containsKey(playerColor) &&
-        homePathIndex >= 0 &&
-        homePathIndex < homePathCoords[playerColor]!.length) {
-      return homePathCoords[playerColor]![homePathIndex];
-    }
-    return Offset(boardSize / 2, boardSize / 2);
-  }
 
   Offset _calculateMainBoardPosition(int boardIndex, double boardSize,
       double fieldSize, PlayerColor forPlayerColorIfAmbiguous) {
@@ -880,9 +825,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     pathMapping[202] = [13, 7];
     pathMapping[203] = [7, 13];
 
-    double angle = (boardIndex / 40.0) * 2 * math.pi;
-    double radius = boardSize * 0.4;
-    Offset center = Offset(boardSize / 2, boardSize / 2);
     if (pathMapping.containsKey(boardIndex)) {
       final pos = pathMapping[boardIndex]!;
       return Offset(pos[0] * cellSize + cellSize / 2,
@@ -898,88 +840,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _diceAnimationController.reset();
     _diceAnimationController.forward();
 
-    final result = await gameProvider.rollDice();
+    await gameProvider.rollDice();
   }
 
-  Future<void> _initiatePawnAnimation(
-      GameProvider gameProvider, Piece pieceToMove, double boardSize) async {
-    if (gameProvider.isAnimating) return;
 
-    _actualPlayerColorForMove = pieceToMove.color;
-
-    int targetFieldIdDisplay = pieceToMove.position.fieldId;
-    bool targetIsSafeDisplay = pieceToMove.isSafe;
-    bool targetIsHomeDisplay = pieceToMove.position.isHome;
-    int dice = gameProvider.currentDiceValue;
-
-    if (!pieceToMove.position.isHome) {
-      targetFieldIdDisplay = pieceToMove.position.fieldId + dice;
-
-      const int displayMainPathLength = 40;
-      const int displayHomeLength = 4;
-
-      if (pieceToMove.position.fieldId < displayMainPathLength &&
-          targetFieldIdDisplay >= displayMainPathLength) {
-        int stepsIntoHome = targetFieldIdDisplay - displayMainPathLength;
-        if (stepsIntoHome >= displayHomeLength) {
-          targetFieldIdDisplay = displayHomeLength - 1;
-          targetIsSafeDisplay = true;
-        } else {
-          targetFieldIdDisplay = stepsIntoHome;
-        }
-        targetIsHomeDisplay = false;
-      } else if (pieceToMove.position.fieldId >= displayMainPathLength &&
-          pieceToMove.position.fieldId <
-              (displayMainPathLength + displayHomeLength)) {
-        if (targetFieldIdDisplay >=
-            displayMainPathLength + displayHomeLength) {
-          targetFieldIdDisplay = displayHomeLength - 1;
-          targetIsSafeDisplay = true;
-        } else {
-          targetFieldIdDisplay = targetFieldIdDisplay - displayMainPathLength;
-        }
-        targetIsHomeDisplay = false;
-      } else {
-        targetFieldIdDisplay = targetFieldIdDisplay % displayMainPathLength;
-        targetIsHomeDisplay = false;
-      }
-    } else {
-      targetFieldIdDisplay = 0;
-      targetIsHomeDisplay = false;
-    }
-
-    PiecePosition targetAnimPosition =
-        PiecePosition(targetFieldIdDisplay, isHome: targetIsHomeDisplay);
-    if (targetIsSafeDisplay) {
-      targetAnimPosition = PiecePosition(targetFieldIdDisplay, isHome: false);
-    }
-
-    Piece targetPieceStateForAnimation = Piece(
-        pieceToMove.color, pieceToMove.id, targetAnimPosition,
-        isSafe: targetIsSafeDisplay);
-
-    setState(() {
-      gameProvider.isAnimating = true;
-      _animatingPiece = pieceToMove;
-      _animatingPlayerColor = pieceToMove.color;
-
-      Offset startOffset =
-          _getOffsetForLogicalPosition(pieceToMove, boardSize, gameProvider);
-      Offset endOffset = _getOffsetForLogicalPosition(
-          targetPieceStateForAnimation, boardSize, gameProvider);
-
-      _pawnAnimation = Tween<Offset>(
-        begin: startOffset,
-        end: endOffset,
-      ).animate(CurvedAnimation(
-        parent: _pawnAnimationController,
-        curve: Curves.easeInOut,
-      ));
-      _animationCurrentOffset = startOffset;
-    });
-
-    _pawnAnimationController.forward(from: 0.0);
-  }
 
   void _showWinnerDialog(GameProvider gameProvider, PlayerColor winnerColor) {
     final displayPlayerColor = _getDisplayColorForPlayer(winnerColor);
@@ -1072,7 +936,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                       id: p.id,
                       name: p.name,
                       isAI: p.isAI,
-                      color: p.color);
+                      color: p.color,
+                      pieces: p.pieces);
                 }).toList());
 
                 setState(() {
@@ -1553,7 +1418,6 @@ class PiecePainter extends CustomPainter {
     final height = size.height;
     final width = size.width;
     final pieceWidth = width * 0.8;
-    final pieceHeight = height * 0.8;
 
     final paint = Paint()
       ..color = color

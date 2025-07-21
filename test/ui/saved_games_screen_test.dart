@@ -1,4 +1,4 @@
-'''import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ludo_club/logic/ludo_game_logic.dart';
 import 'package:ludo_club/models/game_state.dart';
@@ -84,7 +84,6 @@ void main() {
       final gameState = GameState(
         players: [Player(id: 'p1', name: 'Player 1', color: PlayerColor.red)],
         currentTurnPlayerId: PlayerColor.red,
-        pieces: {},
         startIndices: {},
       );
       when(mockSaveLoadService.getSavedGames()).thenAnswer((_) async => [
@@ -143,4 +142,3 @@ void main() {
     });
   });
 }
-'''
