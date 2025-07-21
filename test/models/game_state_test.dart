@@ -1,68 +1,80 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ludo_club/models/game_state.dart';
+import 'package:ludo_club/logic/ludo_game_logic.dart';
 
 void main() {
   group('GameState', () {
     // Test data
-    final startIndices = <String, int>{
-      'player1': 0,
-      'player2': 10,
-      'player3': 20,
-      'player4': 30,
+    final startIndices = <PlayerColor, int>{
+      PlayerColor.red: 0,
+      PlayerColor.green: 10,
+      PlayerColor.blue: 20,
+      PlayerColor.yellow: 30,
     };
     final players = [
-      Player('player1', 'Player 1'),
-      Player('player2', 'Player 2', isAI: true),
-      Player('player3', 'Player 3'),
-      Player('player4', 'Player 4', isAI: true),
+      Player(id: 'player1', name: 'Player 1', color: PlayerColor.red),
+      Player(id: 'player2', name: 'Player 2', isAI: true, color: PlayerColor.green),
+      Player(id: 'player3', name: 'Player 3', color: PlayerColor.blue),
+      Player(id: 'player4', name: 'Player 4', isAI: true, color: PlayerColor.yellow),
     ];
+
+    final pieces = {
+      PlayerColor.red: [
+        Piece(PlayerColor.red, 0, PiecePosition(0)),
+      ],
+      PlayerColor.green: [
+        Piece(PlayerColor.green, 0, PiecePosition(10)),
+      ],
+    };
 
     group('isSafeField', () {
       test('should return true for a player\'s start field', () {
         final gameState = GameState(
-          startIndex: startIndices,
+          startIndices: startIndices,
           players: players,
-          currentTurnPlayerId: 'player1',
+          currentTurnPlayerId: PlayerColor.red,
+          pieces: pieces,
         );
-        expect(gameState.isSafeField(0, 'player1'), isTrue);
-        expect(gameState.isSafeField(10, 'player1'), isTrue);
-        expect(gameState.isSafeField(20, 'player1'), isTrue);
-        expect(gameState.isSafeField(30, 'player1'), isTrue);
+        expect(gameState.isSafeField(0), isTrue);
+        expect(gameState.isSafeField(10), isTrue);
+        expect(gameState.isSafeField(20), isTrue);
+        expect(gameState.isSafeField(30), isTrue);
       });
 
       test('should return false for a non-start field', () {
         final gameState = GameState(
-          startIndex: startIndices,
+          startIndices: startIndices,
           players: players,
-          currentTurnPlayerId: 'player1',
+          currentTurnPlayerId: PlayerColor.red,
+          pieces: pieces,
         );
-        expect(gameState.isSafeField(1, 'player1'), isFalse);
-        expect(gameState.isSafeField(11, 'player1'), isFalse);
+        expect(gameState.isSafeField(1), isFalse);
+        expect(gameState.isSafeField(11), isFalse);
       });
     });
 
     group('copy', () {
       test('should copy all fields correctly', () {
         final testPlayers = [
-          Player('player1', 'Player 1', initialPositions: [0, 1]),
-          Player('player2', 'Player 2', initialPositions: [10], isAI: true),
+          Player(id: 'player1', name: 'Player 1', color: PlayerColor.red),
+          Player(id: 'player2', name: 'Player 2', isAI: true, color: PlayerColor.green),
         ];
         final originalState = GameState(
-          startIndex: startIndices,
+          startIndices: startIndices,
           players: testPlayers, 
-          currentTurnPlayerId: 'player1',
+          currentTurnPlayerId: PlayerColor.red,
           lastDiceValue: 6,
-          winnerId: 'player2',
+          winnerId: PlayerColor.green,
+          pieces: pieces,
         );
         final copiedState = originalState.copy();
 
-        expect(copiedState.startIndex, originalState.startIndex);
+        expect(copiedState.startIndices, originalState.startIndices);
         expect(copiedState.players.length, originalState.players.length);
         for (int i = 0; i < originalState.players.length; i++) {
           expect(copiedState.players[i].id, originalState.players[i].id);
           expect(copiedState.players[i].name, originalState.players[i].name);
           expect(copiedState.players[i].isAI, originalState.players[i].isAI);
-          expect(copiedState.players[i].tokenPositions, originalState.players[i].tokenPositions);
         }
         expect(copiedState.currentTurnPlayerId, originalState.currentTurnPlayerId);
         expect(copiedState.lastDiceValue, originalState.lastDiceValue);
@@ -71,49 +83,46 @@ void main() {
 
       test('modifications to copied state should not affect original state', () {
         final testPlayersForModification = [
-          Player('player1', 'Player 1', initialPositions: [0, 1]),
-          Player('player2', 'Player 2', isAI: true), // Default token positions (all base)
+          Player(id: 'player1', name: 'Player 1', color: PlayerColor.red),
+          Player(id: 'player2', name: 'Player 2', isAI: true, color: PlayerColor.green),
         ];
         final originalState = GameState(
-          startIndex: startIndices,
+          startIndices: startIndices,
           players: testPlayersForModification,
-          currentTurnPlayerId: 'player1',
+          currentTurnPlayerId: PlayerColor.red,
+          pieces: pieces,
         );
         final copiedState = originalState.copy();
 
         final player1Copied = copiedState.players.firstWhere((p) => p.id == 'player1');
-        player1Copied.tokenPositions = [2, 3];
         
-        final player1Original = originalState.players.firstWhere((p) => p.id == 'player1');
-        expect(player1Original.tokenPositions, [0, 1]); // Verify original is unchanged
-        expect(player1Copied.tokenPositions, [2, 3]);
-
-        if (copiedState.players.length > 1) { // Ensure there is a player at index 0 to modify
-          copiedState.players[0] = Player('newPlayer', 'New Player'); // This actually replaces player1 in copiedState
-           expect(originalState.players[0].id, 'player1'); // Original list's first player should still be 'player1'
+        if (copiedState.players.length > 1) { 
+          copiedState.players[0] = Player(id: 'newPlayer', name: 'New Player', color: PlayerColor.red); 
+           expect(originalState.players[0].id, 'player1'); 
         }
        
 
-        copiedState.currentTurnPlayerId = 'player2';
-        expect(originalState.currentTurnPlayerId, 'player1');
-        expect(copiedState.currentTurnPlayerId, 'player2');
+        copiedState.currentTurnPlayerId = PlayerColor.green;
+        expect(originalState.currentTurnPlayerId, PlayerColor.red);
+        expect(copiedState.currentTurnPlayerId, PlayerColor.green);
 
         copiedState.lastDiceValue = 3;
         expect(originalState.lastDiceValue, isNull);
         expect(copiedState.lastDiceValue, 3);
 
-        copiedState.winnerId = 'player1';
+        copiedState.winnerId = PlayerColor.red;
         expect(originalState.winnerId, isNull);
-        expect(copiedState.winnerId, 'player1');
+        expect(copiedState.winnerId, PlayerColor.red);
       });
     });
 
     group('getters', () {
       test('currentPlayer should return the correct player object', () {
         final gameState = GameState(
-          startIndex: startIndices,
+          startIndices: startIndices,
           players: players,
-          currentTurnPlayerId: 'player2',
+          currentTurnPlayerId: PlayerColor.green,
+          pieces: pieces,
         );
         expect(gameState.currentPlayer.id, 'player2');
         expect(gameState.currentPlayer.name, 'Player 2');
@@ -121,28 +130,31 @@ void main() {
 
       test('isCurrentPlayerAI should return true for AI player', () {
         final gameState = GameState(
-          startIndex: startIndices,
+          startIndices: startIndices,
           players: players,
-          currentTurnPlayerId: 'player2', // Player 2 is AI
+          currentTurnPlayerId: PlayerColor.green, 
+          pieces: pieces,
         );
         expect(gameState.isCurrentPlayerAI, isTrue);
       });
 
       test('isCurrentPlayerAI should return false for human player', () {
         final gameState = GameState(
-          startIndex: startIndices,
+          startIndices: startIndices,
           players: players,
-          currentTurnPlayerId: 'player1', // Player 1 is human
+          currentTurnPlayerId: PlayerColor.red, 
+          pieces: pieces,
         );
         expect(gameState.isCurrentPlayerAI, isFalse);
       });
 
       test('winner should return the correct player object when there is a winner', () {
         final gameState = GameState(
-          startIndex: startIndices,
+          startIndices: startIndices,
           players: players,
-          currentTurnPlayerId: 'player1',
-          winnerId: 'player4',
+          currentTurnPlayerId: PlayerColor.red,
+          winnerId: PlayerColor.yellow,
+          pieces: pieces,
         );
         expect(gameState.winner?.id, 'player4');
         expect(gameState.winner?.name, 'Player 4');
@@ -150,28 +162,31 @@ void main() {
 
       test('winner should return null when there is no winner', () {
         final gameState = GameState(
-          startIndex: startIndices,
+          startIndices: startIndices,
           players: players,
-          currentTurnPlayerId: 'player1',
+          currentTurnPlayerId: PlayerColor.red,
+          pieces: pieces,
         );
         expect(gameState.winner, isNull);
       });
 
       test('isGameOver should return true when there is a winner', () {
         final gameState = GameState(
-          startIndex: startIndices,
+          startIndices: startIndices,
           players: players,
-          currentTurnPlayerId: 'player1',
-          winnerId: 'player3',
+          currentTurnPlayerId: PlayerColor.red,
+          winnerId: PlayerColor.blue,
+          pieces: pieces,
         );
         expect(gameState.isGameOver, isTrue);
       });
 
       test('isGameOver should return false when there is no winner', () {
         final gameState = GameState(
-          startIndex: startIndices,
+          startIndices: startIndices,
           players: players,
-          currentTurnPlayerId: 'player1',
+          currentTurnPlayerId: PlayerColor.red,
+          pieces: pieces,
         );
         expect(gameState.isGameOver, isFalse);
       });

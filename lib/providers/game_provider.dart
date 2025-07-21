@@ -1,4 +1,4 @@
-import 'dart:math';
+'''import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:ludo_club/models/game_state.dart';
 import 'package:ludo_club/logic/ludo_game_logic.dart';
@@ -9,9 +9,9 @@ import 'package:ludo_club/services/statistics_service.dart';
 class GameProvider extends ChangeNotifier {
   late GameState _gameState;
   late LudoGame _ludoGame;
-  final SaveLoadService _saveLoadService = SaveLoadService();
-  final AudioService _audioService = AudioService();
-  final StatisticsService _statisticsService = StatisticsService();
+  final SaveLoadService _saveLoadService;
+  final AudioService _audioService;
+  final StatisticsService _statisticsService;
   bool isAnimating = false;
 
   bool _showCaptureEffect = false;
@@ -21,17 +21,24 @@ class GameProvider extends ChangeNotifier {
   PlayerColor? _reachedHomePlayerId;
   int? _reachedHomeTokenIndex;
 
-  GameProvider() {
+  GameProvider({
+    SaveLoadService? saveLoadService,
+    AudioService? audioService,
+    StatisticsService? statisticsService,
+  })  : _saveLoadService = saveLoadService ?? SaveLoadService(),
+        _audioService = audioService ?? AudioService(),
+        _statisticsService = statisticsService ?? StatisticsService() {
     _ludoGame = LudoGame(playerColors: PlayerColor.values.toList());
     _gameState = GameState(
       players: PlayerColor.values
           .map((c) => Player(
               id: c.toString(),
               name: c.toString().split('.').last,
-              color: c))
+              color: c,
+              pieces: List.generate(4, (i) => Piece(c, i, PiecePosition(GameState.basePosition)))))
           .toList(),
       currentTurnPlayerId: _ludoGame.currentTurn,
-      pieces: _ludoGame.pieces,
+      startIndices: LudoGame.startFields,
     );
     _initAudio();
   }
@@ -182,7 +189,8 @@ class GameProvider extends ChangeNotifier {
               id: 'unknown',
               name: 'Unknown Player',
               isAI: true,
-              color: color));
+              color: color,
+              pieces: []));
 
   void startNewGame(List<Player> playersFromUI) {
     _ludoGame = LudoGame(
@@ -256,3 +264,4 @@ class GameProvider extends ChangeNotifier {
     }
   }
 }
+'''

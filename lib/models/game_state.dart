@@ -5,12 +5,15 @@ class Player {
   final String name;
   final bool isAI;
   final PlayerColor color;
+  List<Piece> pieces;
 
-  Player(
-      {required this.id,
-      required this.name,
-      this.isAI = false,
-      required this.color});
+  Player({
+    required this.id,
+    required this.name,
+    this.isAI = false,
+    required this.color,
+    required this.pieces,
+  });
 
   Map<String, dynamic> toJson() {
     return {
@@ -18,6 +21,7 @@ class Player {
       'name': name,
       'isAI': isAI,
       'color': color.toString(),
+      'pieces': pieces.map((p) => p.toString()).toList(),
     };
   }
 
@@ -29,6 +33,9 @@ class Player {
       color: PlayerColor.values.firstWhere(
           (e) => e.toString() == json['color'] as String,
           orElse: () => PlayerColor.red),
+      pieces: (json['pieces'] as List<dynamic>)
+          .map((p) => Piece.fromString(p.toString()))
+          .toList(),
     );
   }
 }
@@ -40,7 +47,13 @@ class GameState {
   int currentRollCount;
   PlayerColor? winnerId;
   String? gameId;
-  final Map<PlayerColor, List<Piece>> pieces;
+  final Map<PlayerColor, int> startIndices;
+
+  static const int tokensPerPlayer = 4;
+  static const int basePosition = -1;
+  static const int totalFields = 40;
+  static const int homePathLength = 4;
+  static const int finishedPosition = 99;
 
   GameState({
     required this.players,
@@ -49,8 +62,12 @@ class GameState {
     this.currentRollCount = 0,
     this.winnerId,
     this.gameId,
-    required this.pieces,
+    required this.startIndices,
   });
+
+  bool isSafeField(int position) {
+    return startIndices.containsValue(position);
+  }
 
   Map<String, dynamic> toJson() {
     return {
@@ -60,8 +77,7 @@ class GameState {
       'currentRollCount': currentRollCount,
       'winnerId': winnerId?.toString(),
       'gameId': gameId,
-      'pieces': pieces.map((key, value) => MapEntry(
-          key.toString(), value.map((p) => p.toString()).toList())),
+      'startIndices': startIndices.map((key, value) => MapEntry(key.toString(), value)),
     };
   }
 
@@ -82,11 +98,11 @@ class GameState {
               (e) => e.toString() == json['winnerId'] as String,
               orElse: () => PlayerColor.red),
       gameId: json['gameId'] as String?,
-      pieces: (json['pieces'] as Map<String, dynamic>).map(
+      startIndices: (json['startIndices'] as Map<String, dynamic>).map(
         (key, value) => MapEntry(
           PlayerColor.values
               .firstWhere((e) => e.toString() == key, orElse: () => PlayerColor.red),
-          (value as List<dynamic>).map((p) => Piece.fromString(p.toString())).toList(),
+          value as int,
         ),
       ),
     );
@@ -104,14 +120,13 @@ class GameState {
 
   GameState copy() {
     return GameState(
-      players: players.map((p) => Player(id: p.id, name: p.name, isAI: p.isAI, color: p.color)).toList(),
+      players: players.map((p) => Player(id: p.id, name: p.name, isAI: p.isAI, color: p.color, pieces: p.pieces.map((pi) => Piece(pi.color, pi.id, pi.position, isSafe: pi.isSafe)).toList())).toList(),
       currentTurnPlayerId: currentTurnPlayerId,
       lastDiceValue: lastDiceValue,
       currentRollCount: currentRollCount,
       winnerId: winnerId,
       gameId: gameId,
-      pieces: pieces.map((key, value) => MapEntry(key, value.map((p) => Piece(p.color, p.id, p.position, isSafe: p.isSafe)).toList())),
+      startIndices: startIndices,
     );
   }
 }
-
