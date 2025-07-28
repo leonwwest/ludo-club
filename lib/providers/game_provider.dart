@@ -36,8 +36,7 @@ class GameProvider extends ChangeNotifier {
       currentTurnPlayerId: playerColors.first,
       startIndices: LudoGame.startFields,
     );
-    print('Game created with players: ${_gameState.players.map((p) => '${p.name} (${p.color})').join(', ')}');
-    print('Current player: ${_gameState.currentTurnPlayerId}');
+    // Debug: Game created with players
     unawaited(nextTurn());
   }
 
@@ -65,7 +64,7 @@ class GameProvider extends ChangeNotifier {
   }
 
   Future<void> rollDice() async {
-    print('rollDice called, current phase: ${_gameState.phase}');
+    // Debug: rollDice called
     if (_gameState.phase != GamePhase.waitingForRoll) return;
 
     _gameState = _gameState.copyWith(phase: GamePhase.animating);
@@ -75,18 +74,14 @@ class GameProvider extends ChangeNotifier {
     await _audioService.playDiceSound();
 
     final diceValue = Random().nextInt(6) + 1;
-    print('Rolled dice: $diceValue');
     _gameState = _gameState.copyWith(lastDiceValue: diceValue, currentRollCount: _gameState.currentRollCount + 1);
 
     final moves = LudoGame.getMovablePieces(_gameState);
-    print('Movable pieces: ${moves.length}');
 
     if (moves.isEmpty) {
-      print('No movable pieces, advancing to next player');
       await Future.delayed(const Duration(milliseconds: 500));
       _advanceToNextPlayer();
     } else {
-      print('Setting phase to waitingForMove');
       _gameState = _gameState.copyWith(phase: GamePhase.waitingForMove);
       notifyListeners();
     }
@@ -123,12 +118,7 @@ class GameProvider extends ChangeNotifier {
   }
 
   Future<void> movePiece(Piece pieceToMove) async {
-    print('movePiece called with piece: ${pieceToMove.color} ${pieceToMove.id}');
-    print('Current phase: ${_gameState.phase}');
-    print('Last dice value: ${_gameState.lastDiceValue}');
-    
     if (_gameState.phase != GamePhase.waitingForMove) {
-      print('Not in waitingForMove phase, returning');
       return;
     }
 
@@ -137,7 +127,6 @@ class GameProvider extends ChangeNotifier {
 
     final moveResult = LudoGame.movePiece(_gameState, pieceToMove);
     _gameState = moveResult.newState;
-    print('Piece moved to position: ${moveResult.newState.players.firstWhere((p) => p.color == pieceToMove.color).pieces.firstWhere((p) => p.id == pieceToMove.id).position.fieldId}');
 
     if (moveResult.isFinishMove) {
       _showReachedHomeEffect = true;

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:ludo_club/models/ludo_objects.dart';
-import 'package:ludo_club/models/game_state.dart';
 
 class BoardWidget extends StatelessWidget {
   final List<Piece> pieces;
@@ -81,13 +80,13 @@ class BoardWidget extends StatelessWidget {
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.3),
+                color: Colors.black.withValues(alpha: 0.3),
                 blurRadius: 4,
                 offset: const Offset(2, 2),
               ),
               if (isMovable)
                 BoxShadow(
-                  color: Colors.yellow.withOpacity(0.6),
+                  color: Colors.yellow.withValues(alpha: 0.6),
                   blurRadius: 8,
                   spreadRadius: 2,
                 ),
