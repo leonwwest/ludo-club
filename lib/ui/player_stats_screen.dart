@@ -5,57 +5,23 @@ class PlayerStatsScreen extends StatefulWidget {
   const PlayerStatsScreen({Key? key}) : super(key: key);
 
   @override
-  _PlayerStatsScreenState createState() => _PlayerStatsScreenState();
+  State<PlayerStatsScreen> createState() => _PlayerStatsScreenState();
 }
 
 class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
-  final StatisticsService _statisticsService = StatisticsService();
-  late Future<List<PlayerStats>> _statsFuture;
+  late Future<StatisticsService> _serviceLoader;
+  late Future<List<PlayerStats>> _statsLoader;
 
   @override
   void initState() {
     super.initState();
-    _loadStats();
+    _serviceLoader = StatisticsService.create();
+    _statsLoader = _loadStats();
   }
 
-  void _loadStats() {
-    setState(() {
-      _statsFuture = _statisticsService.getAllPlayerStats();
-    });
-  }
-
-  Future<void> _resetStats() async {
-    bool confirmReset = await showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: const Text('Reset Statistics'),
-              content: const Text(
-                  'Are you sure you want to reset all player statistics? This action cannot be undone.'),
-              actions: <Widget>[
-                TextButton(
-                  child: const Text('Cancel'),
-                  onPressed: () {
-                    Navigator.of(context).pop(false);
-                  },
-                ),
-                TextButton(
-                  child:
-                      const Text('Reset', style: TextStyle(color: Colors.red)),
-                  onPressed: () {
-                    Navigator.of(context).pop(true);
-                  },
-                ),
-              ],
-            );
-          },
-        ) ??
-        false;
-
-    if (confirmReset) {
-      await _statisticsService.resetAllStatistics();
-      _loadStats();
-    }
+  Future<List<PlayerStats>> _loadStats() async {
+    final service = await _serviceLoader;
+    return service.getAllPlayerStats();
   }
 
   @override
@@ -66,70 +32,162 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
         backgroundColor: Colors.blue.shade700,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh Statistics',
-            onPressed: _loadStats,
+            icon: const Icon(Icons.delete_forever),
+            onPressed: _clearAllStats,
           ),
         ],
       ),
       body: FutureBuilder<List<PlayerStats>>(
-        future: _statsFuture,
+        future: _statsLoader,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          } else if (snapshot.hasData) {
-            final List<PlayerStats> statsList = snapshot.data!;
-            if (statsList.isEmpty) {
-              return const Center(
-                  child: Text('No statistics available yet.'));
-            }
-            return ListView.builder(
-              itemCount: statsList.length,
-              itemBuilder: (context, index) {
-                final stats = statsList[index];
-                return Card(
-                  elevation: 3,
-                  margin:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          stats.playerName,
-                          style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blueAccent),
-                        ),
-                        const SizedBox(height: 8),
-                        Text('Games Played: ${stats.gamesPlayed}'),
-                        Text('Games Won: ${stats.gamesWon}'),
-                        Text(
-                            'Win Rate: ${(stats.winRate * 100).toStringAsFixed(1)}%'),
-                        Text('Pawns Captured: ${stats.pawnsCaptured}'),
-                        Text('Pawns Lost: ${stats.pawnsLost}'),
-                        Text('Sixes Rolled: ${stats.sixesRolled}'),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            );
-          } else {
-            return const Center(child: Text('No statistics found.'));
           }
+          
+          if (snapshot.hasError) {
+            return Center(
+              child: Text('Error: ${snapshot.error}'),
+            );
+          }
+          
+          final stats = snapshot.data ?? [];
+          
+          if (stats.isEmpty) {
+            return const Center(
+              child: Text(
+                'No statistics available',
+                style: TextStyle(fontSize: 18),
+              ),
+            );
+          }
+          
+          // Sort by win rate
+          stats.sort((a, b) => b.winRate.compareTo(a.winRate));
+          
+          return ListView.builder(
+            itemCount: stats.length,
+            itemBuilder: (context, index) {
+              final playerStats = stats[index];
+              return Card(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            playerStats.playerName,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _getWinRateColor(playerStats.winRate),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '${(playerStats.winRate * 100).toStringAsFixed(1)}%',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      _buildStatRow('Games Played', playerStats.gamesPlayed.toString()),
+                      _buildStatRow('Games Won', playerStats.gamesWon.toString()),
+                      _buildStatRow('Tokens Reached Home', playerStats.tokensReachedHome.toString()),
+                      _buildStatRow('Opponents Captured', playerStats.opponentsCaptured.toString()),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
         },
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _resetStats,
-        icon: const Icon(Icons.delete_sweep),
-        label: const Text('Reset All Stats'),
-        backgroundColor: Colors.redAccent,
       ),
     );
   }
-}
+
+  Widget _buildStatRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.grey.shade700,
+              fontSize: 14,
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontWeight: FontWeight.w500,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getWinRateColor(double winRate) {
+    if (winRate >= 0.7) return Colors.green.shade700;
+    if (winRate >= 0.5) return Colors.orange.shade700;
+    if (winRate >= 0.3) return Colors.deepOrange.shade700;
+    return Colors.red.shade700;
+  }
+
+  Future<void> _clearAllStats() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear All Statistics'),
+        content: const Text('Are you sure you want to clear all player statistics? This cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Clear'),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+          ),
+        ],
+      ),
+    );
+    
+    if (confirmed ?? false) {
+      try {
+        final service = await _serviceLoader;
+        await service.clearAllStats();
+        setState(() {
+          _statsLoader = _loadStats();
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('All statistics cleared')),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error clearing statistics: $e')),
+        );
+      }
+    }
+  }
+} 

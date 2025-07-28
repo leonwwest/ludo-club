@@ -1,25 +1,30 @@
-import 'package:ludo_club/logic/ludo_game_logic.dart';
+import 'package:ludo_club/models/ludo_objects.dart';
+import 'package:ludo_club/models/game_phase.dart';
+
+enum PlayerType { human, ai }
 
 class Player {
   final String id;
   final String name;
-  final bool isAI;
+  final PlayerType type;
   final PlayerColor color;
   List<Piece> pieces;
 
   Player({
     required this.id,
     required this.name,
-    this.isAI = false,
+    this.type = PlayerType.human,
     required this.color,
     required this.pieces,
   });
+
+  bool get isAI => type == PlayerType.ai;
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
       'name': name,
-      'isAI': isAI,
+      'type': type.toString(),
       'color': color.toString(),
       'pieces': pieces.map((p) => p.toString()).toList(),
     };
@@ -29,9 +34,11 @@ class Player {
     return Player(
       id: json['id'] as String,
       name: json['name'] as String,
-      isAI: json['isAI'] as bool,
+      type: PlayerType.values.firstWhere(
+          (e) => e.toString() == json['type'],
+          orElse: () => PlayerType.human),
       color: PlayerColor.values.firstWhere(
-          (e) => e.toString() == json['color'] as String,
+          (e) => e.toString() == json['color'],
           orElse: () => PlayerColor.red),
       pieces: (json['pieces'] as List<dynamic>)
           .map((p) => Piece.fromString(p.toString()))
@@ -41,13 +48,14 @@ class Player {
 }
 
 class GameState {
-  List<Player> players;
-  PlayerColor currentTurnPlayerId;
-  int? lastDiceValue;
-  int currentRollCount;
-  PlayerColor? winnerId;
-  String? gameId;
+  final List<Player> players;
+  final PlayerColor currentTurnPlayerId;
+  final int? lastDiceValue;
+  final int currentRollCount;
+  final PlayerColor? winnerId;
+  final String? gameId;
   final Map<PlayerColor, int> startIndices;
+  final GamePhase phase;
 
   static const int tokensPerPlayer = 4;
   static const int basePosition = -1;
@@ -63,49 +71,11 @@ class GameState {
     this.winnerId,
     this.gameId,
     required this.startIndices,
+    this.phase = GamePhase.waitingForRoll,
   });
 
   bool isSafeField(int position) {
     return startIndices.containsValue(position);
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'players': players.map((p) => p.toJson()).toList(),
-      'currentTurnPlayerId': currentTurnPlayerId.toString(),
-      'lastDiceValue': lastDiceValue,
-      'currentRollCount': currentRollCount,
-      'winnerId': winnerId?.toString(),
-      'gameId': gameId,
-      'startIndices': startIndices.map((key, value) => MapEntry(key.toString(), value)),
-    };
-  }
-
-  factory GameState.fromJson(Map<String, dynamic> json) {
-    return GameState(
-      players: (json['players'] as List<dynamic>)
-          .map((playerJson) =>
-              Player.fromJson(playerJson as Map<String, dynamic>))
-          .toList(),
-      currentTurnPlayerId: PlayerColor.values.firstWhere(
-          (e) => e.toString() == json['currentTurnPlayerId'] as String,
-          orElse: () => PlayerColor.red),
-      lastDiceValue: json['lastDiceValue'] as int?,
-      currentRollCount: json['currentRollCount'] as int,
-      winnerId: json['winnerId'] == null
-          ? null
-          : PlayerColor.values.firstWhere(
-              (e) => e.toString() == json['winnerId'] as String,
-              orElse: () => PlayerColor.red),
-      gameId: json['gameId'] as String?,
-      startIndices: (json['startIndices'] as Map<String, dynamic>).map(
-        (key, value) => MapEntry(
-          PlayerColor.values
-              .firstWhere((e) => e.toString() == key, orElse: () => PlayerColor.red),
-          value as int,
-        ),
-      ),
-    );
   }
 
   Player get currentPlayer =>
@@ -118,15 +88,68 @@ class GameState {
 
   bool get isGameOver => winnerId != null;
 
-  GameState copy() {
+  GameState copyWith({
+    List<Player>? players,
+    PlayerColor? currentTurnPlayerId,
+    int? lastDiceValue,
+    int? currentRollCount,
+    PlayerColor? winnerId,
+    String? gameId,
+    Map<PlayerColor, int>? startIndices,
+    GamePhase? phase,
+  }) {
     return GameState(
-      players: players.map((p) => Player(id: p.id, name: p.name, isAI: p.isAI, color: p.color, pieces: p.pieces.map((pi) => Piece(pi.color, pi.id, pi.position, isSafe: pi.isSafe)).toList())).toList(),
-      currentTurnPlayerId: currentTurnPlayerId,
-      lastDiceValue: lastDiceValue,
-      currentRollCount: currentRollCount,
-      winnerId: winnerId,
-      gameId: gameId,
-      startIndices: startIndices,
+      players: players ?? this.players,
+      currentTurnPlayerId: currentTurnPlayerId ?? this.currentTurnPlayerId,
+      lastDiceValue: lastDiceValue ?? this.lastDiceValue,
+      currentRollCount: currentRollCount ?? this.currentRollCount,
+      winnerId: winnerId ?? this.winnerId,
+      gameId: gameId ?? this.gameId,
+      startIndices: startIndices ?? this.startIndices,
+      phase: phase ?? this.phase,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'players': players.map((p) => p.toJson()).toList(),
+      'currentTurnPlayerId': currentTurnPlayerId.toString(),
+      'lastDiceValue': lastDiceValue,
+      'currentRollCount': currentRollCount,
+      'winnerId': winnerId?.toString(),
+      'gameId': gameId,
+      'startIndices': startIndices.map((key, value) => MapEntry(key.toString(), value)),
+      'phase': phase.toString(),
+    };
+  }
+
+  factory GameState.fromJson(Map<String, dynamic> json) {
+    return GameState(
+      players: (json['players'] as List<dynamic>)
+          .map((playerJson) =>
+              Player.fromJson(playerJson as Map<String, dynamic>))
+          .toList(),
+      currentTurnPlayerId: PlayerColor.values.firstWhere(
+          (e) => e.toString() == json['currentTurnPlayerId'],
+          orElse: () => PlayerColor.red),
+      lastDiceValue: json['lastDiceValue'] as int?,
+      currentRollCount: json['currentRollCount'] as int,
+      winnerId: json['winnerId'] == null
+          ? null
+          : PlayerColor.values.firstWhere(
+              (e) => e.toString() == json['winnerId'],
+              orElse: () => PlayerColor.red),
+      gameId: json['gameId'] as String?,
+      startIndices: (json['startIndices'] as Map<String, dynamic>).map(
+        (key, value) => MapEntry(
+          PlayerColor.values
+              .firstWhere((e) => e.toString() == key, orElse: () => PlayerColor.red),
+          value as int,
+        ),
+      ),
+      phase: GamePhase.values.firstWhere(
+          (e) => e.toString() == json['phase'],
+          orElse: () => GamePhase.waitingForRoll),
     );
   }
 }

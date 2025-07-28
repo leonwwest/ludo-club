@@ -1,57 +1,39 @@
-import 'dart:math';
+import 'dart:ui';
 
-enum PlayerColor { red, green, blue, yellow }
+import 'package:ludo_club/models/game_state.dart';
+import 'package:ludo_club/models/ludo_objects.dart';
 
-class PiecePosition {
-  final int fieldId;
-  final bool isHome;
+// Standard Ludo board coordinates - 52 main path positions + 4x6 home paths
+const List<Offset> boardCoordinates = [
+  // Main path positions (52 total, starting from red's start)
+  // Red start area (bottom side, moving left)
+  Offset(6, 13), Offset(6, 12), Offset(6, 11), Offset(6, 10), Offset(6, 9),
+  // Turn to green area
+  Offset(6, 8), Offset(5, 8), Offset(4, 8), Offset(3, 8), Offset(2, 8), Offset(1, 8), Offset(0, 8),
+  // Green start area (right side, moving up)
+  Offset(0, 6), Offset(1, 6), Offset(2, 6), Offset(3, 6), Offset(4, 6), Offset(5, 6),
+  // Turn to blue area  
+  Offset(6, 6), Offset(6, 5), Offset(6, 4), Offset(6, 3), Offset(6, 2), Offset(6, 1), Offset(6, 0),
+  // Blue area (top side, moving right)
+  Offset(8, 0), Offset(8, 1), Offset(8, 2), Offset(8, 3), Offset(8, 4), Offset(8, 5),
+  // Turn to yellow area
+  Offset(8, 6), Offset(9, 6), Offset(10, 6), Offset(11, 6), Offset(12, 6), Offset(13, 6), Offset(14, 6),
+  // Yellow area (left side, moving down)
+  Offset(14, 8), Offset(13, 8), Offset(12, 8), Offset(11, 8), Offset(10, 8), Offset(9, 8),
+  // Back to red area
+  Offset(8, 8), Offset(8, 9), Offset(8, 10), Offset(8, 11), Offset(8, 12), Offset(8, 13), Offset(8, 14),
+];
 
-  const PiecePosition(this.fieldId, {this.isHome = true});
+// No more safe indices
+// const Set<int> safeIndices = {1, 9, 14, 22, 27, 35, 40, 48};
 
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is PiecePosition &&
-          runtimeType == other.runtimeType &&
-          fieldId == other.fieldId &&
-          isHome == other.isHome;
+class MoveResult {
+  final GameState newState;
+  // No more capture logic
+  // final Piece? capturedOpponentPiece;
+  final bool isFinishMove;
 
-  @override
-  int get hashCode => fieldId.hashCode ^ isHome.hashCode;
-}
-
-class Piece {
-  final PlayerColor color;
-  final int id;
-  PiecePosition position;
-  bool isSafe;
-
-  Piece(this.color, this.id, this.position, {this.isSafe = false});
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is Piece &&
-          runtimeType == other.runtimeType &&
-          color == other.color &&
-          id == other.id;
-
-  @override
-  int get hashCode => color.hashCode ^ id.hashCode;
-
-  static Piece fromString(String s) {
-    final parts = s.split(',');
-    final color = PlayerColor.values.firstWhere((e) => e.toString() == parts[0]);
-    final id = int.parse(parts[1]);
-    final position = PiecePosition(int.parse(parts[2]), isHome: parts[3] == 'true');
-    final isSafe = parts[4] == 'true';
-    return Piece(color, id, position, isSafe: isSafe);
-  }
-
-  @override
-  String toString() {
-    return '${color.toString()},$id,${position.fieldId},${position.isHome},$isSafe';
-  }
+  MoveResult(this.newState, {this.isFinishMove = false});
 }
 
 class LudoGame {
@@ -61,127 +43,103 @@ class LudoGame {
   static const Map<PlayerColor, int> startFields = {
     PlayerColor.red: 0,
     PlayerColor.green: 10,
-    PlayerColor.blue: 20,
-    PlayerColor.yellow: 30,
+    // We only have 2 players now
+    // PlayerColor.blue: 20,
+    // PlayerColor.yellow: 30,
   };
 
-  static const List<int> safeFields = [0, 8, 10, 18, 20, 28, 30, 38];
-
-  final Map<PlayerColor, List<Piece>> pieces;
-  PlayerColor _currentTurn;
-  int _diceValue = 0;
-  int _rollCount = 0;
-  bool _canRollAgain = false;
-
-  LudoGame({required List<PlayerColor> playerColors})
-      : pieces = {
-          for (var color in playerColors)
-            color: List.generate(
-                4, (id) => Piece(color, id, const PiecePosition(0)))
-        },
-        _currentTurn = playerColors.first;
-
-  PlayerColor get currentTurn => _currentTurn;
-  int get diceValue => _diceValue;
-  int get rollCount => _rollCount;
-  bool get canRollAgain => _canRollAgain;
-
-  int rollDice() {
-    if (_rollCount >= 3 && !_canRollAgain) {
-      return 0;
-    }
-
-    _diceValue = Random().nextInt(6) + 1;
-    _rollCount++;
-    _canRollAgain = _diceValue == 6;
-
-    if (_rollCount >= 3 && !_canRollAgain) {
-      _advanceTurn();
-    } else if (!_canRollAgain && getMovablePieces().isEmpty) {
-      _advanceTurn();
-    }
-    return _diceValue;
+  static List<Piece> getMovablePieces(GameState state) {
+    if (state.lastDiceValue == null || state.lastDiceValue == 0) return [];
+    return state.currentPlayer.pieces
+        .where((p) => _canMovePiece(state, p))
+        .toList();
   }
 
-  bool canMovePiece(Piece piece) {
-    if (piece.color != _currentTurn || _diceValue == 0 || piece.isSafe) {
-      return false;
-    }
+  static bool _canMovePiece(GameState state, Piece piece) {
+    if (state.lastDiceValue == null) return false;
+
+    print('Checking if piece ${piece.color} ${piece.id} can move');
+    print('Piece position: fieldId=${piece.position.fieldId}, isHome=${piece.position.isHome}');
+    print('Dice value: ${state.lastDiceValue}');
 
     if (piece.position.isHome) {
-      return _diceValue == 6;
+      final canMove = state.lastDiceValue == 6;
+      print('Piece is home, can move: $canMove');
+      return canMove;
     }
 
-    int targetPos = piece.position.fieldId + _diceValue;
-    if (!piece.position.isHome && targetPos > mainPathLength + homePathLength) {
+    int targetPos = piece.position.fieldId + state.lastDiceValue!;
+    // Simplified condition
+    if (targetPos > mainPathLength) {
+      print('Target position $targetPos exceeds main path length $mainPathLength');
       return false;
     }
+    print('Piece can move to position $targetPos');
     return true;
   }
 
-  bool movePiece(Piece piece) {
-    if (!canMovePiece(piece)) {
-      return false;
+  static MoveResult movePiece(GameState state, Piece piece) {
+    if (!_canMovePiece(state, piece)) {
+      return MoveResult(state);
     }
 
-    if (piece.position.isHome && _diceValue == 6) {
-      piece.position = PiecePosition(startFields[piece.color]!, isHome: false);
-      _handleCapture(piece);
-    } else if (!piece.position.isHome) {
-      int newFieldId = piece.position.fieldId + _diceValue;
-
-      if (newFieldId >= mainPathLength) {
-        int homePathPos = newFieldId - mainPathLength;
-        if (homePathPos < homePathLength) {
-          piece.position = PiecePosition(homePathPos, isHome: false);
-        } else if (homePathPos == homePathLength) {
-          piece.position = const PiecePosition(0, isHome: true);
-          piece.isSafe = true;
-        } else {
-          return false;
-        }
-      } else {
-        piece.position = PiecePosition(newFieldId, isHome: false);
-        _handleCapture(piece);
+    final dice = state.lastDiceValue!;
+    final newPlayers = state.players.map((p) {
+      if (p.color != state.currentTurnPlayerId) {
+        return p;
       }
+      return Player(
+        id: p.id,
+        name: p.name,
+        type: p.type,
+        color: p.color,
+        pieces: p.pieces.map((p) {
+          if (p.id != piece.id) {
+            return p;
+          }
+          return _movePiece(state, piece, dice);
+        }).toList(),
+      );
+    }).toList();
+
+    final movedPiece = newPlayers
+        .firstWhere((p) => p.color == state.currentTurnPlayerId)
+        .pieces
+        .firstWhere((p) => p.id == piece.id);
+
+    // No more capture logic
+
+    final newState = state.copyWith(
+      players: newPlayers,
+      winnerId: _checkWinner(newPlayers, state.currentTurnPlayerId),
+    );
+
+    return MoveResult(
+      newState,
+      isFinishMove: movedPiece.isSafe,
+    );
+  }
+
+  static Piece _movePiece(GameState state, Piece piece, int steps) {
+    if (piece.position.isHome && steps == 6) {
+      return Piece(piece.color, piece.id, PiecePosition(startFields[piece.color]!, isHome: false));
     }
 
-    bool playerHasWon = pieces[_currentTurn]!.every((p) => p.isSafe);
-    if (!_canRollAgain || playerHasWon) {
-      _advanceTurn();
+    int newFieldId = piece.position.fieldId + steps;
+
+    // Simplified logic
+    if (newFieldId >= mainPathLength) {
+        return Piece(piece.color, piece.id, const PiecePosition(0, isHome: true), isSafe: true);
     } else {
-      _rollCount = 0;
-    }
-    return true;
-  }
-
-  void _handleCapture(Piece movingPiece) {
-    if (safeFields.contains(movingPiece.position.fieldId)) {
-      return;
-    }
-
-    for (var color in pieces.keys) {
-      if (color == movingPiece.color) continue;
-
-      for (var opponentPiece in pieces[color]!) {
-        if (opponentPiece.position == movingPiece.position) {
-          opponentPiece.position = const PiecePosition(0);
-        }
-      }
+      return Piece(piece.color, piece.id, PiecePosition(newFieldId, isHome: false));
     }
   }
 
-  void _advanceTurn() {
-    final playerColors = pieces.keys.toList();
-    _currentTurn =
-        playerColors[(playerColors.indexOf(_currentTurn) + 1) % playerColors.length];
-    _diceValue = 0;
-    _rollCount = 0;
-    _canRollAgain = false;
-  }
-
-  List<Piece> getMovablePieces() {
-    if (_diceValue == 0) return [];
-    return pieces[_currentTurn]?.where((p) => canMovePiece(p)).toList() ?? [];
+  static PlayerColor? _checkWinner(List<Player> players, PlayerColor currentPlayer) {
+    final player = players.firstWhere((p) => p.color == currentPlayer);
+    if (player.pieces.every((p) => p.isSafe)) {
+      return currentPlayer;
+    }
+    return null;
   }
 }

@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ludo_club/providers/game_provider.dart';
 import 'package:ludo_club/models/game_state.dart';
+import 'package:ludo_club/models/ludo_objects.dart';
 import 'package:ludo_club/ui/game_screen.dart';
-import 'package:ludo_club/ui/saved_games_screen.dart';
-import 'package:ludo_club/ui/player_stats_screen.dart';
-import 'package:ludo_club/logic/ludo_game_logic.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -15,13 +13,10 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final List<Player> _players = [];
-  final List<bool> _isAI = [false, true, true, true];
   final List<TextEditingController> _nameControllers = List.generate(
-    4,
+    2,
     (index) => TextEditingController(text: 'Player ${index + 1}'),
   );
-  int _playerCount = 2;
 
   @override
   void dispose() {
@@ -71,26 +66,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 16),
                       const Text(
-                        'Number of Players:',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      Slider(
-                        value: _playerCount.toDouble(),
-                        min: 2,
-                        max: 4,
-                        divisions: 2,
-                        label: _playerCount.toString(),
-                        onChanged: (value) {
-                          setState(() {
-                            _playerCount = value.toInt();
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
                         'Players:',
                         style: TextStyle(
                           fontSize: 18,
@@ -98,38 +73,17 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      ...List.generate(_playerCount, (index) {
+                      ...List.generate(2, (index) {
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 8.0),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  controller: _nameControllers[index],
-                                  decoration: InputDecoration(
-                                    labelText: 'Player ${index + 1}',
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                  ),
-                                ),
+                          child: TextField(
+                            controller: _nameControllers[index],
+                            decoration: InputDecoration(
+                              labelText: 'Player ${index + 1}',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
                               ),
-                              const SizedBox(width: 16),
-                              if (index > 0)
-                                Row(
-                                  children: [
-                                    const Text('AI:'),
-                                    Switch(
-                                      value: _isAI[index],
-                                      onChanged: (value) {
-                                        setState(() {
-                                          _isAI[index] = value;
-                                        });
-                                      },
-                                    ),
-                                  ],
-                                ),
-                            ],
+                            ),
                           ),
                         );
                       }),
@@ -138,66 +92,20 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _startGame,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        'New Game',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
+              ElevatedButton(
+                onPressed: _startGame,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: _openSavedGames,
-                icon: const Icon(Icons.save),
-                label: const Text(
-                  'Saved Games',
+                ),
+                child: const Text(
+                  'New Game',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue.shade600,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.bar_chart),
-                label: const Text(
-                  'Player Statistics',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                        builder: (context) => const PlayerStatsScreen()),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
               ),
@@ -209,33 +117,25 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _startGame() {
-    _players.clear();
-    for (int i = 0; i < _playerCount; i++) {
-      _players.add(Player(
+    final List<Player> players = [];
+    for (int i = 0; i < 2; i++) {
+      players.add(Player(
         id: 'player${i + 1}',
         name: _nameControllers[i].text.isNotEmpty
             ? _nameControllers[i].text
             : 'Player ${i + 1}',
-        isAI: i > 0 && _isAI[i],
+        type: PlayerType.human,
         color: PlayerColor.values[i],
-        pieces: List.generate(4, (j) => Piece(PlayerColor.values[i], j, const PiecePosition(GameState.basePosition))),
+                      pieces: List.generate(4, (j) => Piece(PlayerColor.values[i], j, const PiecePosition(GameState.basePosition, isHome: true))),
       ));
     }
 
     final gameProvider = Provider.of<GameProvider>(context, listen: false);
-    gameProvider.startNewGame(_players);
+    gameProvider.startNewGame(players);
 
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => const GameScreen(),
-      ),
-    );
-  }
-
-  void _openSavedGames() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => const SavedGamesScreen(),
       ),
     );
   }

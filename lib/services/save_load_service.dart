@@ -1,80 +1,90 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:intl/intl.dart';
 import 'package:ludo_club/models/game_state.dart';
+
+class SavedGame {
+  final String id;
+  final DateTime timestamp;
+  final GameState gameState;
+  final String name;
+
+  SavedGame({
+    required this.id,
+    required this.timestamp,
+    required this.gameState,
+    required this.name,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'timestamp': timestamp.toIso8601String(),
+      'gameState': gameState.toJson(),
+      'name': name,
+    };
+  }
+
+  factory SavedGame.fromJson(Map<String, dynamic> json) {
+    return SavedGame(
+      id: json['id'] as String,
+      timestamp: DateTime.parse(json['timestamp'] as String),
+      gameState: GameState.fromJson(json['gameState'] as Map<String, dynamic>),
+      name: json['name'] as String,
+    );
+  }
+}
 
 class SaveLoadService {
   static const String _savedGamesKey = 'saved_games';
+  final SharedPreferences _prefs;
 
-  Future<bool> saveGame(GameState gameState, {String? customName}) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
+  SaveLoadService(this._prefs);
 
-      final now = DateTime.now();
-      final formatter = DateFormat('dd.MM.yyyy HH:mm');
-      final saveName = customName ?? 'Save from ${formatter.format(now)}';
-
-      final gameJson = gameState.toJson();
-      gameJson['saveName'] = saveName;
-      gameJson['saveDate'] = now.millisecondsSinceEpoch;
-
-      final List<String> savedGames = prefs.getStringList(_savedGamesKey) ?? [];
-
-      savedGames.add(jsonEncode(gameJson));
-
-      return await prefs.setStringList(_savedGamesKey, savedGames);
-    } catch (e) {
-      return false;
-    }
+  static Future<SaveLoadService> create() async {
+    final prefs = await SharedPreferences.getInstance();
+    return SaveLoadService(prefs);
   }
 
-  Future<GameState?> loadGame(int index) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final List<String> savedGames = prefs.getStringList(_savedGamesKey) ?? [];
-
-      if (index < 0 || index >= savedGames.length) {
-        return null;
-      }
-
-      final gameJson = jsonDecode(savedGames[index]) as Map<String, dynamic>;
-      return GameState.fromJson(gameJson);
-    } catch (e) {
-      return null;
-    }
+  Future<void> saveGame(GameState gameState, String name) async {
+    final savedGames = await getSavedGames();
+    final newSavedGame = SavedGame(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      timestamp: DateTime.now(),
+      gameState: gameState,
+      name: name,
+    );
+    
+    savedGames.add(newSavedGame);
+    await _saveToDisk(savedGames);
   }
 
-  Future<bool> deleteGame(int index) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final List<String> savedGames = prefs.getStringList(_savedGamesKey) ?? [];
-
-      if (index < 0 || index >= savedGames.length) {
-        return false;
-      }
-
-      savedGames.removeAt(index);
-      return await prefs.setStringList(_savedGamesKey, savedGames);
-    } catch (e) {
-      return false;
-    }
+  Future<List<SavedGame>> getSavedGames() async {
+    final jsonString = _prefs.getString(_savedGamesKey);
+    if (jsonString == null) return [];
+    
+    final List<dynamic> jsonList = json.decode(jsonString) as List<dynamic>;
+    return jsonList
+        .map((json) => SavedGame.fromJson(json as Map<String, dynamic>))
+        .toList();
   }
 
-  Future<List<Map<String, dynamic>>> getSavedGames() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final List<String> savedGames = prefs.getStringList(_savedGamesKey) ?? [];
-
-      return savedGames.map((gameString) {
-        final gameJson = jsonDecode(gameString) as Map<String, dynamic>;
-        return {
-          'saveName': gameJson['saveName'] as String,
-          'saveDate':
-              DateTime.fromMillisecondsSinceEpoch(gameJson['saveDate'] as int),
-        };
-      }).toList();
-    } catch (e) {
-      return [];
-    }
+  Future<GameState?> loadGame(String gameId) async {
+    final savedGames = await getSavedGames();
+    final savedGame = savedGames.firstWhere(
+      (game) => game.id == gameId,
+      orElse: () => throw Exception('Game not found'),
+    );
+    return savedGame.gameState;
   }
-}
+
+  Future<void> deleteGame(String gameId) async {
+    final savedGames = await getSavedGames();
+    savedGames.removeWhere((game) => game.id == gameId);
+    await _saveToDisk(savedGames);
+  }
+
+  Future<void> _saveToDisk(List<SavedGame> savedGames) async {
+    final jsonList = savedGames.map((game) => game.toJson()).toList();
+    await _prefs.setString(_savedGamesKey, json.encode(jsonList));
+  }
+} 

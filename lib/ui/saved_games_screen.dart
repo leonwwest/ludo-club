@@ -1,38 +1,42 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:ludo_club/services/save_load_service.dart';
+import 'package:ludo_club/models/game_state.dart';
 import 'package:provider/provider.dart';
 import 'package:ludo_club/providers/game_provider.dart';
-import 'package:ludo_club/ui/game_screen.dart';
 
 class SavedGamesScreen extends StatefulWidget {
-  const SavedGamesScreen({Key? key}) : super(key: key);
+  final SaveLoadService? saveLoadService;
+  
+  const SavedGamesScreen({Key? key, this.saveLoadService}) : super(key: key);
 
   @override
   State<SavedGamesScreen> createState() => _SavedGamesScreenState();
 }
 
 class _SavedGamesScreenState extends State<SavedGamesScreen> {
-  bool _isLoading = true;
-  List<Map<String, dynamic>> _savedGames = [];
-  final DateFormat _dateFormatter = DateFormat('dd.MM.yyyy HH:mm');
+  late Future<SaveLoadService> _serviceLoader;
+  late Future<List<SavedGame>> _savedGamesLoader;
 
   @override
   void initState() {
     super.initState();
-    _loadSavedGames();
+    if (widget.saveLoadService != null) {
+      _serviceLoader = Future.value(widget.saveLoadService);
+    } else {
+      _serviceLoader = SaveLoadService.create();
+    }
+    _savedGamesLoader = _loadSavedGames();
   }
 
-  Future<void> _loadSavedGames() async {
-    setState(() {
-      _isLoading = true;
-    });
+  Future<List<SavedGame>> _loadSavedGames() async {
+    final service = await _serviceLoader;
+    return service.getSavedGames();
+  }
 
-    final gameProvider = Provider.of<GameProvider>(context, listen: false);
-    final savedGames = await gameProvider.getSavedGames();
-
+  void _refreshGames() {
     setState(() {
-      _savedGames = savedGames;
-      _isLoading = false;
+      _savedGamesLoader = _loadSavedGames();
     });
   }
 
@@ -43,167 +47,109 @@ class _SavedGamesScreenState extends State<SavedGamesScreen> {
         title: const Text('Saved Games'),
         backgroundColor: Colors.blue.shade700,
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Colors.blue.shade500, Colors.blue.shade900],
-          ),
-        ),
-        child: _isLoading
-            ? const Center(
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                ),
-              )
-            : _savedGames.isEmpty
-                ? const Center(
-                    child: Text(
-                      'No saved games available.',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                      ),
-                    ),
-                  )
-                : ListView.builder(
-                    itemCount: _savedGames.length,
-                    padding: const EdgeInsets.all(16),
-                    itemBuilder: (context, index) {
-                      final game = _savedGames[index];
-                      final DateTime saveDate = game['saveDate'] as DateTime;
-
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 16),
-                        elevation: 5,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          title: Text(
-                            game['saveName'] as String,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
-                          ),
-                          subtitle: Padding(
-                            padding: const EdgeInsets.only(top: 8.0),
-                            child: Text(
-                              'Saved on: ${_dateFormatter.format(saveDate)}',
-                              style: const TextStyle(
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.play_arrow),
-                                color: Colors.green,
-                                onPressed: () => _loadGame(index),
-                                tooltip: 'Load Game',
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.delete),
-                                color: Colors.red,
-                                onPressed: () => _deleteGame(index),
-                                tooltip: 'Delete',
-                              ),
-                            ],
-                          ),
-                          onTap: () => _loadGame(index),
-                        ),
-                      );
-                    },
+      body: FutureBuilder<List<SavedGame>>(
+        future: _savedGamesLoader,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          
+          if (snapshot.hasError) {
+            return Center(
+              child: Text('Error: ${snapshot.error}'),
+            );
+          }
+          
+          final savedGames = snapshot.data ?? [];
+          
+          if (savedGames.isEmpty) {
+            return const Center(
+              child: Text(
+                'No saved games',
+                style: TextStyle(fontSize: 18),
+              ),
+            );
+          }
+          
+          return ListView.builder(
+            itemCount: savedGames.length,
+            itemBuilder: (context, index) {
+              final game = savedGames[index];
+              return Card(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: ListTile(
+                  title: Text(game.name),
+                  subtitle: Text(
+                    'Saved on ${DateFormat('dd/MM/yyyy HH:mm').format(game.timestamp)}',
                   ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.play_arrow),
+                        onPressed: () => _loadGame(game),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete),
+                        onPressed: () => _deleteGame(game.id),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }
 
-  Future<void> _loadGame(int index) async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    final gameProvider = Provider.of<GameProvider>(context, listen: false);
-    final success = await gameProvider.loadGame(index);
-
-    setState(() {
-      _isLoading = false;
-    });
-
-    if (success) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const GameScreen(),
-        ),
-      );
-    } else {
+  Future<void> _loadGame(SavedGame savedGame) async {
+    try {
+      final gameProvider = Provider.of<GameProvider>(context, listen: false);
+      gameProvider.startNewGame(savedGame.gameState.players);
+      
+      Navigator.of(context).pushReplacementNamed('/game');
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Error loading game'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('Error loading game: $e')),
       );
     }
   }
 
-  Future<void> _deleteGame(int index) async {
-    final confirmDelete = await showDialog<bool>(
+  Future<void> _deleteGame(String gameId) async {
+    final confirmed = await showDialog<bool>(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Delete Save'),
-          content: const Text(
-            'Are you sure you want to delete this save? This action cannot be undone.',
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Game'),
+        content: const Text('Are you sure you want to delete this saved game?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text(
-                'Delete',
-                style: TextStyle(color: Colors.red),
-              ),
-            ),
-          ],
-        );
-      },
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
     );
-
-    if (confirmDelete == true) {
-      setState(() {
-        _isLoading = true;
-      });
-
-      final gameProvider = Provider.of<GameProvider>(context, listen: false);
-      final success = await gameProvider.deleteGame(index);
-
-      if (success) {
-        await _loadSavedGames();
-      } else {
-        setState(() {
-          _isLoading = false;
-        });
-
+    
+    if (confirmed ?? false) {
+      try {
+        final service = await _serviceLoader;
+        await service.deleteGame(gameId);
+        _refreshGames();
+        
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error deleting game'),
-            backgroundColor: Colors.red,
-          ),
+          const SnackBar(content: Text('Game deleted')),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error deleting game: $e')),
         );
       }
     }
   }
-}
+} 

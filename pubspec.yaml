@@ -11,6 +11,7 @@ dependencies:
   shared_preferences: ^2.2.0
   intl: ^0.18.1
   just_audio: ^0.9.35
+  flutter_svg: ^2.0.10
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -22,3 +23,5 @@ flutter:
   
   assets:
     - assets/audio/
+    - assets/board/
+    - assets/dice/

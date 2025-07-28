@@ -5,194 +5,135 @@ class PlayerStats {
   final String playerName;
   int gamesPlayed;
   int gamesWon;
-  int pawnsCaptured;
-  int pawnsLost;
-  int sixesRolled;
+  int tokensReachedHome;
+  int opponentsCaptured;
 
   PlayerStats({
     required this.playerName,
     this.gamesPlayed = 0,
     this.gamesWon = 0,
-    this.pawnsCaptured = 0,
-    this.pawnsLost = 0,
-    this.sixesRolled = 0,
+    this.tokensReachedHome = 0,
+    this.opponentsCaptured = 0,
   });
+
+  double get winRate => gamesPlayed > 0 ? gamesWon / gamesPlayed : 0.0;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'playerName': playerName,
+      'gamesPlayed': gamesPlayed,
+      'gamesWon': gamesWon,
+      'tokensReachedHome': tokensReachedHome,
+      'opponentsCaptured': opponentsCaptured,
+    };
+  }
+
+  factory PlayerStats.fromJson(Map<String, dynamic> json) {
+    return PlayerStats(
+      playerName: json['playerName'] as String,
+      gamesPlayed: json['gamesPlayed'] as int,
+      gamesWon: json['gamesWon'] as int,
+      tokensReachedHome: json['tokensReachedHome'] as int,
+      opponentsCaptured: json['opponentsCaptured'] as int,
+    );
+  }
 
   PlayerStats copyWith({
     String? playerName,
     int? gamesPlayed,
     int? gamesWon,
-    int? pawnsCaptured,
-    int? pawnsLost,
-    int? sixesRolled,
+    int? tokensReachedHome,
+    int? opponentsCaptured,
   }) {
     return PlayerStats(
       playerName: playerName ?? this.playerName,
       gamesPlayed: gamesPlayed ?? this.gamesPlayed,
       gamesWon: gamesWon ?? this.gamesWon,
-      pawnsCaptured: pawnsCaptured ?? this.pawnsCaptured,
-      pawnsLost: pawnsLost ?? this.pawnsLost,
-      sixesRolled: sixesRolled ?? this.sixesRolled,
+      tokensReachedHome: tokensReachedHome ?? this.tokensReachedHome,
+      opponentsCaptured: opponentsCaptured ?? this.opponentsCaptured,
     );
-  }
-
-  factory PlayerStats.fromJson(String playerName, Map<String, dynamic> json) {
-    return PlayerStats(
-      playerName: playerName,
-      gamesPlayed: json['gamesPlayed'] as int? ?? 0,
-      gamesWon: json['gamesWon'] as int? ?? 0,
-      pawnsCaptured: json['pawnsCaptured'] as int? ?? 0,
-      pawnsLost: json['pawnsLost'] as int? ?? 0,
-      sixesRolled: json['sixesRolled'] as int? ?? 0,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'gamesPlayed': gamesPlayed,
-      'gamesWon': gamesWon,
-      'pawnsCaptured': pawnsCaptured,
-      'pawnsLost': pawnsLost,
-      'sixesRolled': sixesRolled,
-    };
-  }
-
-  double get winRate => (gamesPlayed == 0) ? 0.0 : gamesWon / gamesPlayed;
-
-  @override
-  String toString() {
-    return 'PlayerStats($playerName: GP:$gamesPlayed, GW:$gamesWon, WinRate:${winRate.toStringAsFixed(2)}, Cap:$pawnsCaptured, Lost:$pawnsLost, Sixes:$sixesRolled)';
   }
 }
 
 class StatisticsService {
-  static const String _playerStatsListKey = 'statPlayerNames';
-  String _playerStatsKey(String playerName) =>
-      'stats_${playerName.toLowerCase().trim()}';
+  static const String _playerStatsListKey = 'player_stats_list';
+  final SharedPreferences _prefs;
 
-  Future<SharedPreferences> get _prefs async =>
-      SharedPreferences.getInstance();
+  StatisticsService(this._prefs);
 
-  Future<PlayerStats> getPlayerStats(String playerName) async {
-    final prefs = await _prefs;
-    final String key = _playerStatsKey(playerName);
-
-    final String? statsJson = prefs.getString(key);
-
-    if (statsJson != null && statsJson.isNotEmpty) {
-      try {
-        final Map<String, dynamic> jsonMap =
-            jsonDecode(statsJson) as Map<String, dynamic>;
-        final displayPlayerName =
-            await _getDisplayPlayerName(playerName) ?? playerName;
-
-        return PlayerStats.fromJson(displayPlayerName, jsonMap);
-      } catch (e) {
-        final displayPlayerName =
-            await _getDisplayPlayerName(playerName) ?? playerName;
-        return PlayerStats(playerName: displayPlayerName);
-      }
-    } else {
-      return PlayerStats(playerName: playerName.trim());
-    }
-  }
-
-  Future<String?> _getDisplayPlayerName(String queryPlayerName) async {
-    final prefs = await _prefs;
-    final List<String> playerNames =
-        prefs.getStringList(_playerStatsListKey) ?? [];
-    final queryNormalized = queryPlayerName.toLowerCase().trim();
-    for (String nameInList in playerNames) {
-      if (nameInList.toLowerCase().trim() == queryNormalized) {
-        return nameInList;
-      }
-    }
-    return null;
-  }
-
-  Future<void> _savePlayerStats(String playerName, PlayerStats stats) async {
-    final prefs = await _prefs;
-    final displayPlayerName = playerName.trim();
-    final String key = _playerStatsKey(displayPlayerName);
-
-    await prefs.setString(key, jsonEncode(stats.toJson()));
-
-    final List<String> playerNames =
-        prefs.getStringList(_playerStatsListKey) ?? [];
-    final normalizedCurrentName = displayPlayerName.toLowerCase().trim();
-
-    bool foundMatch = false;
-    for (int i = 0; i < playerNames.length; i++) {
-      if (playerNames[i].toLowerCase().trim() == normalizedCurrentName) {
-        foundMatch = true;
-        break;
-      }
-    }
-    if (!foundMatch) {
-      playerNames.add(displayPlayerName);
-    }
-    await prefs.setStringList(_playerStatsListKey, playerNames);
+  static Future<StatisticsService> create() async {
+    final prefs = await SharedPreferences.getInstance();
+    return StatisticsService(prefs);
   }
 
   Future<List<PlayerStats>> getAllPlayerStats() async {
-    final prefs = await _prefs;
-    final List<String> displayPlayerNames =
-        prefs.getStringList(_playerStatsListKey) ?? [];
-    final List<PlayerStats> allStats = [];
-
-    for (String displayName in displayPlayerNames) {
-      allStats.add(await getPlayerStats(displayName));
-    }
-    return allStats;
-  }
-
-  Future<void> _updateStat(
-      String playerName, Function(PlayerStats stats) updater) async {
-    PlayerStats stats = await getPlayerStats(playerName);
-    updater(stats);
-    await _savePlayerStats(stats.playerName, stats);
-  }
-
-  Future<void> incrementGamesPlayed(String playerName, {int count = 1}) async {
-    await _updateStat(playerName, (stats) => stats.gamesPlayed += count);
-  }
-
-  Future<void> incrementGamesWon(String playerName, {int count = 1}) async {
-    await _updateStat(playerName, (stats) => stats.gamesWon += count);
-  }
-
-  Future<void> incrementPawnsCaptured(String playerName,
-      {int count = 1}) async {
-    await _updateStat(playerName, (stats) => stats.pawnsCaptured += count);
-  }
-
-  Future<void> incrementPawnsLost(String playerName, {int count = 1}) async {
-    await _updateStat(playerName, (stats) => stats.pawnsLost += count);
-  }
-
-  Future<void> incrementSixesRolled(String playerName, {int count = 1}) async {
-    await _updateStat(playerName, (stats) => stats.sixesRolled += count);
-  }
-
-  Future<void> recordGamePlayed(List<String> playerNames) async {
-    for (String name in playerNames) {
-      PlayerStats stats = await getPlayerStats(name);
-      stats.gamesPlayed = stats.gamesPlayed + 1;
-      await _savePlayerStats(stats.playerName, stats);
-    }
-  }
-
-  Future<void> resetAllStatistics() async {
-    final prefs = await SharedPreferences.getInstance();
-    final List<String> allPlayerStatsKeys = prefs
-        .getKeys()
-        .where((key) => key.startsWith('stats_'))
+    final jsonString = _prefs.getString(_playerStatsListKey);
+    if (jsonString == null) return [];
+    
+    final List<dynamic> jsonList = json.decode(jsonString) as List<dynamic>;
+    return jsonList
+        .map((json) => PlayerStats.fromJson(json as Map<String, dynamic>))
         .toList();
-
-    for (String key in allPlayerStatsKeys) {
-      await prefs.remove(key);
-    }
-
-    await prefs.remove(_playerStatsListKey);
   }
-}
+
+  Future<PlayerStats> getPlayerStats(String playerName) async {
+    final allStats = await getAllPlayerStats();
+    return allStats.firstWhere(
+      (stats) => stats.playerName == playerName,
+      orElse: () => PlayerStats(playerName: playerName),
+    );
+  }
+
+  Future<void> updatePlayerStats(PlayerStats stats) async {
+    final allStats = await getAllPlayerStats();
+    final index = allStats.indexWhere((s) => s.playerName == stats.playerName);
+    
+    if (index >= 0) {
+      allStats[index] = stats;
+    } else {
+      allStats.add(stats);
+    }
+    
+    await _saveToDisk(allStats);
+  }
+
+  Future<void> recordGameResult({
+    required String winnerName,
+    required List<String> allPlayerNames,
+    Map<String, int>? tokensReachedHome,
+    Map<String, int>? opponentsCaptured,
+  }) async {
+    final allStats = await getAllPlayerStats();
+    
+    for (final playerName in allPlayerNames) {
+      final existingIndex = allStats.indexWhere((s) => s.playerName == playerName);
+      final existing = existingIndex >= 0 
+          ? allStats[existingIndex] 
+          : PlayerStats(playerName: playerName);
+      
+      final updated = existing.copyWith(
+        gamesPlayed: existing.gamesPlayed + 1,
+        gamesWon: playerName == winnerName ? existing.gamesWon + 1 : existing.gamesWon,
+        tokensReachedHome: existing.tokensReachedHome + (tokensReachedHome?[playerName] ?? 0),
+        opponentsCaptured: existing.opponentsCaptured + (opponentsCaptured?[playerName] ?? 0),
+      );
+      
+      if (existingIndex >= 0) {
+        allStats[existingIndex] = updated;
+      } else {
+        allStats.add(updated);
+      }
+    }
+    
+    await _saveToDisk(allStats);
+  }
+
+  Future<void> clearAllStats() async {
+    await _prefs.remove(_playerStatsListKey);
+  }
+
+  Future<void> _saveToDisk(List<PlayerStats> stats) async {
+    final jsonList = stats.map((s) => s.toJson()).toList();
+    await _prefs.setString(_playerStatsListKey, json.encode(jsonList));
+  }
+} 
