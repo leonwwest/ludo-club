@@ -5,6 +5,7 @@ import 'package:ludo_club/models/game_state.dart';
 import 'package:ludo_club/models/ludo_objects.dart';
 import 'package:ludo_club/models/game_phase.dart';
 import 'package:ludo_club/widgets/board_widget.dart';
+import 'package:ludo_club/widgets/dice_widget.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({Key? key}) : super(key: key);
@@ -101,33 +102,34 @@ class _GameScreenState extends State<GameScreen> {
                               Column(
                                 children: [
                                   Text(
-                                    'Dice Value:',
+                                    'Roll the Dice!',
                                     style: TextStyle(
                                       fontSize: 16,
                                       color: Colors.grey.shade700,
+                                      fontWeight: FontWeight.w500,
                                     ),
                                   ),
-                                  Container(
-                                    width: 40,
-                                    height: 40,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      border: Border.all(color: Colors.black, width: 2),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Center(
+                                  const SizedBox(height: 8),
+                                  DiceWidget(
+                                    size: 80,
+                                    isEnabled: gameProvider.phase == GamePhase.waitingForRoll,
+                                    onRoll: (value) {
+                                      // Use the game provider's roll logic
+                                      gameProvider.rollDice();
+                                    },
+                                  ),
+                                  if (gameProvider.currentDiceValue > 0)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 8.0),
                                       child: Text(
-                                        gameProvider.currentDiceValue == 0
-                                            ? '?'
-                                            : gameProvider.currentDiceValue.toString(),
-                                        style: const TextStyle(
-                                          fontSize: 24,
+                                        'Rolled: ${gameProvider.currentDiceValue}',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.green.shade700,
                                           fontWeight: FontWeight.bold,
-                                          color: Colors.black,
                                         ),
                                       ),
                                     ),
-                                  ),
                                 ],
                               ),
                             ],
@@ -174,44 +176,67 @@ class _GameScreenState extends State<GameScreen> {
                 ),
                 Padding(
                   padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  child: Column(
                     children: [
-                      ElevatedButton(
-                        onPressed: () => gameProvider.rollDice(),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 12,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                      Text(
+                        gameProvider.phase == GamePhase.waitingForRoll
+                            ? 'Tap the dice above to roll!'
+                            : gameProvider.phase == GamePhase.waitingForMove
+                                ? 'Select a highlighted piece to move!'
+                                : 'Game in progress...',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: gameProvider.phase == GamePhase.waitingForMove 
+                              ? Colors.orange.shade700 
+                              : Colors.blue.shade700,
+                          fontWeight: FontWeight.w600,
                         ),
-                        child: const Text(
-                          'Roll Dice',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        textAlign: TextAlign.center,
                       ),
-                      const SizedBox(width: 16),
-                      // Debug button to force roll a 6
-                      ElevatedButton(
-                        onPressed: () {
-                          print('Debug: Rolling a 6');
-                          gameProvider.debugRollSix();
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.purple,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
+                      const SizedBox(height: 16),
+                      // Debug section
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          ElevatedButton(
+                            onPressed: () {
+                              print('Debug: Rolling a 6');
+                              gameProvider.debugRollSix();
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.purple,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: const Text(
+                              'Debug: Roll 6',
+                              style: TextStyle(fontSize: 14),
+                            ),
                           ),
-                        ),
-                        child: const Text('Debug: Roll 6'),
+                          const SizedBox(width: 16),
+                          ElevatedButton(
+                            onPressed: () => gameProvider.rollDice(),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.grey,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: const Text(
+                              'Fallback Roll',
+                              style: TextStyle(fontSize: 14),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),

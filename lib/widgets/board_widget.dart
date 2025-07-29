@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ludo_club/models/ludo_objects.dart';
+import 'package:ludo_club/widgets/ludo_pin.dart';
 
 class BoardWidget extends StatelessWidget {
   final List<Piece> pieces;
@@ -56,53 +57,24 @@ class BoardWidget extends StatelessWidget {
   Widget _buildPiece(Piece piece, double boardSize) {
     final position = _calculatePiecePosition(piece, boardSize);
     final isMovable = movablePieces.contains(piece);
-    final pieceSize = boardSize / 12; // Größere Spielsteine
+    final pieceSize = boardSize / 15; // Responsive size for SVG pins
     
     if (piece.color == currentPlayer) {
       print('BoardWidget: Piece ${piece.color} ${piece.id} - isMovable: $isMovable, position: ${piece.position.fieldId}, isHome: ${piece.position.isHome}');
     }
 
-    return Positioned(
+    return AnimatedPositioned(
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeInOut,
       left: position.dx - pieceSize / 2,
-      top: position.dy - pieceSize / 2,
-      child: GestureDetector(
+      top: position.dy - (pieceSize * 1.2) / 2, // Account for teardrop shape height
+      child: LudoPin(
+        color: _getColorStringForPlayer(piece.color),
+        id: piece.id + 1,
+        size: pieceSize,
+        isSelected: piece.color == currentPlayer && isMovable,
+        isHighlighted: isMovable,
         onTap: isMovable ? () => onPieceSelected(piece) : null,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          width: pieceSize,
-          height: pieceSize,
-          decoration: BoxDecoration(
-            color: _getColorForPlayer(piece.color),
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: isMovable ? Colors.yellow.shade400 : Colors.white,
-              width: isMovable ? 5 : 2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.3),
-                blurRadius: 4,
-                offset: const Offset(2, 2),
-              ),
-              if (isMovable)
-                BoxShadow(
-                  color: Colors.yellow.withValues(alpha: 0.6),
-                  blurRadius: 8,
-                  spreadRadius: 2,
-                ),
-            ],
-          ),
-          child: Center(
-            child: Text(
-              '${piece.id + 1}',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -225,6 +197,19 @@ class BoardWidget extends StatelessWidget {
         return Colors.blue.shade700;
       case PlayerColor.yellow:
         return Colors.yellow.shade700;
+    }
+  }
+
+  String _getColorStringForPlayer(PlayerColor color) {
+    switch (color) {
+      case PlayerColor.red:
+        return 'red';
+      case PlayerColor.green:
+        return 'green';
+      case PlayerColor.blue:
+        return 'blue';
+      case PlayerColor.yellow:
+        return 'yellow';
     }
   }
 }
