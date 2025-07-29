@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ludo_club/models/ludo_objects.dart';
 import 'package:ludo_club/widgets/ludo_pin.dart';
+import 'package:ludo_club/widgets/ludo_board_painter.dart';
 
 class BoardWidget extends StatelessWidget {
   final List<Piece> pieces;
@@ -50,6 +51,7 @@ class BoardWidget extends StatelessWidget {
       ),
       child: CustomPaint(
         painter: LudoBoardPainter(),
+        size: Size(size, size),
       ),
     );
   }
@@ -228,152 +230,4 @@ class BoardWidget extends StatelessWidget {
         return 'yellow';
     }
   }
-}
-
-class LudoBoardPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..style = PaintingStyle.fill;
-    
-    final cellSize = size.width / 15;
-    
-    // Draw colored home areas
-    // Red home (bottom-left)
-    paint.color = Colors.red.shade200;
-    canvas.drawRect(
-      Rect.fromLTWH(0, cellSize * 9, cellSize * 6, cellSize * 6),
-      paint,
-    );
-    
-    // Green home (top-left)
-    paint.color = Colors.green.shade200;
-    canvas.drawRect(
-      Rect.fromLTWH(0, 0, cellSize * 6, cellSize * 6),
-      paint,
-    );
-    
-    // Blue home (top-right)
-    paint.color = Colors.blue.shade200;
-    canvas.drawRect(
-      Rect.fromLTWH(cellSize * 9, 0, cellSize * 6, cellSize * 6),
-      paint,
-    );
-    
-    // Yellow home (bottom-right)
-    paint.color = Colors.yellow.shade200;
-    canvas.drawRect(
-      Rect.fromLTWH(cellSize * 9, cellSize * 9, cellSize * 6, cellSize * 6),
-      paint,
-    );
-    
-    // Draw colored paths to home
-    // Red path
-    paint.color = Colors.red.shade400;
-    for (int i = 1; i <= 5; i++) {
-      canvas.drawRect(
-        Rect.fromLTWH(cellSize * 7, cellSize * (8 + i), cellSize, cellSize),
-        paint,
-      );
-    }
-    
-    // Green path
-    paint.color = Colors.green.shade400;
-    for (int i = 1; i <= 5; i++) {
-      canvas.drawRect(
-        Rect.fromLTWH(cellSize * i, cellSize * 7, cellSize, cellSize),
-        paint,
-      );
-    }
-    
-    // Blue path
-    paint.color = Colors.blue.shade400;
-    for (int i = 1; i <= 5; i++) {
-      canvas.drawRect(
-        Rect.fromLTWH(cellSize * 7, cellSize * i, cellSize, cellSize),
-        paint,
-      );
-    }
-    
-    // Yellow path
-    paint.color = Colors.yellow.shade400;
-    for (int i = 1; i <= 5; i++) {
-      canvas.drawRect(
-        Rect.fromLTWH(cellSize * (8 + i), cellSize * 7, cellSize, cellSize),
-        paint,
-      );
-    }
-    
-    // Draw center home triangle
-    final centerPath = Path();
-    centerPath.moveTo(cellSize * 7.5, cellSize * 6.5);
-    centerPath.lineTo(cellSize * 6.5, cellSize * 7.5);
-    centerPath.lineTo(cellSize * 7.5, cellSize * 8.5);
-    centerPath.lineTo(cellSize * 8.5, cellSize * 7.5);
-    centerPath.close();
-    
-    paint.color = Colors.grey.shade300;
-    canvas.drawPath(centerPath, paint);
-    
-    // Draw starting positions with stars
-    final starPaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
-    
-    // Red start
-    canvas.drawCircle(
-      Offset(cellSize * 6.5, cellSize * 13.5),
-      cellSize * 0.3,
-      starPaint,
-    );
-    
-    // Green start  
-    canvas.drawCircle(
-      Offset(cellSize * 1.5, cellSize * 6.5),
-      cellSize * 0.3,
-      starPaint,
-    );
-    
-    // Blue start
-    canvas.drawCircle(
-      Offset(cellSize * 8.5, cellSize * 1.5),
-      cellSize * 0.3,
-      starPaint,
-    );
-    
-    // Yellow start
-    canvas.drawCircle(
-      Offset(cellSize * 13.5, cellSize * 8.5),
-      cellSize * 0.3,
-      starPaint,
-    );
-    
-    // Draw grid lines
-    final linePaint = Paint()
-      ..color = Colors.grey.shade400
-      ..strokeWidth = 1;
-    
-    for (int i = 0; i <= 15; i++) {
-      // Vertical lines
-      canvas.drawLine(
-        Offset(i * cellSize, 0),
-        Offset(i * cellSize, size.height),
-        linePaint,
-      );
-      
-      // Horizontal lines
-      canvas.drawLine(
-        Offset(0, i * cellSize),
-        Offset(size.width, i * cellSize),
-        linePaint,
-      );
-    }
-    
-    // Draw safe zones and special cells
-    // This is a simplified version - you would need to implement
-    // the full board design based on standard Ludo layout
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

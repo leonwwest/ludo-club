@@ -23,7 +23,7 @@ class GameProvider extends ChangeNotifier {
   GameProvider({
     AudioService? audioService,
   })  : _audioService = audioService ?? AudioService() {
-    _createNewGame([PlayerColor.red, PlayerColor.green]); // Default to 2 players
+    _createNewGame([PlayerColor.red, PlayerColor.green, PlayerColor.blue, PlayerColor.yellow]); // Default to 4 players
     _initAudio();
   }
 

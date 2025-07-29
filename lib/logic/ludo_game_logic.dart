@@ -54,6 +54,18 @@ class LudoGame {
     PlayerColor.yellow: 38, // Yellow enters home stretch at position 38
   };
 
+  // Safe fields where pieces cannot be captured
+  static const Set<int> safeFields = {
+    0,   // Red start
+    8,   // Safe field 1
+    13,  // Green start  
+    21,  // Safe field 2
+    26,  // Blue start
+    34,  // Safe field 3
+    39,  // Yellow start
+    47,  // Safe field 4
+  };
+
   static List<Piece> getMovablePieces(GameState state) {
     if (state.lastDiceValue == null || state.lastDiceValue == 0) return [];
     return state.currentPlayer.pieces
@@ -118,8 +130,8 @@ class LudoGame {
     Piece? capturedPiece;
     List<Player> updatedPlayers = state.players.map((p) => p).toList();
     
-    if (!movedPiece.position.isHome) {
-      // Look for opponent pieces on the same position
+    if (!movedPiece.position.isHome && !safeFields.contains(movedPiece.position.fieldId)) {
+      // Look for opponent pieces on the same position (only if not on safe field)
       for (int i = 0; i < updatedPlayers.length; i++) {
         if (updatedPlayers[i].color == state.currentTurnPlayerId) continue;
         
