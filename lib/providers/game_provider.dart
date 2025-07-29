@@ -8,18 +8,22 @@ import 'package:ludo_club/models/ludo_objects.dart';
 import 'package:ludo_club/services/audio_service.dart';
 
 class GameProvider extends ChangeNotifier {
-  late GameState _gameState;
+
   final AudioService _audioService;
 
   bool isAnimating = false;
   bool _showReachedHomeEffect = false;
   PlayerColor? _reachedHomePlayerId;
   int? _reachedHomeTokenIndex;
+  
+  bool _showCaptureEffect = false;
+  PlayerColor? _capturedPlayerId;
+  int? _capturedTokenIndex;
 
   GameProvider({
     AudioService? audioService,
   })  : _audioService = audioService ?? AudioService() {
-    _createNewGame([PlayerColor.red, PlayerColor.green]); // Default to 2 players
+    _gameState = _createDefaultGameState();
     _initAudio();
   }
 
@@ -44,16 +48,28 @@ class GameProvider extends ChangeNotifier {
     await _audioService.init();
   }
 
+  late GameState _gameState;
+  
   GameState get gameState => _gameState;
   GamePhase get phase => _gameState.phase;
   bool get showReachedHomeEffect => _showReachedHomeEffect;
   PlayerColor? get reachedHomePlayerId => _reachedHomePlayerId;
   int? get reachedHomeTokenIndex => _reachedHomeTokenIndex;
+  
+  bool get showCaptureEffect => _showCaptureEffect;
+  PlayerColor? get capturedPlayerId => _capturedPlayerId;
+  int? get capturedTokenIndex => _capturedTokenIndex;
 
   void clearReachedHomeEffect() {
     _showReachedHomeEffect = false;
     _reachedHomePlayerId = null;
     _reachedHomeTokenIndex = null;
+  }
+  
+  void clearCaptureEffect() {
+    _showCaptureEffect = false;
+    _capturedPlayerId = null;
+    _capturedTokenIndex = null;
   }
 
   Future<void> nextTurn() async {
@@ -128,7 +144,17 @@ class GameProvider extends ChangeNotifier {
     final moveResult = LudoGame.movePiece(_gameState, pieceToMove);
     _gameState = moveResult.newState;
 
-    if (moveResult.isFinishMove) {
+    // Handle captured piece
+    if (moveResult.capturedOpponentPiece != null) {
+      final captured = moveResult.capturedOpponentPiece!;
+      print('GameProvider: Piece captured! ${captured.color} ${captured.id} sent home');
+      
+      _showCaptureEffect = true;
+      _capturedPlayerId = captured.color;
+      _capturedTokenIndex = captured.id;
+      
+      await _audioService.playCaptureSound();
+    } else if (moveResult.isFinishMove) {
       _showReachedHomeEffect = true;
       _reachedHomePlayerId = pieceToMove.color;
       _reachedHomeTokenIndex = pieceToMove.id;
@@ -144,10 +170,11 @@ class GameProvider extends ChangeNotifier {
       return;
     }
 
-    if (_gameState.lastDiceValue != 6) {
-      _advanceToNextPlayer();
-    } else {
+    // Check for 6 or capture: get another turn
+    if (_gameState.lastDiceValue == 6 || moveResult.capturedOpponentPiece != null) {
       unawaited(nextTurn());
+    } else {
+      _advanceToNextPlayer();
     }
   }
 
@@ -187,6 +214,32 @@ class GameProvider extends ChangeNotifier {
       _gameState.players.expand((p) => p.pieces).toList();
   Player getPlayerMeta(PlayerColor color) =>
       _gameState.players.firstWhere((p) => p.color == color);
+
+  GameState _createDefaultGameState() {
+    // Create a minimal default state with 2 players
+    final defaultPlayers = [
+      Player(
+        id: 'player1',
+        name: 'Player 1',
+        type: PlayerType.human,
+        color: PlayerColor.red,
+        pieces: List.generate(4, (j) => Piece(PlayerColor.red, j, const PiecePosition(GameState.basePosition, isHome: true))),
+      ),
+      Player(
+        id: 'player2', 
+        name: 'Player 2',
+        type: PlayerType.human,
+        color: PlayerColor.green,
+        pieces: List.generate(4, (j) => Piece(PlayerColor.green, j, const PiecePosition(GameState.basePosition, isHome: true))),
+      ),
+    ];
+    
+    return GameState(
+      players: defaultPlayers,
+      currentTurnPlayerId: PlayerColor.red,
+      startIndices: LudoGame.startFields,
+    );
+  }
 
   void startNewGame(List<Player> playersFromUI) {
     // Just use the players directly

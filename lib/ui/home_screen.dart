@@ -13,10 +13,28 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final List<TextEditingController> _nameControllers = List.generate(
-    2,
-    (index) => TextEditingController(text: 'Player ${index + 1}'),
-  );
+  List<TextEditingController> _nameControllers = [];
+  int _playerCount = 2;
+  
+  final List<PlayerColor> _availableColors = [
+    PlayerColor.red,
+    PlayerColor.green, 
+    PlayerColor.blue,
+    PlayerColor.yellow,
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeControllers();
+  }
+
+  void _initializeControllers() {
+    _nameControllers = List.generate(
+      _playerCount,
+      (index) => TextEditingController(text: 'Player ${index + 1}'),
+    );
+  }
 
   @override
   void dispose() {
@@ -24,6 +42,27 @@ class _HomeScreenState extends State<HomeScreen> {
       controller.dispose();
     }
     super.dispose();
+  }
+
+  void _addPlayer() {
+    if (_playerCount < 4) {
+      setState(() {
+        _playerCount++;
+        _nameControllers.add(
+          TextEditingController(text: 'Player $_playerCount')
+        );
+      });
+    }
+  }
+
+  void _removePlayer() {
+    if (_playerCount > 2) {
+      setState(() {
+        _nameControllers.last.dispose();
+        _nameControllers.removeLast();
+        _playerCount--;
+      });
+    }
   }
 
   @override
@@ -73,20 +112,63 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      ...List.generate(2, (index) {
+                      ...List.generate(_playerCount, (index) {
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 8.0),
-                          child: TextField(
-                            controller: _nameControllers[index],
-                            decoration: InputDecoration(
-                              labelText: 'Player ${index + 1}',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
+                          child: Row(
+                            children: [
+                              // Color indicator
+                              Container(
+                                width: 20,
+                                height: 20,
+                                margin: const EdgeInsets.only(right: 12),
+                                decoration: BoxDecoration(
+                                  color: _getColorForPlayerColor(_availableColors[index]),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white, width: 2),
+                                ),
                               ),
-                            ),
+                              // Text field
+                              Expanded(
+                                child: TextField(
+                                  controller: _nameControllers[index],
+                                  decoration: InputDecoration(
+                                    labelText: 'Player ${index + 1} (${_getColorName(_availableColors[index])})',
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         );
                       }),
+                      const SizedBox(height: 16),
+                      // Add/Remove Player buttons
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          ElevatedButton.icon(
+                            onPressed: _playerCount > 2 ? _removePlayer : null,
+                            icon: const Icon(Icons.remove),
+                            label: const Text('Remove Player'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red.shade400,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                          ElevatedButton.icon(
+                            onPressed: _playerCount < 4 ? _addPlayer : null,
+                            icon: const Icon(Icons.add),
+                            label: const Text('Add Player'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green.shade600,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -118,15 +200,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _startGame() {
     final List<Player> players = [];
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < _playerCount; i++) {
       players.add(Player(
         id: 'player${i + 1}',
         name: _nameControllers[i].text.isNotEmpty
             ? _nameControllers[i].text
             : 'Player ${i + 1}',
         type: PlayerType.human,
-        color: PlayerColor.values[i],
-                      pieces: List.generate(4, (j) => Piece(PlayerColor.values[i], j, const PiecePosition(GameState.basePosition, isHome: true))),
+        color: _availableColors[i],
+        pieces: List.generate(4, (j) => Piece(_availableColors[i], j, const PiecePosition(GameState.basePosition, isHome: true))),
       ));
     }
 
@@ -138,5 +220,31 @@ class _HomeScreenState extends State<HomeScreen> {
         builder: (context) => const GameScreen(),
       ),
     );
+  }
+
+  Color _getColorForPlayerColor(PlayerColor playerColor) {
+    switch (playerColor) {
+      case PlayerColor.red:
+        return Colors.red.shade600;
+      case PlayerColor.green:
+        return Colors.green.shade600;
+      case PlayerColor.blue:
+        return Colors.blue.shade600;
+      case PlayerColor.yellow:
+        return Colors.yellow.shade600;
+    }
+  }
+
+  String _getColorName(PlayerColor playerColor) {
+    switch (playerColor) {
+      case PlayerColor.red:
+        return 'Red';
+      case PlayerColor.green:
+        return 'Green';
+      case PlayerColor.blue:
+        return 'Blue';
+      case PlayerColor.yellow:
+        return 'Yellow';
+    }
   }
 }

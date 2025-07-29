@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ludo_club/models/ludo_objects.dart';
+import 'package:ludo_club/widgets/ludo_pin.dart';
+import 'package:ludo_club/widgets/ludo_board_painter.dart';
 
 class BoardWidget extends StatelessWidget {
   final List<Piece> pieces;
@@ -49,6 +51,7 @@ class BoardWidget extends StatelessWidget {
       ),
       child: CustomPaint(
         painter: LudoBoardPainter(),
+        size: Size(size, size),
       ),
     );
   }
@@ -56,53 +59,24 @@ class BoardWidget extends StatelessWidget {
   Widget _buildPiece(Piece piece, double boardSize) {
     final position = _calculatePiecePosition(piece, boardSize);
     final isMovable = movablePieces.contains(piece);
-    final pieceSize = boardSize / 12; // Größere Spielsteine
+    final pieceSize = boardSize / 15; // Responsive size for SVG pins
     
     if (piece.color == currentPlayer) {
       print('BoardWidget: Piece ${piece.color} ${piece.id} - isMovable: $isMovable, position: ${piece.position.fieldId}, isHome: ${piece.position.isHome}');
     }
 
-    return Positioned(
+    return AnimatedPositioned(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
       left: position.dx - pieceSize / 2,
-      top: position.dy - pieceSize / 2,
-      child: GestureDetector(
+      top: position.dy - (pieceSize * 1.2) / 2, // Account for teardrop shape height
+      child: LudoPin(
+        color: _getColorStringForPlayer(piece.color),
+        id: piece.id + 1,
+        size: pieceSize,
+        isSelected: piece.color == currentPlayer && isMovable,
+        isHighlighted: isMovable,
         onTap: isMovable ? () => onPieceSelected(piece) : null,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          width: pieceSize,
-          height: pieceSize,
-          decoration: BoxDecoration(
-            color: _getColorForPlayer(piece.color),
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: isMovable ? Colors.yellow.shade400 : Colors.white,
-              width: isMovable ? 5 : 2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.3),
-                blurRadius: 4,
-                offset: const Offset(2, 2),
-              ),
-              if (isMovable)
-                BoxShadow(
-                  color: Colors.yellow.withValues(alpha: 0.6),
-                  blurRadius: 8,
-                  spreadRadius: 2,
-                ),
-            ],
-          ),
-          child: Center(
-            child: Text(
-              '${piece.id + 1}',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -110,11 +84,10 @@ class BoardWidget extends StatelessWidget {
   Offset _calculatePiecePosition(Piece piece, double boardSize) {
     final cellSize = boardSize / 15;
     
-    // Base positions for each color
-    if (piece.position.isHome) {
+    // Starting home positions (fieldId = -1)
+    if (piece.position.isHome && piece.position.fieldId == -1) {
       switch (piece.color) {
         case PlayerColor.red:
-          // Red home is bottom-left
           final row = piece.id ~/ 2;
           final col = piece.id % 2;
           return Offset(
@@ -122,7 +95,6 @@ class BoardWidget extends StatelessWidget {
             cellSize * (11.5 + row * 2),
           );
         case PlayerColor.green:
-          // Green home is top-left
           final row = piece.id ~/ 2;
           final col = piece.id % 2;
           return Offset(
@@ -130,7 +102,6 @@ class BoardWidget extends StatelessWidget {
             cellSize * (1.5 + row * 2),
           );
         case PlayerColor.blue:
-          // Blue home is top-right
           final row = piece.id ~/ 2;
           final col = piece.id % 2;
           return Offset(
@@ -138,7 +109,6 @@ class BoardWidget extends StatelessWidget {
             cellSize * (1.5 + row * 2),
           );
         case PlayerColor.yellow:
-          // Yellow home is bottom-right
           final row = piece.id ~/ 2;
           final col = piece.id % 2;
           return Offset(
@@ -146,6 +116,11 @@ class BoardWidget extends StatelessWidget {
             cellSize * (11.5 + row * 2),
           );
       }
+    }
+    
+    // Home stretch positions (fieldId >= 0, isHome = true)
+    if (piece.position.isHome && piece.position.fieldId >= 0) {
+      return _getHomeStretchPosition(piece, cellSize);
     }
     
     // Main path positions
@@ -156,6 +131,21 @@ class BoardWidget extends StatelessWidget {
     
     // Default center position
     return Offset(boardSize / 2, boardSize / 2);
+  }
+
+  Offset _getHomeStretchPosition(Piece piece, double cellSize) {
+    final position = piece.position.fieldId;
+    
+    switch (piece.color) {
+      case PlayerColor.red:
+        return Offset(cellSize * 7.5, cellSize * (13.5 - position));
+      case PlayerColor.green:
+        return Offset(cellSize * (1.5 + position), cellSize * 7.5);
+      case PlayerColor.blue:
+        return Offset(cellSize * 7.5, cellSize * (1.5 + position));
+      case PlayerColor.yellow:
+        return Offset(cellSize * (13.5 - position), cellSize * 7.5);
+    }
   }
 
   List<Offset> _getMainPathPositions(double boardSize) {
@@ -227,152 +217,17 @@ class BoardWidget extends StatelessWidget {
         return Colors.yellow.shade700;
     }
   }
-}
 
-class LudoBoardPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..style = PaintingStyle.fill;
-    
-    final cellSize = size.width / 15;
-    
-    // Draw colored home areas
-    // Red home (bottom-left)
-    paint.color = Colors.red.shade200;
-    canvas.drawRect(
-      Rect.fromLTWH(0, cellSize * 9, cellSize * 6, cellSize * 6),
-      paint,
-    );
-    
-    // Green home (top-left)
-    paint.color = Colors.green.shade200;
-    canvas.drawRect(
-      Rect.fromLTWH(0, 0, cellSize * 6, cellSize * 6),
-      paint,
-    );
-    
-    // Blue home (top-right)
-    paint.color = Colors.blue.shade200;
-    canvas.drawRect(
-      Rect.fromLTWH(cellSize * 9, 0, cellSize * 6, cellSize * 6),
-      paint,
-    );
-    
-    // Yellow home (bottom-right)
-    paint.color = Colors.yellow.shade200;
-    canvas.drawRect(
-      Rect.fromLTWH(cellSize * 9, cellSize * 9, cellSize * 6, cellSize * 6),
-      paint,
-    );
-    
-    // Draw colored paths to home
-    // Red path
-    paint.color = Colors.red.shade400;
-    for (int i = 1; i <= 5; i++) {
-      canvas.drawRect(
-        Rect.fromLTWH(cellSize * 7, cellSize * (8 + i), cellSize, cellSize),
-        paint,
-      );
+  String _getColorStringForPlayer(PlayerColor color) {
+    switch (color) {
+      case PlayerColor.red:
+        return 'red';
+      case PlayerColor.green:
+        return 'green';
+      case PlayerColor.blue:
+        return 'blue';
+      case PlayerColor.yellow:
+        return 'yellow';
     }
-    
-    // Green path
-    paint.color = Colors.green.shade400;
-    for (int i = 1; i <= 5; i++) {
-      canvas.drawRect(
-        Rect.fromLTWH(cellSize * i, cellSize * 7, cellSize, cellSize),
-        paint,
-      );
-    }
-    
-    // Blue path
-    paint.color = Colors.blue.shade400;
-    for (int i = 1; i <= 5; i++) {
-      canvas.drawRect(
-        Rect.fromLTWH(cellSize * 7, cellSize * i, cellSize, cellSize),
-        paint,
-      );
-    }
-    
-    // Yellow path
-    paint.color = Colors.yellow.shade400;
-    for (int i = 1; i <= 5; i++) {
-      canvas.drawRect(
-        Rect.fromLTWH(cellSize * (8 + i), cellSize * 7, cellSize, cellSize),
-        paint,
-      );
-    }
-    
-    // Draw center home triangle
-    final centerPath = Path();
-    centerPath.moveTo(cellSize * 7.5, cellSize * 6.5);
-    centerPath.lineTo(cellSize * 6.5, cellSize * 7.5);
-    centerPath.lineTo(cellSize * 7.5, cellSize * 8.5);
-    centerPath.lineTo(cellSize * 8.5, cellSize * 7.5);
-    centerPath.close();
-    
-    paint.color = Colors.grey.shade300;
-    canvas.drawPath(centerPath, paint);
-    
-    // Draw starting positions with stars
-    final starPaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
-    
-    // Red start
-    canvas.drawCircle(
-      Offset(cellSize * 6.5, cellSize * 13.5),
-      cellSize * 0.3,
-      starPaint,
-    );
-    
-    // Green start  
-    canvas.drawCircle(
-      Offset(cellSize * 1.5, cellSize * 6.5),
-      cellSize * 0.3,
-      starPaint,
-    );
-    
-    // Blue start
-    canvas.drawCircle(
-      Offset(cellSize * 8.5, cellSize * 1.5),
-      cellSize * 0.3,
-      starPaint,
-    );
-    
-    // Yellow start
-    canvas.drawCircle(
-      Offset(cellSize * 13.5, cellSize * 8.5),
-      cellSize * 0.3,
-      starPaint,
-    );
-    
-    // Draw grid lines
-    final linePaint = Paint()
-      ..color = Colors.grey.shade400
-      ..strokeWidth = 1;
-    
-    for (int i = 0; i <= 15; i++) {
-      // Vertical lines
-      canvas.drawLine(
-        Offset(i * cellSize, 0),
-        Offset(i * cellSize, size.height),
-        linePaint,
-      );
-      
-      // Horizontal lines
-      canvas.drawLine(
-        Offset(0, i * cellSize),
-        Offset(size.width, i * cellSize),
-        linePaint,
-      );
-    }
-    
-    // Draw safe zones and special cells
-    // This is a simplified version - you would need to implement
-    // the full board design based on standard Ludo layout
   }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
