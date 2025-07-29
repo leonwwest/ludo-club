@@ -29,11 +29,10 @@ const List<Offset> boardCoordinates = [
 
 class MoveResult {
   final GameState newState;
-  // No more capture logic
-  // final Piece? capturedOpponentPiece;
+  final Piece? capturedOpponentPiece;
   final bool isFinishMove;
 
-  MoveResult(this.newState, {this.isFinishMove = false});
+  MoveResult(this.newState, {this.capturedOpponentPiece, this.isFinishMove = false});
 }
 
 class LudoGame {
@@ -112,7 +111,48 @@ class LudoGame {
     }
 
     final dice = state.lastDiceValue!;
-    final newPlayers = state.players.map((p) {
+    // First, move the piece
+    final movedPiece = _movePiece(state, piece, dice);
+    
+    // Check for captures (only on main path, not in home areas)
+    Piece? capturedPiece;
+    List<Player> updatedPlayers = state.players.map((p) => p).toList();
+    
+    if (!movedPiece.position.isHome) {
+      // Look for opponent pieces on the same position
+      for (int i = 0; i < updatedPlayers.length; i++) {
+        if (updatedPlayers[i].color == state.currentTurnPlayerId) continue;
+        
+        for (int j = 0; j < updatedPlayers[i].pieces.length; j++) {
+          final opponentPiece = updatedPlayers[i].pieces[j];
+          
+          if (!opponentPiece.position.isHome && 
+              opponentPiece.position.fieldId == movedPiece.position.fieldId) {
+            print('Capture! ${movedPiece.color} ${movedPiece.id} captures ${opponentPiece.color} ${opponentPiece.id}');
+            capturedPiece = opponentPiece;
+            
+            // Send captured piece back to home
+            updatedPlayers[i] = Player(
+              id: updatedPlayers[i].id,
+              name: updatedPlayers[i].name,
+              type: updatedPlayers[i].type,
+              color: updatedPlayers[i].color,
+              pieces: updatedPlayers[i].pieces.map((p) {
+                if (p.id == opponentPiece.id) {
+                  return Piece(p.color, p.id, const PiecePosition(-1, isHome: true));
+                }
+                return p;
+              }).toList(),
+            );
+            break;
+          }
+        }
+        if (capturedPiece != null) break;
+      }
+    }
+    
+    // Now update the current player's piece
+    final newPlayers = updatedPlayers.map((p) {
       if (p.color != state.currentTurnPlayerId) {
         return p;
       }
@@ -125,17 +165,10 @@ class LudoGame {
           if (p.id != piece.id) {
             return p;
           }
-          return _movePiece(state, piece, dice);
+          return movedPiece;
         }).toList(),
       );
     }).toList();
-
-    final movedPiece = newPlayers
-        .firstWhere((p) => p.color == state.currentTurnPlayerId)
-        .pieces
-        .firstWhere((p) => p.id == piece.id);
-
-    // No more capture logic
 
     final newState = state.copyWith(
       players: newPlayers,
@@ -144,6 +177,7 @@ class LudoGame {
 
     return MoveResult(
       newState,
+      capturedOpponentPiece: capturedPiece,
       isFinishMove: movedPiece.isSafe,
     );
   }

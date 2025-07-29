@@ -15,6 +15,10 @@ class GameProvider extends ChangeNotifier {
   bool _showReachedHomeEffect = false;
   PlayerColor? _reachedHomePlayerId;
   int? _reachedHomeTokenIndex;
+  
+  bool _showCaptureEffect = false;
+  PlayerColor? _capturedPlayerId;
+  int? _capturedTokenIndex;
 
   GameProvider({
     AudioService? audioService,
@@ -49,11 +53,21 @@ class GameProvider extends ChangeNotifier {
   bool get showReachedHomeEffect => _showReachedHomeEffect;
   PlayerColor? get reachedHomePlayerId => _reachedHomePlayerId;
   int? get reachedHomeTokenIndex => _reachedHomeTokenIndex;
+  
+  bool get showCaptureEffect => _showCaptureEffect;
+  PlayerColor? get capturedPlayerId => _capturedPlayerId;
+  int? get capturedTokenIndex => _capturedTokenIndex;
 
   void clearReachedHomeEffect() {
     _showReachedHomeEffect = false;
     _reachedHomePlayerId = null;
     _reachedHomeTokenIndex = null;
+  }
+  
+  void clearCaptureEffect() {
+    _showCaptureEffect = false;
+    _capturedPlayerId = null;
+    _capturedTokenIndex = null;
   }
 
   Future<void> nextTurn() async {
@@ -128,7 +142,17 @@ class GameProvider extends ChangeNotifier {
     final moveResult = LudoGame.movePiece(_gameState, pieceToMove);
     _gameState = moveResult.newState;
 
-    if (moveResult.isFinishMove) {
+    // Handle captured piece
+    if (moveResult.capturedOpponentPiece != null) {
+      final captured = moveResult.capturedOpponentPiece!;
+      print('GameProvider: Piece captured! ${captured.color} ${captured.id} sent home');
+      
+      _showCaptureEffect = true;
+      _capturedPlayerId = captured.color;
+      _capturedTokenIndex = captured.id;
+      
+      await _audioService.playCaptureSound();
+    } else if (moveResult.isFinishMove) {
       _showReachedHomeEffect = true;
       _reachedHomePlayerId = pieceToMove.color;
       _reachedHomeTokenIndex = pieceToMove.id;
@@ -144,10 +168,11 @@ class GameProvider extends ChangeNotifier {
       return;
     }
 
-    if (_gameState.lastDiceValue != 6) {
-      _advanceToNextPlayer();
-    } else {
+    // Check for 6 or capture: get another turn
+    if (_gameState.lastDiceValue == 6 || moveResult.capturedOpponentPiece != null) {
       unawaited(nextTurn());
+    } else {
+      _advanceToNextPlayer();
     }
   }
 
