@@ -8,7 +8,7 @@ import 'package:ludo_club/models/ludo_objects.dart';
 import 'package:ludo_club/services/audio_service.dart';
 
 class GameProvider extends ChangeNotifier {
-  late GameState _gameState;
+
   final AudioService _audioService;
 
   bool isAnimating = false;
@@ -23,7 +23,7 @@ class GameProvider extends ChangeNotifier {
   GameProvider({
     AudioService? audioService,
   })  : _audioService = audioService ?? AudioService() {
-    _createNewGame([PlayerColor.red, PlayerColor.green, PlayerColor.blue, PlayerColor.yellow]); // Default to 4 players
+    _gameState = _createDefaultGameState();
     _initAudio();
   }
 
@@ -48,6 +48,8 @@ class GameProvider extends ChangeNotifier {
     await _audioService.init();
   }
 
+  late GameState _gameState;
+  
   GameState get gameState => _gameState;
   GamePhase get phase => _gameState.phase;
   bool get showReachedHomeEffect => _showReachedHomeEffect;
@@ -212,6 +214,32 @@ class GameProvider extends ChangeNotifier {
       _gameState.players.expand((p) => p.pieces).toList();
   Player getPlayerMeta(PlayerColor color) =>
       _gameState.players.firstWhere((p) => p.color == color);
+
+  GameState _createDefaultGameState() {
+    // Create a minimal default state with 2 players
+    final defaultPlayers = [
+      Player(
+        id: 'player1',
+        name: 'Player 1',
+        type: PlayerType.human,
+        color: PlayerColor.red,
+        pieces: List.generate(4, (j) => Piece(PlayerColor.red, j, const PiecePosition(GameState.basePosition, isHome: true))),
+      ),
+      Player(
+        id: 'player2', 
+        name: 'Player 2',
+        type: PlayerType.human,
+        color: PlayerColor.green,
+        pieces: List.generate(4, (j) => Piece(PlayerColor.green, j, const PiecePosition(GameState.basePosition, isHome: true))),
+      ),
+    ];
+    
+    return GameState(
+      players: defaultPlayers,
+      currentTurnPlayerId: PlayerColor.red,
+      startIndices: LudoGame.startFields,
+    );
+  }
 
   void startNewGame(List<Player> playersFromUI) {
     // Just use the players directly
