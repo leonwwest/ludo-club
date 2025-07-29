@@ -118,26 +118,22 @@ class _LudoPinState extends State<LudoPin>
                   height: widget.size * 1.2, // Slightly taller for teardrop shape
                 ),
                 
-                // ID number overlay
+                // ID number overlay - simplified
                 Positioned(
-                  bottom: widget.size * 0.1,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: _getColorForString(widget.color),
-                        width: 1,
-                      ),
-                    ),
-                    child: Text(
-                      '${widget.id}',
-                      style: TextStyle(
-                        fontSize: widget.size * 0.25,
-                        fontWeight: FontWeight.bold,
-                        color: _getColorForString(widget.color),
-                      ),
+                  bottom: widget.size * 0.15,
+                  child: Text(
+                    '${widget.id}',
+                    style: TextStyle(
+                      fontSize: widget.size * 0.3,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      shadows: [
+                        Shadow(
+                          blurRadius: 3,
+                          color: Colors.black.withOpacity(0.8),
+                          offset: const Offset(1, 1),
+                        ),
+                      ],
                     ),
                   ),
                 ),

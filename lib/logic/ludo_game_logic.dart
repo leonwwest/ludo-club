@@ -37,15 +37,21 @@ class MoveResult {
 }
 
 class LudoGame {
-  static const int mainPathLength = 40;
-  static const int homePathLength = 4;
+  static const int mainPathLength = 52;
+  static const int homePathLength = 6;
 
   static const Map<PlayerColor, int> startFields = {
     PlayerColor.red: 0,
-    PlayerColor.green: 10,
-    // We only have 2 players now
-    // PlayerColor.blue: 20,
-    // PlayerColor.yellow: 30,
+    PlayerColor.green: 13,
+    PlayerColor.blue: 26,
+    PlayerColor.yellow: 39,
+  };
+
+  static const Map<PlayerColor, int> homeStretchStart = {
+    PlayerColor.red: 46,
+    PlayerColor.green: 7,
+    PlayerColor.blue: 20,
+    PlayerColor.yellow: 33,
   };
 
   static List<Piece> getMovablePieces(GameState state) {
@@ -62,20 +68,40 @@ class LudoGame {
     print('Piece position: fieldId=${piece.position.fieldId}, isHome=${piece.position.isHome}');
     print('Dice value: ${state.lastDiceValue}');
 
-    if (piece.position.isHome) {
+    // Piece is in starting home area
+    if (piece.position.isHome && piece.position.fieldId == -1) {
       final canMove = state.lastDiceValue == 6;
-      print('Piece is home, can move: $canMove');
+      print('Piece is in starting area, can move: $canMove');
       return canMove;
     }
 
-    int targetPos = piece.position.fieldId + state.lastDiceValue!;
-    // Simplified condition
-    if (targetPos > mainPathLength) {
-      print('Target position $targetPos exceeds main path length $mainPathLength');
-      return false;
+    // Piece is in home stretch
+    if (piece.position.isHome && piece.position.fieldId >= 0) {
+      int targetPos = piece.position.fieldId + state.lastDiceValue!;
+      final canMove = targetPos <= homePathLength;
+      print('Piece in home stretch, target: $targetPos, can move: $canMove');
+      return canMove;
     }
-    print('Piece can move to position $targetPos');
-    return true;
+
+    // Piece is on main path
+    int targetPos = piece.position.fieldId + state.lastDiceValue!;
+    final homeStart = homeStretchStart[piece.color]!;
+    
+    // Check if piece would go past its home entry point
+    if (piece.position.fieldId < homeStart && targetPos >= homeStart) {
+      // Piece can enter home stretch
+      print('Piece can enter home stretch from $targetPos');
+      return true;
+    }
+    
+    // Normal main path movement
+    if (targetPos < mainPathLength) {
+      print('Normal main path movement to $targetPos');
+      return true;
+    }
+    
+    print('Move not allowed, target $targetPos exceeds bounds');
+    return false;
   }
 
   static MoveResult movePiece(GameState state, Piece piece) {
@@ -121,18 +147,42 @@ class LudoGame {
   }
 
   static Piece _movePiece(GameState state, Piece piece, int steps) {
-    if (piece.position.isHome && steps == 6) {
+    // Move from starting home area to main path
+    if (piece.position.isHome && piece.position.fieldId == -1 && steps == 6) {
       return Piece(piece.color, piece.id, PiecePosition(startFields[piece.color]!, isHome: false));
     }
 
-    int newFieldId = piece.position.fieldId + steps;
+    // Move within home stretch
+    if (piece.position.isHome && piece.position.fieldId >= 0) {
+      int newFieldId = piece.position.fieldId + steps;
+      if (newFieldId == homePathLength) {
+        // Piece reaches the finish!
+        return Piece(piece.color, piece.id, PiecePosition(homePathLength, isHome: true), isSafe: true);
+      } else {
+        return Piece(piece.color, piece.id, PiecePosition(newFieldId, isHome: true));
+      }
+    }
 
-    // Simplified logic
-    if (newFieldId >= mainPathLength) {
-        return Piece(piece.color, piece.id, const PiecePosition(0, isHome: true), isSafe: true);
-    } else {
+    // Move on main path
+    int newFieldId = piece.position.fieldId + steps;
+    final homeStart = homeStretchStart[piece.color]!;
+    
+    // Check if piece enters home stretch
+    if (piece.position.fieldId < homeStart && newFieldId >= homeStart) {
+      int homePosition = newFieldId - homeStart;
+      if (homePosition <= homePathLength) {
+        print('Piece ${piece.color} ${piece.id} entering home stretch at position $homePosition');
+        return Piece(piece.color, piece.id, PiecePosition(homePosition, isHome: true));
+      }
+    }
+    
+    // Normal main path movement
+    if (newFieldId < mainPathLength) {
       return Piece(piece.color, piece.id, PiecePosition(newFieldId, isHome: false));
     }
+    
+    // Shouldn't reach here if _canMovePiece is correct
+    return piece;
   }
 
   static PlayerColor? _checkWinner(List<Player> players, PlayerColor currentPlayer) {

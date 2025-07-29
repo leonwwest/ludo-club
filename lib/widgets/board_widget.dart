@@ -64,8 +64,8 @@ class BoardWidget extends StatelessWidget {
     }
 
     return AnimatedPositioned(
-      duration: const Duration(milliseconds: 500),
-      curve: Curves.easeInOut,
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
       left: position.dx - pieceSize / 2,
       top: position.dy - (pieceSize * 1.2) / 2, // Account for teardrop shape height
       child: LudoPin(
@@ -82,11 +82,10 @@ class BoardWidget extends StatelessWidget {
   Offset _calculatePiecePosition(Piece piece, double boardSize) {
     final cellSize = boardSize / 15;
     
-    // Base positions for each color
-    if (piece.position.isHome) {
+    // Starting home positions (fieldId = -1)
+    if (piece.position.isHome && piece.position.fieldId == -1) {
       switch (piece.color) {
         case PlayerColor.red:
-          // Red home is bottom-left
           final row = piece.id ~/ 2;
           final col = piece.id % 2;
           return Offset(
@@ -94,7 +93,6 @@ class BoardWidget extends StatelessWidget {
             cellSize * (11.5 + row * 2),
           );
         case PlayerColor.green:
-          // Green home is top-left
           final row = piece.id ~/ 2;
           final col = piece.id % 2;
           return Offset(
@@ -102,7 +100,6 @@ class BoardWidget extends StatelessWidget {
             cellSize * (1.5 + row * 2),
           );
         case PlayerColor.blue:
-          // Blue home is top-right
           final row = piece.id ~/ 2;
           final col = piece.id % 2;
           return Offset(
@@ -110,7 +107,6 @@ class BoardWidget extends StatelessWidget {
             cellSize * (1.5 + row * 2),
           );
         case PlayerColor.yellow:
-          // Yellow home is bottom-right
           final row = piece.id ~/ 2;
           final col = piece.id % 2;
           return Offset(
@@ -118,6 +114,11 @@ class BoardWidget extends StatelessWidget {
             cellSize * (11.5 + row * 2),
           );
       }
+    }
+    
+    // Home stretch positions (fieldId >= 0, isHome = true)
+    if (piece.position.isHome && piece.position.fieldId >= 0) {
+      return _getHomeStretchPosition(piece, cellSize);
     }
     
     // Main path positions
@@ -128,6 +129,21 @@ class BoardWidget extends StatelessWidget {
     
     // Default center position
     return Offset(boardSize / 2, boardSize / 2);
+  }
+
+  Offset _getHomeStretchPosition(Piece piece, double cellSize) {
+    final position = piece.position.fieldId;
+    
+    switch (piece.color) {
+      case PlayerColor.red:
+        return Offset(cellSize * 7.5, cellSize * (13.5 - position));
+      case PlayerColor.green:
+        return Offset(cellSize * (1.5 + position), cellSize * 7.5);
+      case PlayerColor.blue:
+        return Offset(cellSize * 7.5, cellSize * (1.5 + position));
+      case PlayerColor.yellow:
+        return Offset(cellSize * (13.5 - position), cellSize * 7.5);
+    }
   }
 
   List<Offset> _getMainPathPositions(double boardSize) {
