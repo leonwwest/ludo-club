@@ -47,11 +47,12 @@ class LudoGame {
     PlayerColor.yellow: 39,
   };
 
+  // Home stretch entry positions - where each color enters their final stretch
   static const Map<PlayerColor, int> homeStretchStart = {
-    PlayerColor.red: 46,
-    PlayerColor.green: 7,
-    PlayerColor.blue: 20,
-    PlayerColor.yellow: 33,
+    PlayerColor.red: 51,    // Red enters home stretch at position 51
+    PlayerColor.green: 12,  // Green enters home stretch at position 12 (just before their start at 13)
+    PlayerColor.blue: 25,   // Blue enters home stretch at position 25
+    PlayerColor.yellow: 38, // Yellow enters home stretch at position 38
   };
 
   static List<Piece> getMovablePieces(GameState state) {
@@ -84,24 +85,25 @@ class LudoGame {
     }
 
     // Piece is on main path
-    int targetPos = piece.position.fieldId + state.lastDiceValue!;
+    int currentPos = piece.position.fieldId;
+    int steps = state.lastDiceValue!;
     final homeStart = homeStretchStart[piece.color]!;
     
-    // Check if piece would go past its home entry point
-    if (piece.position.fieldId < homeStart && targetPos >= homeStart) {
-      // Piece can enter home stretch
-      print('Piece can enter home stretch from $targetPos');
-      return true;
+    // Calculate target position with wrapping
+    int targetPos = (currentPos + steps) % mainPathLength;
+    
+    // Check if piece passes through or lands on home stretch entry
+    for (int i = 1; i <= steps; i++) {
+      int checkPos = (currentPos + i) % mainPathLength;
+      if (checkPos == homeStart) {
+        print('Piece can enter home stretch at position $checkPos');
+        return true;
+      }
     }
     
-    // Normal main path movement
-    if (targetPos < mainPathLength) {
-      print('Normal main path movement to $targetPos');
-      return true;
-    }
-    
-    print('Move not allowed, target $targetPos exceeds bounds');
-    return false;
+    // Normal main path movement is always allowed (with wrapping)
+    print('Normal main path movement to $targetPos (wrapped)');
+    return true;
   }
 
   static MoveResult movePiece(GameState state, Piece piece) {
@@ -164,25 +166,30 @@ class LudoGame {
     }
 
     // Move on main path
-    int newFieldId = piece.position.fieldId + steps;
+    int currentPos = piece.position.fieldId;
     final homeStart = homeStretchStart[piece.color]!;
     
-    // Check if piece enters home stretch
-    if (piece.position.fieldId < homeStart && newFieldId >= homeStart) {
-      int homePosition = newFieldId - homeStart;
-      if (homePosition <= homePathLength) {
-        print('Piece ${piece.color} ${piece.id} entering home stretch at position $homePosition');
-        return Piece(piece.color, piece.id, PiecePosition(homePosition, isHome: true));
+    // Check if piece enters home stretch during this move
+    for (int i = 1; i <= steps; i++) {
+      int checkPos = (currentPos + i) % mainPathLength;
+      if (checkPos == homeStart) {
+        // Calculate how many steps are left after reaching home stretch entry
+        int remainingSteps = steps - i;
+        print('Piece ${piece.color} ${piece.id} entering home stretch with $remainingSteps steps remaining');
+        
+        if (remainingSteps <= homePathLength) {
+          return Piece(piece.color, piece.id, PiecePosition(remainingSteps, isHome: true));
+        } else {
+          // Too many steps to enter home stretch safely, shouldn't happen
+          return piece;
+        }
       }
     }
     
-    // Normal main path movement
-    if (newFieldId < mainPathLength) {
-      return Piece(piece.color, piece.id, PiecePosition(newFieldId, isHome: false));
-    }
-    
-    // Shouldn't reach here if _canMovePiece is correct
-    return piece;
+    // Normal main path movement with wrapping
+    int newFieldId = (currentPos + steps) % mainPathLength;
+    print('Piece ${piece.color} ${piece.id} moving to position $newFieldId on main path');
+    return Piece(piece.color, piece.id, PiecePosition(newFieldId, isHome: false));
   }
 
   static PlayerColor? _checkWinner(List<Player> players, PlayerColor currentPlayer) {
