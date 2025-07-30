@@ -46,7 +46,7 @@ class _DiceWidgetState extends State<DiceWidget>
     
     _rotationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 800), // Longer for more dramatic effect
+      duration: const Duration(milliseconds: 800), // Perfectly synced with rolling duration
     );
     
     _scaleController = AnimationController(
@@ -150,9 +150,9 @@ class _DiceWidgetState extends State<DiceWidget>
     _pulseController.repeat(reverse: true);
     
     // Simulate rolling with multiple value changes (for animation effect)
-    // More rapid changes for exciting effect
-    for (int i = 0; i < 12; i++) {
-      await Future.delayed(const Duration(milliseconds: 60));
+    // Perfectly timed to match GameProvider (800ms total)
+    for (int i = 0; i < 10; i++) {
+      await Future.delayed(const Duration(milliseconds: 70));
       if (mounted) {
         setState(() {
           currentValue = Random().nextInt(6) + 1;
@@ -161,6 +161,7 @@ class _DiceWidgetState extends State<DiceWidget>
     }
 
     // End animation and wait for GameProvider to provide the actual value
+    // Total time: 10 × 70ms + 100ms = 800ms (matches GameProvider exactly!)
     await Future.delayed(const Duration(milliseconds: 100));
     
         if (mounted) {
@@ -179,7 +180,7 @@ class _DiceWidgetState extends State<DiceWidget>
       widget.onRoll(0); // Pass 0 as placeholder, GameProvider handles actual dice roll
       
       // Wait a bit for the GameProvider to update, then show bounce effect
-      await Future.delayed(const Duration(milliseconds: 100));
+      await Future.delayed(const Duration(milliseconds: 50));
       if (mounted) {
         // Use the value from GameProvider if available, otherwise keep current
         if (widget.currentDiceValue != null && widget.currentDiceValue! > 0) {
