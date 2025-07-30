@@ -113,6 +113,7 @@ class _GameScreenState extends State<GameScreen> {
                                   DiceWidget(
                                     size: 80,
                                     isEnabled: gameProvider.phase == GamePhase.waitingForRoll,
+                                    currentDiceValue: gameProvider.currentDiceValue > 0 ? gameProvider.currentDiceValue : null,
                                     onRoll: (value) {
                                       // Use the game provider's roll logic
                                       gameProvider.rollDice();

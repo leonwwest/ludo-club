@@ -205,18 +205,7 @@ class BoardWidget extends StatelessWidget {
     return positions;
   }
 
-  Color _getColorForPlayer(PlayerColor color) {
-    switch (color) {
-      case PlayerColor.red:
-        return Colors.red.shade700;
-      case PlayerColor.green:
-        return Colors.green.shade700;
-      case PlayerColor.blue:
-        return Colors.blue.shade700;
-      case PlayerColor.yellow:
-        return Colors.yellow.shade700;
-    }
-  }
+  // Removed unused _getColorForPlayer method
 
   String _getColorStringForPlayer(PlayerColor color) {
     switch (color) {
