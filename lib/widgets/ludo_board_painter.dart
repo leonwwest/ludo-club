@@ -2,6 +2,21 @@ import 'package:flutter/material.dart';
 import 'dart:math' as math;
 
 class LudoBoardPainter extends CustomPainter {
+  // Reusable Paint objects for better performance
+  static final Paint _backgroundPaint = Paint()
+    ..color = Colors.white
+    ..style = PaintingStyle.fill;
+  
+  static final Paint _gridPaint = Paint()
+    ..color = Colors.grey.shade200
+    ..strokeWidth = 0.5;
+  
+  static final Paint _homePaint = Paint()..style = PaintingStyle.fill;
+  static final Paint _pathPaint = Paint()..style = PaintingStyle.fill;
+  static final Paint _borderPaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.0;
+    
   @override
   void paint(Canvas canvas, Size size) {
     final cellSize = size.width / 15;
@@ -29,75 +44,65 @@ class LudoBoardPainter extends CustomPainter {
   }
 
   void _drawBackground(Canvas canvas, Size size, double cellSize) {
-    final backgroundPaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
-    
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), backgroundPaint);
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), _backgroundPaint);
     
     // Draw subtle grid
-    final gridPaint = Paint()
-      ..color = Colors.grey.shade200
-      ..strokeWidth = 0.5;
-    
     for (int i = 0; i <= 15; i++) {
       // Vertical lines
       canvas.drawLine(
         Offset(i * cellSize, 0),
         Offset(i * cellSize, size.height),
-        gridPaint,
+        _gridPaint,
       );
       
       // Horizontal lines
       canvas.drawLine(
         Offset(0, i * cellSize),
         Offset(size.width, i * cellSize),
-        gridPaint,
+        _gridPaint,
       );
     }
   }
 
   void _drawHomeAreas(Canvas canvas, double cellSize) {
-    final homePaint = Paint()..style = PaintingStyle.fill;
-    
     // Red home (bottom-left)
-    homePaint.color = Colors.red.shade100;
+    _homePaint.color = Colors.red.shade100;
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromLTWH(0, cellSize * 9, cellSize * 6, cellSize * 6),
         const Radius.circular(8),
       ),
-      homePaint,
+      _homePaint,
     );
     
     // Green home (top-left)
-    homePaint.color = Colors.green.shade100;
+    _homePaint.color = Colors.green.shade100;
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromLTWH(0, 0, cellSize * 6, cellSize * 6),
         const Radius.circular(8),
       ),
-      homePaint,
+      _homePaint,
     );
     
     // Blue home (top-right)
-    homePaint.color = Colors.blue.shade100;
+    _homePaint.color = Colors.blue.shade100;
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromLTWH(cellSize * 9, 0, cellSize * 6, cellSize * 6),
         const Radius.circular(8),
       ),
-      homePaint,
+      _homePaint,
     );
     
     // Yellow home (bottom-right)
-    homePaint.color = Colors.yellow.shade100;
+    _homePaint.color = Colors.yellow.shade100;
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromLTWH(cellSize * 9, cellSize * 9, cellSize * 6, cellSize * 6),
         const Radius.circular(8),
       ),
-      homePaint,
+      _homePaint,
     );
   }
 

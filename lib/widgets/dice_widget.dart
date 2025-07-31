@@ -28,14 +28,10 @@ class _DiceWidgetState extends State<DiceWidget>
   late AnimationController _rotationController;
   late AnimationController _scaleController;
   late AnimationController _shakeController;
-  late AnimationController _glowController;
-  late AnimationController _pulseController;
   
   late Animation<double> _rotationAnimation;
   late Animation<double> _scaleAnimation;
   late Animation<double> _shakeAnimation;
-  late Animation<double> _glowAnimation;
-  late Animation<double> _pulseAnimation;
 
   @override
   void initState() {
@@ -57,16 +53,6 @@ class _DiceWidgetState extends State<DiceWidget>
     _shakeController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
-    );
-
-    _glowController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
-
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 100),
     );
 
     _rotationAnimation = Tween<double>(
@@ -92,22 +78,6 @@ class _DiceWidgetState extends State<DiceWidget>
       parent: _shakeController,
       curve: Curves.easeInOutQuart,
     ));
-
-    _glowAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _glowController,
-      curve: Curves.easeInOut,
-    ));
-
-    _pulseAnimation = Tween<double>(
-      begin: 1.0,
-      end: 1.1,
-    ).animate(CurvedAnimation(
-      parent: _pulseController,
-      curve: Curves.easeInOut,
-    ));
   }
 
   @override
@@ -129,8 +99,6 @@ class _DiceWidgetState extends State<DiceWidget>
     _rotationController.dispose();
     _scaleController.dispose();
     _shakeController.dispose();
-    _glowController.dispose();
-    _pulseController.dispose();
     super.dispose();
   }
 
@@ -141,18 +109,15 @@ class _DiceWidgetState extends State<DiceWidget>
       isRolling = true;
     });
 
-    // Start all animations for spectacular effect
+    // Start main animations for spectacular effect
     _rotationController.forward(from: 0);
     _shakeController.forward(from: 0);
-    _glowController.repeat(reverse: true); // Continuous glow pulsing
+    // Removed complex pulse animations to prevent glitches
     
-    // Start rapid pulse animation
-    _pulseController.repeat(reverse: true);
-    
-    // Simulate rolling with multiple value changes (for animation effect)
-    // Perfectly timed to match GameProvider (800ms total)
-    for (int i = 0; i < 10; i++) {
-      await Future.delayed(const Duration(milliseconds: 70));
+    // Simulate rolling with multiple value changes (faster animation)
+    // Optimized for better game speed (400ms total)
+    for (int i = 0; i < 6; i++) {
+      await Future.delayed(const Duration(milliseconds: 50));
       if (mounted) {
         setState(() {
           currentValue = Random().nextInt(6) + 1;
@@ -161,7 +126,7 @@ class _DiceWidgetState extends State<DiceWidget>
     }
 
     // End animation and wait for GameProvider to provide the actual value
-    // Total time: 10 × 70ms + 100ms = 800ms (matches GameProvider exactly!)
+    // Total time: 6 × 50ms + 100ms = 400ms (faster gameplay!)
     await Future.delayed(const Duration(milliseconds: 100));
     
         if (mounted) {
@@ -169,11 +134,7 @@ class _DiceWidgetState extends State<DiceWidget>
         isRolling = false;
       });
       
-      // Stop glow and pulse animations
-      _glowController.stop();
-      _glowController.reset();
-      _pulseController.stop();
-      _pulseController.reset();
+      // Animations will complete naturally with their duration
       
       // Call the callback to trigger game logic
       // The GameProvider will set the actual dice value
@@ -194,14 +155,8 @@ class _DiceWidgetState extends State<DiceWidget>
           _scaleController.reverse();
         });
         
-        // Brief glow effect on final result
-        _glowController.forward().then((_) {
-          Future.delayed(const Duration(milliseconds: 300), () {
-            if (mounted) {
-              _glowController.reverse();
-            }
-          });
-        });
+        // Simple completion effect (removed complex glow)
+        // The bounce effect is sufficient visual feedback
       }
     }
   }
@@ -215,15 +170,12 @@ class _DiceWidgetState extends State<DiceWidget>
           _rotationAnimation,
           _scaleAnimation,
           _shakeAnimation,
-          _glowAnimation,
-          _pulseAnimation,
         ]),
         builder: (context, child) {
-          final combinedScale = _scaleAnimation.value * (isRolling ? _pulseAnimation.value : 1.0);
           final shakeIntensity = isRolling ? 6.0 : 0.0; // Stronger shake during rolling
           
           return Transform.scale(
-            scale: combinedScale,
+            scale: _scaleAnimation.value,
             child: Transform.translate(
               offset: Offset(
                 sin(_shakeAnimation.value * 6 * pi) * shakeIntensity,
@@ -244,19 +196,11 @@ class _DiceWidgetState extends State<DiceWidget>
                         spreadRadius: isRolling ? 3 : 1,
                         offset: const Offset(0, 3),
                       ),
-                      // Glow effect during rolling
+                      // Simplified glow effect during rolling
                       if (isRolling)
                         BoxShadow(
-                          color: Colors.blue.withOpacity(0.6 * _glowAnimation.value),
+                          color: Colors.blue.withOpacity(0.4),
                           blurRadius: 20,
-                          spreadRadius: 5,
-                          offset: const Offset(0, 0),
-                        ),
-                      // Additional glow for final result
-                      if (!isRolling && _glowAnimation.value > 0)
-                        BoxShadow(
-                          color: Colors.green.withOpacity(0.4 * _glowAnimation.value),
-                          blurRadius: 15,
                           spreadRadius: 3,
                           offset: const Offset(0, 0),
                         ),
@@ -282,21 +226,15 @@ class _DiceWidgetState extends State<DiceWidget>
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      // Dice SVG with dynamic effects
-                      AnimatedOpacity(
-                        opacity: isRolling ? 0.7 + 0.3 * _pulseAnimation.value : 1.0,
-                        duration: const Duration(milliseconds: 50),
+                      // Dice SVG with stable effects
+                      Opacity(
+                        opacity: isRolling ? 0.8 : 1.0,
                         child: SvgPicture.asset(
                           'assets/dice/dice_$currentValue.svg',
                           width: widget.size * 0.8,
                           height: widget.size * 0.8,
                           colorFilter: widget.isEnabled
-                              ? (isRolling 
-                                  ? ColorFilter.mode(
-                                      Colors.white.withOpacity(0.8 + 0.2 * _glowAnimation.value),
-                                      BlendMode.modulate,
-                                    )
-                                  : null)
+                              ? null
                               : ColorFilter.mode(
                                   Colors.grey.shade600,
                                   BlendMode.srcIn,
@@ -304,7 +242,7 @@ class _DiceWidgetState extends State<DiceWidget>
                         ),
                       ),
                       
-                      // Enhanced rolling indicator with dynamic effects
+                      // Simplified rolling indicator
                       if (isRolling)
                         Container(
                           width: widget.size,
@@ -315,45 +253,15 @@ class _DiceWidgetState extends State<DiceWidget>
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                               colors: [
-                                Colors.blue.withOpacity(0.2 + 0.1 * _glowAnimation.value),
-                                Colors.purple.withOpacity(0.2 + 0.1 * _glowAnimation.value),
-                                Colors.cyan.withOpacity(0.1 + 0.1 * _glowAnimation.value),
+                                Colors.blue.withOpacity(0.15),
+                                Colors.purple.withOpacity(0.15),
+                                Colors.cyan.withOpacity(0.1),
                               ],
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.blue.withOpacity(0.3 * _glowAnimation.value),
-                                blurRadius: 10,
-                                spreadRadius: 2,
-                              ),
-                            ],
-                          ),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: Colors.white.withOpacity(0.3 * _pulseAnimation.value),
-                                width: 2,
-                              ),
                             ),
                           ),
                         ),
                       
-                      // Tap hint when not enabled
-                      if (!widget.isEnabled)
-                        Container(
-                          width: widget.size,
-                          height: widget.size,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            color: Colors.black.withOpacity(0.3),
-                          ),
-                          child: const Icon(
-                            Icons.block,
-                            color: Colors.white70,
-                            size: 20,
-                          ),
-                        ),
+                      // No overlay when disabled - keep dice visible
                     ],
                   ),
                 ),

@@ -76,23 +76,15 @@ class LudoGame {
   static bool _canMovePiece(GameState state, Piece piece) {
     if (state.lastDiceValue == null) return false;
 
-    print('Checking if piece ${piece.color} ${piece.id} can move');
-    print('Piece position: fieldId=${piece.position.fieldId}, isHome=${piece.position.isHome}');
-    print('Dice value: ${state.lastDiceValue}');
-
     // Piece is in starting home area
     if (piece.position.isHome && piece.position.fieldId == -1) {
-      final canMove = state.lastDiceValue == 6;
-      print('Piece is in starting area, can move: $canMove');
-      return canMove;
+      return state.lastDiceValue == 6;
     }
 
     // Piece is in home stretch
     if (piece.position.isHome && piece.position.fieldId >= 0) {
       int targetPos = piece.position.fieldId + state.lastDiceValue!;
-      final canMove = targetPos <= homePathLength;
-      print('Piece in home stretch, target: $targetPos, can move: $canMove');
-      return canMove;
+      return targetPos <= homePathLength;
     }
 
     // Piece is on main path
@@ -100,20 +92,15 @@ class LudoGame {
     int steps = state.lastDiceValue!;
     final homeStart = homeStretchStart[piece.color]!;
     
-    // Calculate target position with wrapping
-    int targetPos = (currentPos + steps) % mainPathLength;
-    
     // Check if piece passes through or lands on home stretch entry
     for (int i = 1; i <= steps; i++) {
       int checkPos = (currentPos + i) % mainPathLength;
       if (checkPos == homeStart) {
-        print('Piece can enter home stretch at position $checkPos');
         return true;
       }
     }
     
     // Normal main path movement is always allowed (with wrapping)
-    print('Normal main path movement to $targetPos (wrapped)');
     return true;
   }
 
@@ -140,7 +127,7 @@ class LudoGame {
           
           if (!opponentPiece.position.isHome && 
               opponentPiece.position.fieldId == movedPiece.position.fieldId) {
-            print('Capture! ${movedPiece.color} ${movedPiece.id} captures ${opponentPiece.color} ${opponentPiece.id}');
+            // Capture occurred
             capturedPiece = opponentPiece;
             
             // Send captured piece back to home
@@ -221,7 +208,7 @@ class LudoGame {
       if (checkPos == homeStart) {
         // Calculate how many steps are left after reaching home stretch entry
         int remainingSteps = steps - i;
-        print('Piece ${piece.color} ${piece.id} entering home stretch with $remainingSteps steps remaining');
+        // Entering home stretch
         
         if (remainingSteps <= homePathLength) {
           return Piece(piece.color, piece.id, PiecePosition(remainingSteps, isHome: true));
@@ -234,7 +221,7 @@ class LudoGame {
     
     // Normal main path movement with wrapping
     int newFieldId = (currentPos + steps) % mainPathLength;
-    print('Piece ${piece.color} ${piece.id} moving to position $newFieldId on main path');
+    // Moving on main path
     return Piece(piece.color, piece.id, PiecePosition(newFieldId, isHome: false));
   }
 

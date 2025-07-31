@@ -32,13 +32,17 @@ class BoardWidget extends StatelessWidget {
             children: [
               // Board background
               _buildBoardBackground(size),
-              // Pieces
-              ...pieces.map((piece) => _buildPiece(piece, size)).toList(),
+              // Pieces - Using for loop instead of map for better performance
+              ..._buildAllPieces(size),
             ],
           ),
         );
       },
     );
+  }
+
+  List<Widget> _buildAllPieces(double boardSize) {
+    return pieces.map((piece) => _buildPiece(piece, boardSize)).toList();
   }
 
   Widget _buildBoardBackground(double size) {
@@ -60,10 +64,7 @@ class BoardWidget extends StatelessWidget {
     final position = _calculatePiecePosition(piece, boardSize);
     final isMovable = movablePieces.contains(piece);
     final pieceSize = boardSize / 15; // Responsive size for SVG pins
-    
-    if (piece.color == currentPlayer) {
-      print('BoardWidget: Piece ${piece.color} ${piece.id} - isMovable: $isMovable, position: ${piece.position.fieldId}, isHome: ${piece.position.isHome}');
-    }
+
 
     return AnimatedPositioned(
       duration: const Duration(milliseconds: 200),

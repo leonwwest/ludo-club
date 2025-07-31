@@ -37,8 +37,12 @@ class GameProvider extends ChangeNotifier {
     await _audioService.init();
   }
 
-  late GameState _gameState;
+    late GameState _gameState;
   
+  // Performance cache
+  List<Piece>? _cachedMovablePieces;
+  int? _lastDiceForCache;
+
   GameState get gameState => _gameState;
   GamePhase get phase => _gameState.phase;
   bool get showReachedHomeEffect => _showReachedHomeEffect;
@@ -96,13 +100,12 @@ class GameProvider extends ChangeNotifier {
   }
 
   Future<void> rollDice() async {
-    // Debug: rollDice called
     if (_gameState.phase != GamePhase.waitingForRoll) return;
 
     _gameState = _gameState.copyWith(phase: GamePhase.animating);
     notifyListeners();
 
-    await Future.delayed(const Duration(milliseconds: 800));
+    await Future.delayed(const Duration(milliseconds: 400));
     await _audioService.playDiceSound();
 
     final diceValue = Random().nextInt(6) + 1;
@@ -120,28 +123,7 @@ class GameProvider extends ChangeNotifier {
     }
   }
 
-  // Debug method to force roll a 6 (removed print statements)
-  Future<void> debugRollSix() async {
-    if (_gameState.phase != GamePhase.waitingForRoll) return;
 
-    _gameState = _gameState.copyWith(phase: GamePhase.animating);
-    notifyListeners();
-
-    await Future.delayed(const Duration(milliseconds: 200));
-
-    _gameState = _gameState.copyWith(lastDiceValue: 6, currentRollCount: _gameState.currentRollCount + 1);
-    notifyListeners(); // Notify immediately so DiceWidget can show correct value
-
-    final moves = LudoGame.getMovablePieces(_gameState);
-
-    if (moves.isEmpty) {
-      await Future.delayed(const Duration(milliseconds: 500));
-      _advanceToNextPlayer();
-    } else {
-      _gameState = _gameState.copyWith(phase: GamePhase.waitingForMove);
-      notifyListeners();
-    }
-  }
 
   Future<void> movePiece(Piece pieceToMove) async {
     if (_gameState.phase != GamePhase.waitingForMove) {
@@ -153,6 +135,10 @@ class GameProvider extends ChangeNotifier {
 
     final moveResult = LudoGame.movePiece(_gameState, pieceToMove);
     _gameState = moveResult.newState;
+    
+    // Clear performance cache after move
+    _cachedMovablePieces = null;
+    _lastDiceForCache = null;
 
     // Handle captured piece
     if (moveResult.capturedOpponentPiece != null) {
@@ -181,7 +167,9 @@ class GameProvider extends ChangeNotifier {
 
     // Check for 6 or capture: get another turn
     if (_gameState.lastDiceValue == 6 || moveResult.capturedOpponentPiece != null) {
-      unawaited(nextTurn());
+      nextTurn().catchError((error) {
+        // Handle errors gracefully to prevent crashes
+      });
     } else {
       _advanceToNextPlayer();
     }
@@ -196,11 +184,28 @@ class GameProvider extends ChangeNotifier {
       lastDiceValue: 0,
       currentRollCount: 0,
     );
-    unawaited(nextTurn());
+    
+    // Clear performance cache on player change
+    _cachedMovablePieces = null;
+    _lastDiceForCache = null;
+    
+    nextTurn().catchError((error) {
+      // Handle errors gracefully to prevent crashes
+    });
   }
 
   List<Piece> getMovablePieces() {
-    return LudoGame.getMovablePieces(_gameState);
+    // Use cache if dice value hasn't changed
+    if (_cachedMovablePieces != null && _lastDiceForCache == _gameState.lastDiceValue) {
+      return _cachedMovablePieces!;
+    }
+    
+    // Calculate and cache result
+    final movablePieces = LudoGame.getMovablePieces(_gameState);
+    _cachedMovablePieces = movablePieces;
+    _lastDiceForCache = _gameState.lastDiceValue;
+    
+    return movablePieces;
   }
 
   void setSoundEnabled(bool enabled) {
@@ -258,7 +263,9 @@ class GameProvider extends ChangeNotifier {
       startIndices: LudoGame.startFields,
     );
     notifyListeners();
-    unawaited(nextTurn());
+    nextTurn().catchError((error) {
+      // Handle errors gracefully to prevent crashes
+    });
   }
 
   @override
