@@ -24,20 +24,26 @@ class AudioService {
 
   bool _soundEnabled = true;
   double _volume = 1.0;
+  bool _isInitialized = false;
 
   Future<void> init() async {
+    if (_isInitialized) return;
+    
     try {
       await Future.wait([
-        _dicePlayer.setAsset(_diceSoundPath),
-        _movePlayer.setAsset(_moveSoundPath),
-        _capturePlayer.setAsset(_captureSoundPath),
-        _finishPlayer.setAsset(_finishSoundPath),
-        _victoryPlayer.setAsset(_victorySoundPath),
+        _dicePlayer.setAsset(_diceSoundPath).catchError((_) => null),
+        _movePlayer.setAsset(_moveSoundPath).catchError((_) => null),
+        _capturePlayer.setAsset(_captureSoundPath).catchError((_) => null),
+        _finishPlayer.setAsset(_finishSoundPath).catchError((_) => null),
+        _victoryPlayer.setAsset(_victorySoundPath).catchError((_) => null),
       ]);
 
       _setVolumeForAllPlayers();
+      _isInitialized = true;
     } catch (e) {
-      debugPrint('Error loading sound effects: $e');
+      // Silently fail if audio assets are not available
+      // The game should still be playable without sound
+      _soundEnabled = false;
     }
   }
 
@@ -63,57 +69,52 @@ class AudioService {
   }
 
   Future<void> playDiceSound() async {
-    if (!_soundEnabled) return;
-
+    if (!_soundEnabled || !_isInitialized) return;
     try {
       await _dicePlayer.seek(Duration.zero);
       await _dicePlayer.play();
     } catch (e) {
-      debugPrint('Error playing dice sound: $e');
+      // Silently fail - game continues without sound
     }
   }
 
   Future<void> playMoveSound() async {
-    if (!_soundEnabled) return;
-
+    if (!_soundEnabled || !_isInitialized) return;
     try {
       await _movePlayer.seek(Duration.zero);
       await _movePlayer.play();
     } catch (e) {
-      debugPrint('Error playing move sound: $e');
+      // Silently fail - game continues without sound
     }
   }
 
   Future<void> playCaptureSound() async {
-    if (!_soundEnabled) return;
-
+    if (!_soundEnabled || !_isInitialized) return;
     try {
       await _capturePlayer.seek(Duration.zero);
       await _capturePlayer.play();
     } catch (e) {
-      debugPrint('Error playing capture sound: $e');
+      // Silently fail - game continues without sound
     }
   }
 
   Future<void> playFinishSound() async {
-    if (!_soundEnabled) return;
-
+    if (!_soundEnabled || !_isInitialized) return;
     try {
       await _finishPlayer.seek(Duration.zero);
       await _finishPlayer.play();
     } catch (e) {
-      debugPrint('Error playing finish sound: $e');
+      // Silently fail - game continues without sound
     }
   }
 
   Future<void> playVictorySound() async {
-    if (!_soundEnabled) return;
-
+    if (!_soundEnabled || !_isInitialized) return;
     try {
       await _victoryPlayer.seek(Duration.zero);
       await _victoryPlayer.play();
     } catch (e) {
-      debugPrint('Error playing victory sound: $e');
+      // Silently fail - game continues without sound
     }
   }
 

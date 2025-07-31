@@ -6,6 +6,7 @@ import 'package:ludo_club/models/ludo_objects.dart';
 import 'package:ludo_club/models/game_phase.dart';
 import 'package:ludo_club/widgets/board_widget.dart';
 import 'package:ludo_club/widgets/dice_widget.dart';
+import 'package:ludo_club/utils/color_utils.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({Key? key}) : super(key: key);
@@ -17,20 +18,7 @@ class GameScreen extends StatefulWidget {
 class _GameScreenState extends State<GameScreen> {
   bool _winnerDialogShown = false;
 
-  Color _getDisplayColorForPlayer(PlayerColor playerColor) {
-    switch (playerColor) {
-      case PlayerColor.red:
-        return Colors.red.shade700;
-      case PlayerColor.green:
-        return Colors.green.shade700;
-      case PlayerColor.yellow:
-        return Colors.yellow.shade600;
-      case PlayerColor.blue:
-        return Colors.blue.shade700;
-      default:
-        return Colors.grey.shade700;
-    }
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -113,6 +101,7 @@ class _GameScreenState extends State<GameScreen> {
                                   DiceWidget(
                                     size: 80,
                                     isEnabled: gameProvider.phase == GamePhase.waitingForRoll,
+                                    currentDiceValue: gameProvider.currentDiceValue > 0 ? gameProvider.currentDiceValue : null,
                                     onRoll: (value) {
                                       // Use the game provider's roll logic
                                       gameProvider.rollDice();
@@ -137,16 +126,20 @@ class _GameScreenState extends State<GameScreen> {
                           const SizedBox(height: 8),
                           // Anweisungen für den Spieler
                           Text(
-                            gameProvider.phase == GamePhase.waitingForRoll
-                                ? 'Klicke "Debug: Roll 6" um eine 6 zu würfeln!'
-                                : gameProvider.phase == GamePhase.waitingForMove
-                                    ? 'Klicke auf einen Spielstein mit gelbem Rand!'
-                                    : 'Warte...',
+                            gameProvider.gameState.currentPlayer.isAI
+                                ? 'AI is thinking...'
+                                : gameProvider.phase == GamePhase.waitingForRoll
+                                    ? 'Click the dice to roll!'
+                                    : gameProvider.phase == GamePhase.waitingForMove
+                                        ? 'Click a highlighted game piece!'
+                                        : 'Processing...',
                             style: TextStyle(
                               fontSize: 14,
-                              color: gameProvider.phase == GamePhase.waitingForMove 
-                                  ? Colors.orange.shade700 
-                                  : Colors.grey.shade600,
+                              color: gameProvider.gameState.currentPlayer.isAI
+                                  ? Colors.blue.shade700
+                                  : gameProvider.phase == GamePhase.waitingForMove 
+                                      ? Colors.orange.shade700 
+                                      : Colors.green.shade700,
                               fontWeight: FontWeight.w500,
                             ),
                             textAlign: TextAlign.center,
@@ -193,51 +186,7 @@ class _GameScreenState extends State<GameScreen> {
                         ),
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 16),
-                      // Debug section
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          ElevatedButton(
-                            onPressed: () {
-                              print('Debug: Rolling a 6');
-                              gameProvider.debugRollSix();
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.purple,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: const Text(
-                              'Debug: Roll 6',
-                              style: TextStyle(fontSize: 14),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          ElevatedButton(
-                            onPressed: () => gameProvider.rollDice(),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.grey,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: const Text(
-                              'Fallback Roll',
-                              style: TextStyle(fontSize: 14),
-                            ),
-                          ),
-                        ],
-                      ),
+
                     ],
                   ),
                 ),
@@ -251,14 +200,10 @@ class _GameScreenState extends State<GameScreen> {
 
   Widget _buildGameBoard(GameProvider gameProvider) {
     final movablePieces = gameProvider.getMovablePieces().toSet();
-    print('UI: Building board with ${movablePieces.length} movable pieces');
-    print('UI: Current phase: ${gameProvider.phase}');
-    print('UI: Current player: ${gameProvider.currentPlayerColor}');
     
     return BoardWidget(
       pieces: gameProvider.allBoardPieces,
       onPieceSelected: (piece) {
-        print('UI: Piece clicked: ${piece.color} ${piece.id}');
         gameProvider.movePiece(piece);
       },
       currentPlayer: gameProvider.currentPlayerColor,
@@ -269,7 +214,7 @@ class _GameScreenState extends State<GameScreen> {
 
 
   void _showWinnerDialog(GameProvider gameProvider, PlayerColor winnerColor) {
-    final displayPlayerColor = _getDisplayColorForPlayer(winnerColor);
+    final displayPlayerColor = ColorUtils.getDisplayColor(winnerColor);
     final winnerMeta = gameProvider.getPlayerMeta(winnerColor);
 
     showDialog(

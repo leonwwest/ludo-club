@@ -6,10 +6,12 @@ import 'package:ludo_club/logic/ludo_game_logic.dart';
 import 'package:ludo_club/models/game_phase.dart';
 import 'package:ludo_club/models/ludo_objects.dart';
 import 'package:ludo_club/services/audio_service.dart';
+import 'package:ludo_club/services/ai_service.dart';
 
 class GameProvider extends ChangeNotifier {
 
   final AudioService _audioService;
+  final AIService _aiService;
 
   bool isAnimating = false;
   bool _showReachedHomeEffect = false;
@@ -22,34 +24,25 @@ class GameProvider extends ChangeNotifier {
 
   GameProvider({
     AudioService? audioService,
-  })  : _audioService = audioService ?? AudioService() {
+    AIService? aiService,
+  })  : _audioService = audioService ?? AudioService(),
+        _aiService = aiService ?? AIService() {
     _gameState = _createDefaultGameState();
     _initAudio();
   }
 
-  void _createNewGame(List<PlayerColor> playerColors) {
-    _gameState = GameState(
-      players: playerColors
-          .map((c) => Player(
-              id: c.toString(),
-              name: 'Player ${playerColors.indexOf(c) + 1}',
-              color: c,
-              type: PlayerType.human, // All players are human
-              pieces: List.generate(4, (i) => Piece(c, i, const PiecePosition(GameState.basePosition, isHome: true)))))
-          .toList(),
-      currentTurnPlayerId: playerColors.first,
-      startIndices: LudoGame.startFields,
-    );
-    // Debug: Game created with players
-    unawaited(nextTurn());
-  }
+  // Removed unused _createNewGame method
 
   Future<void> _initAudio() async {
     await _audioService.init();
   }
 
-  late GameState _gameState;
+    late GameState _gameState;
   
+  // Performance cache
+  List<Piece>? _cachedMovablePieces;
+  int? _lastDiceForCache;
+
   GameState get gameState => _gameState;
   GamePhase get phase => _gameState.phase;
   bool get showReachedHomeEffect => _showReachedHomeEffect;
@@ -77,64 +70,85 @@ class GameProvider extends ChangeNotifier {
 
     _gameState = _gameState.copyWith(phase: GamePhase.waitingForRoll);
     notifyListeners();
+
+    // If current player is AI, automatically handle their turn
+    if (_gameState.currentPlayer.isAI) {
+      await _handleAITurn();
+    }
+  }
+
+  Future<void> _handleAITurn() async {
+    if (_gameState.isGameOver || !_gameState.currentPlayer.isAI) return;
+
+    try {
+      // Add a small delay to make AI feel more natural
+      await Future.delayed(Duration(milliseconds: 500 + Random().nextInt(1000)));
+      
+      // AI rolls dice
+      await rollDice();
+      
+      // If there are movable pieces, AI makes a move
+      if (_gameState.phase == GamePhase.waitingForMove) {
+        final aiDecision = await _aiService.makeMove(
+          _gameState, 
+          _gameState.currentPlayer.aiDifficulty ?? AIDifficulty.beginner
+        );
+        
+        if (aiDecision.selectedPiece != null) {
+          await movePiece(aiDecision.selectedPiece!);
+        }
+      }
+    } catch (e) {
+      // If AI turn fails, just skip to next player
+      _advanceToNextPlayer();
+    }
   }
 
   Future<void> rollDice() async {
-    // Debug: rollDice called
     if (_gameState.phase != GamePhase.waitingForRoll) return;
 
-    _gameState = _gameState.copyWith(phase: GamePhase.animating);
-    notifyListeners();
+    try {
+      _gameState = _gameState.copyWith(phase: GamePhase.animating);
+      notifyListeners();
 
-    await Future.delayed(const Duration(milliseconds: 800));
-    await _audioService.playDiceSound();
+      await Future.delayed(const Duration(milliseconds: 400));
+      await _audioService.playDiceSound();
 
-    final diceValue = Random().nextInt(6) + 1;
-    _gameState = _gameState.copyWith(lastDiceValue: diceValue, currentRollCount: _gameState.currentRollCount + 1);
+      final diceValue = Random().nextInt(6) + 1;
+      _gameState = _gameState.copyWith(lastDiceValue: diceValue, currentRollCount: _gameState.currentRollCount + 1);
+      notifyListeners(); // Notify immediately so DiceWidget can show correct value
 
-    final moves = LudoGame.getMovablePieces(_gameState);
+      final moves = LudoGame.getMovablePieces(_gameState);
 
-    if (moves.isEmpty) {
-      await Future.delayed(const Duration(milliseconds: 500));
-      _advanceToNextPlayer();
-    } else {
-      _gameState = _gameState.copyWith(phase: GamePhase.waitingForMove);
+      if (moves.isEmpty) {
+        await Future.delayed(const Duration(milliseconds: 500));
+        _advanceToNextPlayer();
+      } else {
+        _gameState = _gameState.copyWith(phase: GamePhase.waitingForMove);
+        notifyListeners();
+      }
+    } catch (e) {
+      // If dice roll fails, reset to waiting for roll
+      _gameState = _gameState.copyWith(phase: GamePhase.waitingForRoll);
       notifyListeners();
     }
   }
 
-  // Debug method to force roll a 6
-  Future<void> debugRollSix() async {
-    print('debugRollSix called, current phase: ${_gameState.phase}');
-    if (_gameState.phase != GamePhase.waitingForRoll) return;
 
-    _gameState = _gameState.copyWith(phase: GamePhase.animating);
-    notifyListeners();
-
-    await Future.delayed(const Duration(milliseconds: 200));
-
-    print('Debug: Setting dice to 6');
-    _gameState = _gameState.copyWith(lastDiceValue: 6, currentRollCount: _gameState.currentRollCount + 1);
-
-    final moves = LudoGame.getMovablePieces(_gameState);
-    print('Movable pieces with dice 6: ${moves.length}');
-    for (var piece in moves) {
-      print('  - Piece ${piece.color} ${piece.id} at position ${piece.position.fieldId}, isHome: ${piece.position.isHome}');
-    }
-
-    if (moves.isEmpty) {
-      print('ERROR: No movable pieces even with dice 6!');
-      await Future.delayed(const Duration(milliseconds: 500));
-      _advanceToNextPlayer();
-    } else {
-      print('Setting phase to waitingForMove');
-      _gameState = _gameState.copyWith(phase: GamePhase.waitingForMove);
-      notifyListeners();
-    }
-  }
 
   Future<void> movePiece(Piece pieceToMove) async {
     if (_gameState.phase != GamePhase.waitingForMove) {
+      return;
+    }
+
+    // Validate that the piece belongs to the current player
+    if (pieceToMove.color != _gameState.currentTurnPlayerId) {
+      return;
+    }
+
+    // Validate that the piece is in the list of movable pieces
+    final movablePieces = getMovablePieces();
+    if (!movablePieces.contains(pieceToMove)) {
       return;
     }
 
@@ -143,11 +157,14 @@ class GameProvider extends ChangeNotifier {
 
     final moveResult = LudoGame.movePiece(_gameState, pieceToMove);
     _gameState = moveResult.newState;
+    
+    // Clear performance cache after move
+    _cachedMovablePieces = null;
+    _lastDiceForCache = null;
 
     // Handle captured piece
     if (moveResult.capturedOpponentPiece != null) {
       final captured = moveResult.capturedOpponentPiece!;
-      print('GameProvider: Piece captured! ${captured.color} ${captured.id} sent home');
       
       _showCaptureEffect = true;
       _capturedPlayerId = captured.color;
@@ -172,7 +189,9 @@ class GameProvider extends ChangeNotifier {
 
     // Check for 6 or capture: get another turn
     if (_gameState.lastDiceValue == 6 || moveResult.capturedOpponentPiece != null) {
-      unawaited(nextTurn());
+      nextTurn().catchError((error) {
+        // Handle errors gracefully to prevent crashes
+      });
     } else {
       _advanceToNextPlayer();
     }
@@ -187,11 +206,28 @@ class GameProvider extends ChangeNotifier {
       lastDiceValue: 0,
       currentRollCount: 0,
     );
-    unawaited(nextTurn());
+    
+    // Clear performance cache on player change
+    _cachedMovablePieces = null;
+    _lastDiceForCache = null;
+    
+    nextTurn().catchError((error) {
+      // Handle errors gracefully to prevent crashes
+    });
   }
 
   List<Piece> getMovablePieces() {
-    return LudoGame.getMovablePieces(_gameState);
+    // Use cache if dice value hasn't changed
+    if (_cachedMovablePieces != null && _lastDiceForCache == _gameState.lastDiceValue) {
+      return _cachedMovablePieces!;
+    }
+    
+    // Calculate and cache result
+    final movablePieces = LudoGame.getMovablePieces(_gameState);
+    _cachedMovablePieces = movablePieces;
+    _lastDiceForCache = _gameState.lastDiceValue;
+    
+    return movablePieces;
   }
 
   void setSoundEnabled(bool enabled) {
@@ -212,8 +248,14 @@ class GameProvider extends ChangeNotifier {
   int get currentDiceValue => _gameState.lastDiceValue ?? 0;
   List<Piece> get allBoardPieces =>
       _gameState.players.expand((p) => p.pieces).toList();
-  Player getPlayerMeta(PlayerColor color) =>
-      _gameState.players.firstWhere((p) => p.color == color);
+  Player getPlayerMeta(PlayerColor color) {
+    try {
+      return _gameState.players.firstWhere((p) => p.color == color);
+    } catch (e) {
+      // Fallback to first player if color not found
+      return _gameState.players.first;
+    }
+  }
 
   GameState _createDefaultGameState() {
     // Create a minimal default state with 2 players
@@ -242,16 +284,30 @@ class GameProvider extends ChangeNotifier {
   }
 
   void startNewGame(List<Player> playersFromUI) {
-    // Just use the players directly
+    // Validate input
+    if (playersFromUI.isEmpty) {
+      return;
+    }
+    
+    if (playersFromUI.length < 2 || playersFromUI.length > 4) {
+      return;
+    }
+    
+    // Ensure no duplicate colors
+    final colors = playersFromUI.map((p) => p.color).toSet();
+    if (colors.length != playersFromUI.length) {
+      return;
+    }
+    
     _gameState = GameState(
       players: playersFromUI,
       currentTurnPlayerId: playersFromUI.first.color,
       startIndices: LudoGame.startFields,
     );
-    print('startNewGame called with ${playersFromUI.length} players');
-    print('Current player after startNewGame: ${_gameState.currentTurnPlayerId}');
     notifyListeners();
-    unawaited(nextTurn());
+    nextTurn().catchError((error) {
+      // Handle errors gracefully to prevent crashes
+    });
   }
 
   @override

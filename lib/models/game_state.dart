@@ -1,5 +1,7 @@
 import 'package:ludo_club/models/ludo_objects.dart';
 import 'package:ludo_club/models/game_phase.dart';
+import 'package:ludo_club/models/game_rules.dart';
+import 'package:ludo_club/services/ai_service.dart';
 
 enum PlayerType { human, ai }
 
@@ -9,6 +11,7 @@ class Player {
   final PlayerType type;
   final PlayerColor color;
   List<Piece> pieces;
+  final AIDifficulty? aiDifficulty; // Add AI difficulty level
 
   Player({
     required this.id,
@@ -16,6 +19,7 @@ class Player {
     this.type = PlayerType.human,
     required this.color,
     required this.pieces,
+    this.aiDifficulty, // Optional AI difficulty
   });
 
   bool get isAI => type == PlayerType.ai;
@@ -27,6 +31,7 @@ class Player {
       'type': type.toString(),
       'color': color.toString(),
       'pieces': pieces.map((p) => p.toString()).toList(),
+      'aiDifficulty': aiDifficulty?.toString(),
     };
   }
 
@@ -43,6 +48,11 @@ class Player {
       pieces: (json['pieces'] as List<dynamic>)
           .map((p) => Piece.fromString(p.toString()))
           .toList(),
+      aiDifficulty: json['aiDifficulty'] != null 
+          ? AIDifficulty.values.firstWhere(
+              (e) => e.toString() == json['aiDifficulty'],
+              orElse: () => AIDifficulty.beginner)
+          : null,
     );
   }
 }
@@ -56,6 +66,7 @@ class GameState {
   final String? gameId;
   final Map<PlayerColor, int> startIndices;
   final GamePhase phase;
+  final GameRules rules;
 
   static const int tokensPerPlayer = 4;
   static const int basePosition = -1;
@@ -72,19 +83,32 @@ class GameState {
     this.gameId,
     required this.startIndices,
     this.phase = GamePhase.waitingForRoll,
+    this.rules = GameRules.standard,
   });
 
   bool isSafeField(int position) {
     return startIndices.containsValue(position);
   }
 
-  Player get currentPlayer =>
-      players.firstWhere((p) => p.color == currentTurnPlayerId);
+  Player get currentPlayer {
+    try {
+      return players.firstWhere((p) => p.color == currentTurnPlayerId);
+    } catch (e) {
+      // Fallback to first player if current player not found
+      return players.first;
+    }
+  }
 
   bool get isCurrentPlayerAI => currentPlayer.isAI;
 
-  Player? get winner =>
-      winnerId != null ? players.firstWhere((p) => p.color == winnerId) : null;
+  Player? get winner {
+    if (winnerId == null) return null;
+    try {
+      return players.firstWhere((p) => p.color == winnerId);
+    } catch (e) {
+      return null;
+    }
+  }
 
   bool get isGameOver => winnerId != null;
 
@@ -97,6 +121,7 @@ class GameState {
     String? gameId,
     Map<PlayerColor, int>? startIndices,
     GamePhase? phase,
+    GameRules? rules,
   }) {
     return GameState(
       players: players ?? this.players,
@@ -107,6 +132,7 @@ class GameState {
       gameId: gameId ?? this.gameId,
       startIndices: startIndices ?? this.startIndices,
       phase: phase ?? this.phase,
+      rules: rules ?? this.rules,
     );
   }
 
@@ -120,6 +146,7 @@ class GameState {
       'gameId': gameId,
       'startIndices': startIndices.map((key, value) => MapEntry(key.toString(), value)),
       'phase': phase.toString(),
+      'rules': rules.toJson(),
     };
   }
 
@@ -150,6 +177,9 @@ class GameState {
       phase: GamePhase.values.firstWhere(
           (e) => e.toString() == json['phase'],
           orElse: () => GamePhase.waitingForRoll),
+      rules: json['rules'] != null 
+          ? GameRules.fromJson(json['rules'] as Map<String, dynamic>)
+          : GameRules.standard,
     );
   }
 }

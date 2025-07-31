@@ -59,22 +59,33 @@ class SaveLoadService {
   }
 
   Future<List<SavedGame>> getSavedGames() async {
-    final jsonString = _prefs.getString(_savedGamesKey);
-    if (jsonString == null) return [];
-    
-    final List<dynamic> jsonList = json.decode(jsonString) as List<dynamic>;
-    return jsonList
-        .map((json) => SavedGame.fromJson(json as Map<String, dynamic>))
-        .toList();
+    try {
+      final jsonString = _prefs.getString(_savedGamesKey);
+      if (jsonString == null) return [];
+      
+      final decoded = json.decode(jsonString);
+      if (decoded is! List) return [];
+      
+      return decoded
+          .where((item) => item is Map<String, dynamic>)
+          .map((json) => SavedGame.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      return []; // Return empty list on any parsing error
+    }
   }
 
   Future<GameState?> loadGame(String gameId) async {
-    final savedGames = await getSavedGames();
-    final savedGame = savedGames.firstWhere(
-      (game) => game.id == gameId,
-      orElse: () => throw Exception('Game not found'),
-    );
-    return savedGame.gameState;
+    try {
+      final savedGames = await getSavedGames();
+      final savedGame = savedGames.firstWhere(
+        (game) => game.id == gameId,
+        orElse: () => throw Exception('Game not found'),
+      );
+      return savedGame.gameState;
+    } catch (e) {
+      return null; // Return null instead of throwing
+    }
   }
 
   Future<void> deleteGame(String gameId) async {

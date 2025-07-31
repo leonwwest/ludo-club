@@ -4,6 +4,8 @@ import 'package:ludo_club/providers/game_provider.dart';
 import 'package:ludo_club/models/game_state.dart';
 import 'package:ludo_club/models/ludo_objects.dart';
 import 'package:ludo_club/ui/game_screen.dart';
+import 'package:ludo_club/ui/quick_play_screen.dart';
+import 'package:ludo_club/utils/color_utils.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -123,7 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 height: 20,
                                 margin: const EdgeInsets.only(right: 12),
                                 decoration: BoxDecoration(
-                                  color: _getColorForPlayerColor(_availableColors[index]),
+                                  color: ColorUtils.getPrimaryColor(_availableColors[index]),
                                   shape: BoxShape.circle,
                                   border: Border.all(color: Colors.white, width: 2),
                                 ),
@@ -174,21 +176,62 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               const SizedBox(height: 24),
+              
+              // Quick Play Button
               ElevatedButton(
-                onPressed: _startGame,
+                onPressed: _goToQuickPlay,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
+                  backgroundColor: Colors.orange.shade600,
+                  foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
+                  elevation: 8,
                 ),
-                child: const Text(
-                  'New Game',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.flash_on, size: 24),
+                    SizedBox(width: 8),
+                    Text(
+                      'Quick Play vs AI',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 12),
+              
+              // Custom Game Button
+              ElevatedButton(
+                onPressed: _startGame,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue.shade600,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
+                  elevation: 8,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.settings, size: 24),
+                    SizedBox(width: 8),
+                    Text(
+                      'Custom Game',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -198,14 +241,33 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _goToQuickPlay() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const QuickPlayScreen(),
+      ),
+    );
+  }
+
   void _startGame() {
+    // Validate player count
+    if (_playerCount < 2 || _playerCount > 4) {
+      _showErrorDialog('Please select 2-4 players');
+      return;
+    }
+
+    // Validate that we have enough controllers
+    if (_nameControllers.length < _playerCount) {
+      _showErrorDialog('Player setup error. Please try again.');
+      return;
+    }
+
     final List<Player> players = [];
     for (int i = 0; i < _playerCount; i++) {
+      final playerName = _nameControllers[i].text.trim();
       players.add(Player(
         id: 'player${i + 1}',
-        name: _nameControllers[i].text.isNotEmpty
-            ? _nameControllers[i].text
-            : 'Player ${i + 1}',
+        name: playerName.isNotEmpty ? playerName : 'Player ${i + 1}',
         type: PlayerType.human,
         color: _availableColors[i],
         pieces: List.generate(4, (j) => Piece(_availableColors[i], j, const PiecePosition(GameState.basePosition, isHome: true))),
@@ -222,18 +284,23 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Color _getColorForPlayerColor(PlayerColor playerColor) {
-    switch (playerColor) {
-      case PlayerColor.red:
-        return Colors.red.shade600;
-      case PlayerColor.green:
-        return Colors.green.shade600;
-      case PlayerColor.blue:
-        return Colors.blue.shade600;
-      case PlayerColor.yellow:
-        return Colors.yellow.shade600;
-    }
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Error'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
+
+
 
   String _getColorName(PlayerColor playerColor) {
     switch (playerColor) {

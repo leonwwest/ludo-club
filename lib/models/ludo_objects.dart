@@ -32,10 +32,12 @@ class Piece {
       other is Piece &&
           runtimeType == other.runtimeType &&
           color == other.color &&
-          id == other.id;
+          id == other.id &&
+          position == other.position &&
+          isSafe == other.isSafe;
 
   @override
-  int get hashCode => color.hashCode ^ id.hashCode;
+  int get hashCode => Object.hash(color, id, position, isSafe);
 
   static Piece fromString(String s) {
     final parts = s.split(',');
