@@ -2,12 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:ludo_club/models/ludo_objects.dart';
 import 'package:ludo_club/widgets/ludo_pin.dart';
 import 'package:ludo_club/widgets/ludo_board_painter.dart';
+import 'package:ludo_club/utils/color_utils.dart';
+import 'package:ludo_club/constants/game_constants.dart';
 
 class BoardWidget extends StatelessWidget {
   final List<Piece> pieces;
   final Function(Piece) onPieceSelected;
   final PlayerColor currentPlayer;
   final Set<Piece> movablePieces;
+
+  static final LudoBoardPainter _boardPainter = LudoBoardPainter();
 
   const BoardWidget({
     Key? key,
@@ -54,7 +58,7 @@ class BoardWidget extends StatelessWidget {
         border: Border.all(color: Colors.black, width: 2),
       ),
       child: CustomPaint(
-        painter: LudoBoardPainter(),
+        painter: _boardPainter,
         size: Size(size, size),
       ),
     );
@@ -63,16 +67,16 @@ class BoardWidget extends StatelessWidget {
   Widget _buildPiece(Piece piece, double boardSize) {
     final position = _calculatePiecePosition(piece, boardSize);
     final isMovable = movablePieces.contains(piece);
-    final pieceSize = boardSize / 15; // Responsive size for SVG pins
+    final pieceSize = boardSize * GameConstants.pinSizeRatio;
 
 
     return AnimatedPositioned(
-      duration: const Duration(milliseconds: 200),
+      duration: const Duration(milliseconds: GameConstants.pieceMoveDuration),
       curve: Curves.easeOut,
       left: position.dx - pieceSize / 2,
-      top: position.dy - (pieceSize * 1.2) / 2, // Account for teardrop shape height
+      top: position.dy - (pieceSize * GameConstants.pinHeightRatio) / 2,
       child: LudoPin(
-        color: _getColorStringForPlayer(piece.color),
+        color: ColorUtils.getColorString(piece.color),
         id: piece.id + 1,
         size: pieceSize,
         isSelected: piece.color == currentPlayer && isMovable,
@@ -83,7 +87,7 @@ class BoardWidget extends StatelessWidget {
   }
 
   Offset _calculatePiecePosition(Piece piece, double boardSize) {
-    final cellSize = boardSize / 15;
+    final cellSize = boardSize / GameConstants.boardGridSize;
     
     // Starting home positions (fieldId = -1)
     if (piece.position.isHome && piece.position.fieldId == -1) {
@@ -206,18 +210,4 @@ class BoardWidget extends StatelessWidget {
     return positions;
   }
 
-  // Removed unused _getColorForPlayer method
-
-  String _getColorStringForPlayer(PlayerColor color) {
-    switch (color) {
-      case PlayerColor.red:
-        return 'red';
-      case PlayerColor.green:
-        return 'green';
-      case PlayerColor.blue:
-        return 'blue';
-      case PlayerColor.yellow:
-        return 'yellow';
-    }
-  }
 }

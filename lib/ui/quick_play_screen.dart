@@ -5,6 +5,7 @@ import 'package:ludo_club/models/game_state.dart';
 import 'package:ludo_club/models/ludo_objects.dart';
 import 'package:ludo_club/services/ai_service.dart';
 import 'package:ludo_club/ui/game_screen.dart';
+import 'package:ludo_club/utils/color_utils.dart';
 
 class QuickPlayScreen extends StatefulWidget {
   const QuickPlayScreen({Key? key}) : super(key: key);
@@ -147,7 +148,7 @@ class _QuickPlayScreenState extends State<QuickPlayScreen> {
                               width: 50,
                               height: 50,
                               decoration: BoxDecoration(
-                                color: _getColorForPlayerColor(color),
+                                color: ColorUtils.getPrimaryColor(color),
                                 shape: BoxShape.circle,
                                 border: Border.all(
                                   color: _humanPlayerColor == color
@@ -158,7 +159,7 @@ class _QuickPlayScreenState extends State<QuickPlayScreen> {
                                 boxShadow: _humanPlayerColor == color
                                     ? [
                                                                                  BoxShadow(
-                                           color: _getColorForPlayerColor(color).withValues(alpha: 0.5),
+                                           color: ColorUtils.getPrimaryColor(color).withValues(alpha: 0.5),
                                            blurRadius: 8,
                                            spreadRadius: 2,
                                          ),
@@ -377,18 +378,7 @@ class _QuickPlayScreenState extends State<QuickPlayScreen> {
     );
   }
 
-  Color _getColorForPlayerColor(PlayerColor playerColor) {
-    switch (playerColor) {
-      case PlayerColor.red:
-        return Colors.red.shade600;
-      case PlayerColor.green:
-        return Colors.green.shade600;
-      case PlayerColor.blue:
-        return Colors.blue.shade600;
-      case PlayerColor.yellow:
-        return Colors.yellow.shade600;
-    }
-  }
+
 
   String _getDifficultyName(AIDifficulty difficulty) {
     switch (difficulty) {

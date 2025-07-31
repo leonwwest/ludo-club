@@ -226,9 +226,13 @@ class LudoGame {
   }
 
   static PlayerColor? _checkWinner(List<Player> players, PlayerColor currentPlayer) {
-    final player = players.firstWhere((p) => p.color == currentPlayer);
-    if (player.pieces.every((p) => p.isSafe)) {
-      return currentPlayer;
+    try {
+      final player = players.firstWhere((p) => p.color == currentPlayer);
+      if (player.pieces.every((p) => p.isSafe)) {
+        return currentPlayer;
+      }
+    } catch (e) {
+      // Player not found, no winner
     }
     return null;
   }

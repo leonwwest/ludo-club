@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'package:ludo_club/models/ludo_objects.dart';
+import 'package:ludo_club/utils/color_utils.dart';
 
 class LudoBoardPainter extends CustomPainter {
   // Reusable Paint objects for better performance
@@ -66,7 +68,7 @@ class LudoBoardPainter extends CustomPainter {
 
   void _drawHomeAreas(Canvas canvas, double cellSize) {
     // Red home (bottom-left)
-    _homePaint.color = Colors.red.shade100;
+    _homePaint.color = ColorUtils.getHomeAreaColor(PlayerColor.red);
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromLTWH(0, cellSize * 9, cellSize * 6, cellSize * 6),
@@ -76,7 +78,7 @@ class LudoBoardPainter extends CustomPainter {
     );
     
     // Green home (top-left)
-    _homePaint.color = Colors.green.shade100;
+    _homePaint.color = ColorUtils.getHomeAreaColor(PlayerColor.green);
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromLTWH(0, 0, cellSize * 6, cellSize * 6),
@@ -86,7 +88,7 @@ class LudoBoardPainter extends CustomPainter {
     );
     
     // Blue home (top-right)
-    _homePaint.color = Colors.blue.shade100;
+    _homePaint.color = ColorUtils.getHomeAreaColor(PlayerColor.blue);
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromLTWH(cellSize * 9, 0, cellSize * 6, cellSize * 6),
@@ -96,7 +98,7 @@ class LudoBoardPainter extends CustomPainter {
     );
     
     // Yellow home (bottom-right)
-    _homePaint.color = Colors.yellow.shade100;
+    _homePaint.color = ColorUtils.getHomeAreaColor(PlayerColor.yellow);
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromLTWH(cellSize * 9, cellSize * 9, cellSize * 6, cellSize * 6),

@@ -6,6 +6,7 @@ import 'package:ludo_club/models/ludo_objects.dart';
 import 'package:ludo_club/models/game_phase.dart';
 import 'package:ludo_club/widgets/board_widget.dart';
 import 'package:ludo_club/widgets/dice_widget.dart';
+import 'package:ludo_club/utils/color_utils.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({Key? key}) : super(key: key);
@@ -17,20 +18,7 @@ class GameScreen extends StatefulWidget {
 class _GameScreenState extends State<GameScreen> {
   bool _winnerDialogShown = false;
 
-  Color _getDisplayColorForPlayer(PlayerColor playerColor) {
-    switch (playerColor) {
-      case PlayerColor.red:
-        return Colors.red.shade700;
-      case PlayerColor.green:
-        return Colors.green.shade700;
-      case PlayerColor.yellow:
-        return Colors.yellow.shade600;
-      case PlayerColor.blue:
-        return Colors.blue.shade700;
-      default:
-        return Colors.grey.shade700;
-    }
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -226,7 +214,7 @@ class _GameScreenState extends State<GameScreen> {
 
 
   void _showWinnerDialog(GameProvider gameProvider, PlayerColor winnerColor) {
-    final displayPlayerColor = _getDisplayColorForPlayer(winnerColor);
+    final displayPlayerColor = ColorUtils.getDisplayColor(winnerColor);
     final winnerMeta = gameProvider.getPlayerMeta(winnerColor);
 
     showDialog(

@@ -90,13 +90,25 @@ class GameState {
     return startIndices.containsValue(position);
   }
 
-  Player get currentPlayer =>
-      players.firstWhere((p) => p.color == currentTurnPlayerId);
+  Player get currentPlayer {
+    try {
+      return players.firstWhere((p) => p.color == currentTurnPlayerId);
+    } catch (e) {
+      // Fallback to first player if current player not found
+      return players.first;
+    }
+  }
 
   bool get isCurrentPlayerAI => currentPlayer.isAI;
 
-  Player? get winner =>
-      winnerId != null ? players.firstWhere((p) => p.color == winnerId) : null;
+  Player? get winner {
+    if (winnerId == null) return null;
+    try {
+      return players.firstWhere((p) => p.color == winnerId);
+    } catch (e) {
+      return null;
+    }
+  }
 
   bool get isGameOver => winnerId != null;
 

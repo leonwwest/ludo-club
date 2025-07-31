@@ -80,45 +80,56 @@ class GameProvider extends ChangeNotifier {
   Future<void> _handleAITurn() async {
     if (_gameState.isGameOver || !_gameState.currentPlayer.isAI) return;
 
-    // Add a small delay to make AI feel more natural
-    await Future.delayed(Duration(milliseconds: 500 + Random().nextInt(1000)));
-    
-    // AI rolls dice
-    await rollDice();
-    
-    // If there are movable pieces, AI makes a move
-    if (_gameState.phase == GamePhase.waitingForMove) {
-      final aiDecision = await _aiService.makeMove(
-        _gameState, 
-        _gameState.currentPlayer.aiDifficulty ?? AIDifficulty.beginner
-      );
+    try {
+      // Add a small delay to make AI feel more natural
+      await Future.delayed(Duration(milliseconds: 500 + Random().nextInt(1000)));
       
-      if (aiDecision.selectedPiece != null) {
-        await movePiece(aiDecision.selectedPiece!);
+      // AI rolls dice
+      await rollDice();
+      
+      // If there are movable pieces, AI makes a move
+      if (_gameState.phase == GamePhase.waitingForMove) {
+        final aiDecision = await _aiService.makeMove(
+          _gameState, 
+          _gameState.currentPlayer.aiDifficulty ?? AIDifficulty.beginner
+        );
+        
+        if (aiDecision.selectedPiece != null) {
+          await movePiece(aiDecision.selectedPiece!);
+        }
       }
+    } catch (e) {
+      // If AI turn fails, just skip to next player
+      _advanceToNextPlayer();
     }
   }
 
   Future<void> rollDice() async {
     if (_gameState.phase != GamePhase.waitingForRoll) return;
 
-    _gameState = _gameState.copyWith(phase: GamePhase.animating);
-    notifyListeners();
+    try {
+      _gameState = _gameState.copyWith(phase: GamePhase.animating);
+      notifyListeners();
 
-    await Future.delayed(const Duration(milliseconds: 400));
-    await _audioService.playDiceSound();
+      await Future.delayed(const Duration(milliseconds: 400));
+      await _audioService.playDiceSound();
 
-    final diceValue = Random().nextInt(6) + 1;
-    _gameState = _gameState.copyWith(lastDiceValue: diceValue, currentRollCount: _gameState.currentRollCount + 1);
-    notifyListeners(); // Notify immediately so DiceWidget can show correct value
+      final diceValue = Random().nextInt(6) + 1;
+      _gameState = _gameState.copyWith(lastDiceValue: diceValue, currentRollCount: _gameState.currentRollCount + 1);
+      notifyListeners(); // Notify immediately so DiceWidget can show correct value
 
-    final moves = LudoGame.getMovablePieces(_gameState);
+      final moves = LudoGame.getMovablePieces(_gameState);
 
-    if (moves.isEmpty) {
-      await Future.delayed(const Duration(milliseconds: 500));
-      _advanceToNextPlayer();
-    } else {
-      _gameState = _gameState.copyWith(phase: GamePhase.waitingForMove);
+      if (moves.isEmpty) {
+        await Future.delayed(const Duration(milliseconds: 500));
+        _advanceToNextPlayer();
+      } else {
+        _gameState = _gameState.copyWith(phase: GamePhase.waitingForMove);
+        notifyListeners();
+      }
+    } catch (e) {
+      // If dice roll fails, reset to waiting for roll
+      _gameState = _gameState.copyWith(phase: GamePhase.waitingForRoll);
       notifyListeners();
     }
   }
@@ -127,6 +138,17 @@ class GameProvider extends ChangeNotifier {
 
   Future<void> movePiece(Piece pieceToMove) async {
     if (_gameState.phase != GamePhase.waitingForMove) {
+      return;
+    }
+
+    // Validate that the piece belongs to the current player
+    if (pieceToMove.color != _gameState.currentTurnPlayerId) {
+      return;
+    }
+
+    // Validate that the piece is in the list of movable pieces
+    final movablePieces = getMovablePieces();
+    if (!movablePieces.contains(pieceToMove)) {
       return;
     }
 
@@ -226,8 +248,14 @@ class GameProvider extends ChangeNotifier {
   int get currentDiceValue => _gameState.lastDiceValue ?? 0;
   List<Piece> get allBoardPieces =>
       _gameState.players.expand((p) => p.pieces).toList();
-  Player getPlayerMeta(PlayerColor color) =>
-      _gameState.players.firstWhere((p) => p.color == color);
+  Player getPlayerMeta(PlayerColor color) {
+    try {
+      return _gameState.players.firstWhere((p) => p.color == color);
+    } catch (e) {
+      // Fallback to first player if color not found
+      return _gameState.players.first;
+    }
+  }
 
   GameState _createDefaultGameState() {
     // Create a minimal default state with 2 players
@@ -256,7 +284,21 @@ class GameProvider extends ChangeNotifier {
   }
 
   void startNewGame(List<Player> playersFromUI) {
-    // Just use the players directly
+    // Validate input
+    if (playersFromUI.isEmpty) {
+      return;
+    }
+    
+    if (playersFromUI.length < 2 || playersFromUI.length > 4) {
+      return;
+    }
+    
+    // Ensure no duplicate colors
+    final colors = playersFromUI.map((p) => p.color).toSet();
+    if (colors.length != playersFromUI.length) {
+      return;
+    }
+    
     _gameState = GameState(
       players: playersFromUI,
       currentTurnPlayerId: playersFromUI.first.color,

@@ -67,13 +67,20 @@ class StatisticsService {
   }
 
   Future<List<PlayerStats>> getAllPlayerStats() async {
-    final jsonString = _prefs.getString(_playerStatsListKey);
-    if (jsonString == null) return [];
-    
-    final List<dynamic> jsonList = json.decode(jsonString) as List<dynamic>;
-    return jsonList
-        .map((json) => PlayerStats.fromJson(json as Map<String, dynamic>))
-        .toList();
+    try {
+      final jsonString = _prefs.getString(_playerStatsListKey);
+      if (jsonString == null) return [];
+      
+      final decoded = json.decode(jsonString);
+      if (decoded is! List) return [];
+      
+      return decoded
+          .where((item) => item is Map<String, dynamic>)
+          .map((json) => PlayerStats.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      return []; // Return empty list on any parsing error
+    }
   }
 
   Future<PlayerStats> getPlayerStats(String playerName) async {
