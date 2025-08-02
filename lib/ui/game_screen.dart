@@ -18,8 +18,6 @@ class GameScreen extends StatefulWidget {
 class _GameScreenState extends State<GameScreen> {
   bool _winnerDialogShown = false;
 
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -54,6 +52,7 @@ class _GameScreenState extends State<GameScreen> {
             ),
             child: Column(
               children: [
+                // Top section - Current player info (without dice)
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Card(
@@ -66,10 +65,9 @@ class _GameScreenState extends State<GameScreen> {
                       child: Column(
                         children: [
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     'Current Player:',
@@ -80,114 +78,70 @@ class _GameScreenState extends State<GameScreen> {
                                   ),
                                   Text(
                                     currentPlayerMeta.name,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 20,
                                       fontWeight: FontWeight.bold,
+                                      color: ColorUtils.getDisplayColor(currentPlayerMeta.color),
                                     ),
                                   ),
-                                ],
-                              ),
-                              Column(
-                                children: [
-                                  Text(
-                                    'Roll the Dice!',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.grey.shade700,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  DiceWidget(
-                                    size: 80,
-                                    isEnabled: gameProvider.phase == GamePhase.waitingForRoll,
-                                    currentDiceValue: gameProvider.currentDiceValue > 0 ? gameProvider.currentDiceValue : null,
-                                    onRoll: (value) {
-                                      // Use the game provider's roll logic
-                                      gameProvider.rollDice();
-                                    },
-                                  ),
-                                  if (gameProvider.currentDiceValue > 0)
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 8.0),
-                                      child: Text(
-                                        'Rolled: ${gameProvider.currentDiceValue}',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.green.shade700,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
                                 ],
                               ),
                             ],
                           ),
                           const SizedBox(height: 8),
-                          // Anweisungen für den Spieler
-                          Text(
-                            gameProvider.gameState.currentPlayer.isAI
-                                ? 'AI is thinking...'
-                                : gameProvider.phase == GamePhase.waitingForRoll
-                                    ? 'Click the dice to roll!'
-                                    : gameProvider.phase == GamePhase.waitingForMove
-                                        ? 'Click a highlighted game piece!'
-                                        : 'Processing...',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: gameProvider.gameState.currentPlayer.isAI
-                                  ? Colors.blue.shade700
-                                  : gameProvider.phase == GamePhase.waitingForMove 
-                                      ? Colors.orange.shade700 
-                                      : Colors.green.shade700,
-                              fontWeight: FontWeight.w500,
+                          // Player instructions (fixed height container)
+                          SizedBox(
+                            height: 40, // Fixed height to prevent layout changes
+                            child: Center(
+                              child: Text(
+                                gameProvider.gameState.currentPlayer.isAI
+                                    ? 'AI is thinking...'
+                                    : gameProvider.phase == GamePhase.waitingForRoll
+                                        ? 'Click your dice to roll!'
+                                        : gameProvider.phase == GamePhase.waitingForMove
+                                            ? 'Click a highlighted game piece!'
+                                            : 'Processing...',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: gameProvider.gameState.currentPlayer.isAI
+                                      ? Colors.blue.shade700
+                                      : gameProvider.phase == GamePhase.waitingForMove 
+                                          ? Colors.orange.shade700 
+                                          : Colors.green.shade700,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
                             ),
-                            textAlign: TextAlign.center,
                           ),
                         ],
                       ),
                     ),
                   ),
                 ),
+                // Middle section - Game board with positioned dice
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
-                    child: AspectRatio(
-                      aspectRatio: 1,
-                      child: Card(
-                        elevation: 8,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: _buildGameBoard(gameProvider),
-                        ),
-                      ),
-                    ),
+                    child: _buildBoardWithDice(gameProvider),
                   ),
                 ),
-                Padding(
+                // Bottom section - Instructions (fixed height to prevent board resizing)
+                Container(
+                  height: 60, // Fixed height to prevent layout changes
                   padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    children: [
-                      Text(
-                        gameProvider.phase == GamePhase.waitingForRoll
-                            ? 'Tap the dice above to roll!'
-                            : gameProvider.phase == GamePhase.waitingForMove
-                                ? 'Select a highlighted piece to move!'
-                                : 'Game in progress...',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: gameProvider.phase == GamePhase.waitingForMove 
-                              ? Colors.orange.shade700 
-                              : Colors.blue.shade700,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-
-                    ],
+                  child: Center(
+                    child: gameProvider.currentDiceValue > 0
+                        ? Text(
+                            'Last Roll: ${gameProvider.currentDiceValue}',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.green.shade700,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          )
+                        : const SizedBox.shrink(), // Empty space when no dice value
                   ),
                 ),
               ],
@@ -196,6 +150,127 @@ class _GameScreenState extends State<GameScreen> {
         },
       ),
     );
+  }
+
+  Widget _buildBoardWithDice(GameProvider gameProvider) {
+    return AspectRatio(
+      aspectRatio: 1,
+      child: Card(
+        elevation: 8,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Stack(
+          children: [
+            // Game board
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: _buildGameBoard(gameProvider),
+            ),
+            // Positioned dice for each player
+            ..._buildPositionedDice(gameProvider),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildPositionedDice(GameProvider gameProvider) {
+    final players = gameProvider.gameState.players;
+    List<Widget> diceWidgets = [];
+    
+    for (final player in players) {
+      final isCurrentPlayer = player.color == gameProvider.currentPlayerColor;
+      final isEnabled = isCurrentPlayer && gameProvider.phase == GamePhase.waitingForRoll && !player.isAI;
+      
+      diceWidgets.add(
+        _buildPlayerDice(
+          player: player,
+          gameProvider: gameProvider,
+          isEnabled: isEnabled,
+          isCurrentPlayer: isCurrentPlayer,
+        ),
+      );
+    }
+    
+    return diceWidgets;
+  }
+
+  Widget _buildPlayerDice({
+    required Player player,
+    required GameProvider gameProvider,
+    required bool isEnabled,
+    required bool isCurrentPlayer,
+  }) {
+    // Get position based on player color
+    final position = _getDicePosition(player.color);
+    
+    return Positioned(
+      left: position['left'],
+      top: position['top'],
+      right: position['right'],
+      bottom: position['bottom'],
+      child: Container(
+        width: 70,
+        height: 100,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Player name
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: ColorUtils.getDisplayColor(player.color).withOpacity(0.8),
+                borderRadius: BorderRadius.circular(12),
+                border: isCurrentPlayer 
+                    ? Border.all(color: Colors.white, width: 2)
+                    : null,
+              ),
+              child: Text(
+                player.name.length > 8 ? player.name.substring(0, 8) : player.name,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: isCurrentPlayer ? FontWeight.bold : FontWeight.normal,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(height: 4),
+            // Dice
+            DiceWidget(
+              size: 50,
+              isEnabled: isEnabled,
+              currentDiceValue: isCurrentPlayer && gameProvider.currentDiceValue > 0 
+                  ? gameProvider.currentDiceValue 
+                  : null,
+              onRoll: (value) {
+                if (isEnabled) {
+                  gameProvider.rollDice();
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Map<String, double?> _getDicePosition(PlayerColor color) {
+    switch (color) {
+      case PlayerColor.red:
+        // Bottom-left
+        return {'left': 10.0, 'top': null, 'right': null, 'bottom': 10.0};
+      case PlayerColor.green:
+        // Top-left
+        return {'left': 10.0, 'top': 10.0, 'right': null, 'bottom': null};
+      case PlayerColor.blue:
+        // Top-right
+        return {'left': null, 'top': 10.0, 'right': 10.0, 'bottom': null};
+      case PlayerColor.yellow:
+        // Bottom-right
+        return {'left': null, 'top': null, 'right': 10.0, 'bottom': 10.0};
+    }
   }
 
   Widget _buildGameBoard(GameProvider gameProvider) {
@@ -210,8 +285,6 @@ class _GameScreenState extends State<GameScreen> {
       movablePieces: movablePieces,
     );
   }
-
-
 
   void _showWinnerDialog(GameProvider gameProvider, PlayerColor winnerColor) {
     final displayPlayerColor = ColorUtils.getDisplayColor(winnerColor);
