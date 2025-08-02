@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ludo_club/models/ludo_objects.dart';
 import 'package:ludo_club/widgets/ludo_pin.dart';
-import 'package:ludo_club/widgets/ludo_board_painter.dart';
 import 'package:ludo_club/utils/color_utils.dart';
 import 'package:ludo_club/constants/game_constants.dart';
 
@@ -10,8 +9,6 @@ class BoardWidget extends StatelessWidget {
   final Function(Piece) onPieceSelected;
   final PlayerColor currentPlayer;
   final Set<Piece> movablePieces;
-
-  static final LudoBoardPainter _boardPainter = LudoBoardPainter();
 
   const BoardWidget({
     Key? key,
@@ -34,7 +31,7 @@ class BoardWidget extends StatelessWidget {
           height: size,
           child: Stack(
             children: [
-              // Board background
+              // Board background using PNG image
               _buildBoardBackground(size),
               // Pieces - Using for loop instead of map for better performance
               ..._buildAllPieces(size),
@@ -54,12 +51,36 @@ class BoardWidget extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: Colors.white,
         border: Border.all(color: Colors.black, width: 2),
+        borderRadius: BorderRadius.circular(8),
       ),
-      child: CustomPaint(
-        painter: _boardPainter,
-        size: Size(size, size),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(6),
+        child: Image.asset(
+          'assets/board/ludo_board_final.webp',
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            // Fallback in case the image fails to load
+            return Container(
+              width: size,
+              height: size,
+              color: Colors.white,
+                              child: const Center(
+                  child: Text(
+                    'ludo_board_final.webp\nNot Found',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -68,7 +89,6 @@ class BoardWidget extends StatelessWidget {
     final position = _calculatePiecePosition(piece, boardSize);
     final isMovable = movablePieces.contains(piece);
     final pieceSize = boardSize * GameConstants.pinSizeRatio;
-
 
     return AnimatedPositioned(
       duration: const Duration(milliseconds: GameConstants.pieceMoveDuration),
@@ -209,5 +229,4 @@ class BoardWidget extends StatelessWidget {
     
     return positions;
   }
-
 }
