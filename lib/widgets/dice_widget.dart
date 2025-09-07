@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter/foundation.dart';
+import 'package:ludo_club/constants/game_constants.dart';
 
 class DiceWidget extends StatefulWidget {
   final Function(int) onRoll;
@@ -118,17 +119,17 @@ class _DiceWidgetState extends State<DiceWidget>
       
       // Simulate rolling with multiple value changes (faster animation)
       // Optimized for better game speed (400ms total)
-      for (int i = 0; i < 6; i++) {
-        await Future.delayed(const Duration(milliseconds: 50));
+      for (int i = 0; i < GameConstants.diceRollSteps; i++) {
+        await Future.delayed(const Duration(milliseconds: GameConstants.diceRollStepDelay));
         if (mounted) {
           setState(() {
-            currentValue = math.Random().nextInt(6) + 1;
+            currentValue = math.Random().nextInt(GameConstants.diceSides) + 1;
           });
         }
       }
 
       // End animation and wait for GameProvider to provide the actual value
-      // Total time: 6 × 50ms + 100ms = 400ms (faster gameplay!)
+      // Total time: diceRollSteps × diceRollStepDelay + 100ms
       await Future.delayed(const Duration(milliseconds: 100));
       
       if (mounted) {
@@ -310,15 +311,20 @@ class _DiceWidgetState extends State<DiceWidget>
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: rollDice,
-      child: AnimatedBuilder(
-        animation: Listenable.merge([
-          _rotationAnimation,
-          _scaleAnimation,
-          _shakeAnimation,
-        ]),
-        builder: (context, child) {
+    return Semantics(
+      label: 'Dice',
+      hint: widget.isEnabled ? 'Tap to roll' : 'Disabled',
+      button: true,
+      enabled: widget.isEnabled,
+      child: GestureDetector(
+        onTap: rollDice,
+        child: AnimatedBuilder(
+          animation: Listenable.merge([
+            _rotationAnimation,
+            _scaleAnimation,
+            _shakeAnimation,
+          ]),
+          builder: (context, child) {
           final shakeIntensity = isRolling ? 6.0 : 0.0; // Stronger shake during rolling
           
           return Transform.scale(

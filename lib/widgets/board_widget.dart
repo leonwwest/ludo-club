@@ -96,6 +96,7 @@ class BoardWidget extends StatelessWidget {
       left: position.dx - pieceSize / 2,
       top: position.dy - (pieceSize * GameConstants.pinHeightRatio) / 2,
       child: LudoPin(
+        key: ValueKey('pin-${piece.color.name}-${piece.id}'),
         color: ColorUtils.getColorString(piece.color),
         id: piece.id + 1,
         size: pieceSize,

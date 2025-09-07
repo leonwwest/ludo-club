@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:ludo_club/models/game_state.dart';
 import 'package:ludo_club/models/ludo_objects.dart';
 import 'package:ludo_club/logic/ludo_game_logic.dart';
+import 'package:ludo_club/constants/game_constants.dart';
 
 enum AIDifficulty {
   beginner,
@@ -88,7 +89,7 @@ class AIService {
 
     // 1. Priority: Move pieces out of home if possible
     final piecesInHome = movablePieces.where((p) => p.position.isHome).toList();
-    if (piecesInHome.isNotEmpty && diceValue == 6) {
+    if (piecesInHome.isNotEmpty && diceValue == GameConstants.requiredRollToLeaveBase) {
       return AIDecision(
         selectedPiece: piecesInHome.first,
         reasoning: "Moving piece out of home with 6",
@@ -154,7 +155,7 @@ class AIService {
 
     // 2. Priority: Move pieces out of home strategically
     final piecesInHome = movablePieces.where((p) => p.position.isHome).toList();
-    if (piecesInHome.isNotEmpty && diceValue == 6) {
+    if (piecesInHome.isNotEmpty && diceValue == GameConstants.requiredRollToLeaveBase) {
       return AIDecision(
         selectedPiece: piecesInHome.first,
         reasoning: "Strategic home exit",

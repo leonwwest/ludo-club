@@ -2,6 +2,7 @@ import 'package:ludo_club/models/ludo_objects.dart';
 import 'package:ludo_club/models/game_phase.dart';
 import 'package:ludo_club/models/game_rules.dart';
 import 'package:ludo_club/services/ai_service.dart';
+import 'package:ludo_club/constants/game_constants.dart';
 
 enum PlayerType { human, ai }
 
@@ -68,11 +69,11 @@ class GameState {
   final GamePhase phase;
   final GameRules rules;
 
-  static const int tokensPerPlayer = 4;
-  static const int basePosition = -1;
-  static const int totalFields = 40;
-  static const int homePathLength = 4;
-  static const int finishedPosition = 99;
+  static const int tokensPerPlayer = GameConstants.tokensPerPlayer;
+  static const int basePosition = GameConstants.basePosition;
+  static const int totalFields = GameConstants.totalMainPathFields;
+  static const int homePathLength = GameConstants.homePathLength;
+  static const int finishedPosition = GameConstants.finishedPosition;
 
   GameState({
     required this.players,

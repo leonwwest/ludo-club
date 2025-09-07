@@ -8,6 +8,7 @@ import 'package:path/path.dart';
 import 'package:ludo_club/models/database_models.dart';
 import 'package:ludo_club/models/game_state.dart';
 import 'package:uuid/uuid.dart';
+import 'package:ludo_club/constants/game_constants.dart';
 
 class DatabaseService {
   static DatabaseService? _instance;
@@ -241,7 +242,7 @@ class DatabaseService {
       final rolls = playerRolls[playerId] ?? [];
       final rollSum = rolls.fold<int>(0, (total, roll) => total + roll);
       final rollCount = rolls.length;
-      final sixCount = rolls.where((roll) => roll == 6).length;
+      final sixCount = rolls.where((roll) => roll == GameConstants.requiredRollToLeaveBase).length;
 
       final updatedStats = EnhancedPlayerStats(
         playerId: currentStats.playerId,

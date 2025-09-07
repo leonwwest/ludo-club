@@ -6,6 +6,7 @@ import 'package:ludo_club/models/ludo_objects.dart';
 import 'package:ludo_club/services/ai_service.dart';
 import 'package:ludo_club/ui/game_screen.dart';
 import 'package:ludo_club/utils/color_utils.dart';
+import 'package:ludo_club/constants/game_constants.dart';
 
 class QuickPlayScreen extends StatefulWidget {
   const QuickPlayScreen({Key? key}) : super(key: key);
@@ -350,7 +351,7 @@ class _QuickPlayScreenState extends State<QuickPlayScreen> {
       name: _playerName,
       type: PlayerType.human,
       color: _humanPlayerColor,
-      pieces: List.generate(4, (j) => Piece(_humanPlayerColor, j, const PiecePosition(GameState.basePosition, isHome: true))),
+      pieces: List.generate(GameConstants.tokensPerPlayer, (j) => Piece(_humanPlayerColor, j, const PiecePosition(GameState.basePosition, isHome: true))),
     ));
 
     // Add AI players
@@ -363,7 +364,7 @@ class _QuickPlayScreenState extends State<QuickPlayScreen> {
         type: PlayerType.ai,
         color: aiColors[i],
         aiDifficulty: _aiDifficulty,
-        pieces: List.generate(4, (j) => Piece(aiColors[i], j, const PiecePosition(GameState.basePosition, isHome: true))),
+        pieces: List.generate(GameConstants.tokensPerPlayer, (j) => Piece(aiColors[i], j, const PiecePosition(GameState.basePosition, isHome: true))),
       ));
     }
 

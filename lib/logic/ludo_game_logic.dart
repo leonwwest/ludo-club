@@ -1,28 +1,8 @@
-import 'dart:ui';
-
 import 'package:ludo_club/models/game_state.dart';
 import 'package:ludo_club/models/ludo_objects.dart';
+import 'package:ludo_club/constants/game_constants.dart';
 
-// Standard Ludo board coordinates - 52 main path positions + 4x6 home paths
-const List<Offset> boardCoordinates = [
-  // Main path positions (52 total, starting from red's start)
-  // Red start area (bottom side, moving left)
-  Offset(6, 13), Offset(6, 12), Offset(6, 11), Offset(6, 10), Offset(6, 9),
-  // Turn to green area
-  Offset(6, 8), Offset(5, 8), Offset(4, 8), Offset(3, 8), Offset(2, 8), Offset(1, 8), Offset(0, 8),
-  // Green start area (right side, moving up)
-  Offset(0, 6), Offset(1, 6), Offset(2, 6), Offset(3, 6), Offset(4, 6), Offset(5, 6),
-  // Turn to blue area  
-  Offset(6, 6), Offset(6, 5), Offset(6, 4), Offset(6, 3), Offset(6, 2), Offset(6, 1), Offset(6, 0),
-  // Blue area (top side, moving right)
-  Offset(8, 0), Offset(8, 1), Offset(8, 2), Offset(8, 3), Offset(8, 4), Offset(8, 5),
-  // Turn to yellow area
-  Offset(8, 6), Offset(9, 6), Offset(10, 6), Offset(11, 6), Offset(12, 6), Offset(13, 6), Offset(14, 6),
-  // Yellow area (left side, moving down)
-  Offset(14, 8), Offset(13, 8), Offset(12, 8), Offset(11, 8), Offset(10, 8), Offset(9, 8),
-  // Back to red area
-  Offset(8, 8), Offset(8, 9), Offset(8, 10), Offset(8, 11), Offset(8, 12), Offset(8, 13), Offset(8, 14),
-];
+// Note: Board geometry is defined in widgets/board_widget.dart; logic operates on indices only.
 
 // No more safe indices
 // const Set<int> safeIndices = {1, 9, 14, 22, 27, 35, 40, 48};
@@ -36,8 +16,8 @@ class MoveResult {
 }
 
 class LudoGame {
-  static const int mainPathLength = 52;
-  static const int homePathLength = 6;
+  static const int mainPathLength = GameConstants.totalMainPathFields;
+  static const int homePathLength = GameConstants.homePathLength;
 
   static const Map<PlayerColor, int> startFields = {
     PlayerColor.red: 0,
@@ -78,7 +58,7 @@ class LudoGame {
 
     // Piece is in starting home area
     if (piece.position.isHome && piece.position.fieldId == -1) {
-      return state.lastDiceValue == 6;
+      return state.lastDiceValue == GameConstants.requiredRollToLeaveBase;
     }
 
     // Piece is in home stretch
@@ -96,10 +76,16 @@ class LudoGame {
     for (int i = 1; i <= steps; i++) {
       int checkPos = (currentPos + i) % mainPathLength;
       if (checkPos == homeStart) {
-        return true;
+        final remainingSteps = steps - i;
+        // Allow entry only if remaining steps fit home path length
+        if (remainingSteps <= homePathLength) {
+          return true; // can enter home stretch this turn
+        } else {
+          break; // treat as normal main-path movement
+        }
       }
     }
-    
+
     // Normal main path movement is always allowed (with wrapping)
     return true;
   }
@@ -183,7 +169,7 @@ class LudoGame {
 
   static Piece _movePiece(GameState state, Piece piece, int steps) {
     // Move from starting home area to main path
-    if (piece.position.isHome && piece.position.fieldId == -1 && steps == 6) {
+    if (piece.position.isHome && piece.position.fieldId == -1 && steps == GameConstants.requiredRollToLeaveBase) {
       return Piece(piece.color, piece.id, PiecePosition(startFields[piece.color]!, isHome: false));
     }
 
@@ -208,13 +194,12 @@ class LudoGame {
       if (checkPos == homeStart) {
         // Calculate how many steps are left after reaching home stretch entry
         int remainingSteps = steps - i;
-        // Entering home stretch
-        
+        // Entering home stretch if fits; otherwise continue normal movement
         if (remainingSteps <= homePathLength) {
           return Piece(piece.color, piece.id, PiecePosition(remainingSteps, isHome: true));
         } else {
-          // Too many steps to enter home stretch safely, shouldn't happen
-          return piece;
+          // break to perform normal main-path movement
+          break;
         }
       }
     }

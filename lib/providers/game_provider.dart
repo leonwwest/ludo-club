@@ -7,6 +7,7 @@ import 'package:ludo_club/models/game_phase.dart';
 import 'package:ludo_club/models/ludo_objects.dart';
 import 'package:ludo_club/services/audio_service.dart';
 import 'package:ludo_club/services/ai_service.dart';
+import 'package:ludo_club/constants/game_constants.dart';
 
 class GameProvider extends ChangeNotifier {
 
@@ -114,7 +115,7 @@ class GameProvider extends ChangeNotifier {
       await Future.delayed(const Duration(milliseconds: 400));
       await _audioService.playDiceSound();
 
-      final diceValue = Random().nextInt(6) + 1;
+      final diceValue = Random().nextInt(GameConstants.diceSides) + 1;
       _gameState = _gameState.copyWith(lastDiceValue: diceValue, currentRollCount: _gameState.currentRollCount + 1);
       notifyListeners(); // Notify immediately so DiceWidget can show correct value
 
@@ -188,7 +189,7 @@ class GameProvider extends ChangeNotifier {
     }
 
     // Check for 6 or capture: get another turn
-    if (_gameState.lastDiceValue == 6 || moveResult.capturedOpponentPiece != null) {
+    if (_gameState.lastDiceValue == GameConstants.requiredRollToLeaveBase || moveResult.capturedOpponentPiece != null) {
       nextTurn().catchError((error) {
         // Handle errors gracefully to prevent crashes
       });
@@ -265,14 +266,14 @@ class GameProvider extends ChangeNotifier {
         name: 'Player 1',
         type: PlayerType.human,
         color: PlayerColor.red,
-        pieces: List.generate(4, (j) => Piece(PlayerColor.red, j, const PiecePosition(GameState.basePosition, isHome: true))),
+        pieces: List.generate(GameConstants.tokensPerPlayer, (j) => Piece(PlayerColor.red, j, const PiecePosition(GameState.basePosition, isHome: true))),
       ),
       Player(
         id: 'player2', 
         name: 'Player 2',
         type: PlayerType.human,
         color: PlayerColor.green,
-        pieces: List.generate(4, (j) => Piece(PlayerColor.green, j, const PiecePosition(GameState.basePosition, isHome: true))),
+        pieces: List.generate(GameConstants.tokensPerPlayer, (j) => Piece(PlayerColor.green, j, const PiecePosition(GameState.basePosition, isHome: true))),
       ),
     ];
     

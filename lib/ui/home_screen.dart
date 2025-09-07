@@ -6,6 +6,7 @@ import 'package:ludo_club/models/ludo_objects.dart';
 import 'package:ludo_club/ui/game_screen.dart';
 import 'package:ludo_club/ui/quick_play_screen.dart';
 import 'package:ludo_club/utils/color_utils.dart';
+import 'package:ludo_club/constants/game_constants.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -270,7 +271,7 @@ class _HomeScreenState extends State<HomeScreen> {
         name: playerName.isNotEmpty ? playerName : 'Player ${i + 1}',
         type: PlayerType.human,
         color: _availableColors[i],
-        pieces: List.generate(4, (j) => Piece(_availableColors[i], j, const PiecePosition(GameState.basePosition, isHome: true))),
+        pieces: List.generate(GameConstants.tokensPerPlayer, (j) => Piece(_availableColors[i], j, const PiecePosition(GameState.basePosition, isHome: true))),
       ));
     }
 
