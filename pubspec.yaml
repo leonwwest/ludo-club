@@ -12,6 +12,7 @@ dependencies:
   intl: ^0.18.1
   just_audio: ^0.9.35
   flutter_svg: ^2.0.10
+  google_fonts: ^4.0.4
   # Database dependencies
   sqflite: ^2.3.0
   path: ^1.8.3
@@ -29,3 +30,4 @@ flutter:
     - assets/board/
     - assets/dice/
     - assets/pins/
+    - assets/images/

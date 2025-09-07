@@ -164,7 +164,9 @@ class BoardWidget extends StatelessWidget {
     
     switch (piece.color) {
       case PlayerColor.red:
-        return Offset(cellSize * 7.5, cellSize * (13.5 - position));
+        // Red home stretch goes upward in the center column toward the goal
+        // Align entry next to main path index 51 at (8,12)
+        return Offset(cellSize * 7.5, cellSize * (12.5 - position));
       case PlayerColor.green:
         return Offset(cellSize * (1.5 + position), cellSize * 7.5);
       case PlayerColor.blue:
@@ -175,59 +177,70 @@ class BoardWidget extends StatelessWidget {
   }
 
   List<Offset> _getMainPathPositions(double boardSize) {
-    final cellSize = boardSize / 15;
+    final cellSize = boardSize / GameConstants.boardGridSize;
     final positions = <Offset>[];
-    
-    // Main path - 52 positions going clockwise
-    // Starting from red's start position
-    
-    // Red side (bottom, moving left)
-    positions.add(Offset(cellSize * 6.5, cellSize * 13.5));
-    for (int i = 1; i <= 5; i++) {
-      positions.add(Offset(cellSize * 6.5, cellSize * (14.5 - i)));
-    }
-    
-    // Corner and left side (moving up)
-    for (int i = 5; i >= 0; i--) {
-      positions.add(Offset(cellSize * (0.5 + i), cellSize * 8.5));
-    }
-    positions.add(Offset(cellSize * 0.5, cellSize * 7.5));
-    
-    // Green side (left, moving up)
-    positions.add(Offset(cellSize * 0.5, cellSize * 6.5));
-    for (int i = 1; i <= 5; i++) {
-      positions.add(Offset(cellSize * (0.5 + i), cellSize * 6.5));
-    }
-    
-    // Corner and top side (moving right)
-    for (int i = 5; i >= 0; i--) {
-      positions.add(Offset(cellSize * 6.5, cellSize * (0.5 + i)));
-    }
-    positions.add(Offset(cellSize * 7.5, cellSize * 0.5));
-    
-    // Blue side (top, moving right)
-    positions.add(Offset(cellSize * 8.5, cellSize * 0.5));
-    for (int i = 1; i <= 5; i++) {
-      positions.add(Offset(cellSize * 8.5, cellSize * (0.5 + i)));
-    }
-    
-    // Corner and right side (moving down)
-    for (int i = 9; i <= 14; i++) {
-      positions.add(Offset(cellSize * i, cellSize * 6.5));
-    }
-    positions.add(Offset(cellSize * 14.5, cellSize * 7.5));
-    
-    // Yellow side (right, moving down)
-    positions.add(Offset(cellSize * 14.5, cellSize * 8.5));
-    for (int i = 13; i >= 9; i--) {
-      positions.add(Offset(cellSize * i, cellSize * 8.5));
-    }
-    
-    // Corner and back to start
-    for (int i = 9; i <= 14; i++) {
-      positions.add(Offset(cellSize * 8.5, cellSize * i));
-    }
-    
+    Offset c(int col, int row) => Offset(
+          cellSize * (col + 0.5),
+          cellSize * (row + 0.5),
+        );
+
+    // 52 main-path positions, clockwise, matching logic indices:
+    // Red start (0) at (6,13)
+    positions.addAll([
+      c(6, 13), // 0
+      c(6, 12), // 1
+      c(6, 11), // 2
+      c(6, 10), // 3
+      c(6, 9),  // 4
+      c(6, 8),  // 5
+      c(5, 8),  // 6
+      c(4, 8),  // 7
+      c(3, 8),  // 8
+      c(2, 8),  // 9
+      c(1, 8),  // 10
+      c(0, 8),  // 11
+      c(0, 7),  // 12 (Green home entry)
+      c(1, 7),  // 13 (Green start)
+      c(2, 7),  // 14
+      c(3, 7),  // 15
+      c(4, 7),  // 16
+      c(5, 7),  // 17
+      c(6, 7),  // 18
+      c(6, 6),  // 19
+      c(6, 5),  // 20
+      c(6, 4),  // 21
+      c(6, 3),  // 22
+      c(6, 2),  // 23
+      c(6, 1),  // 24
+      c(6, 0),  // 25 (Blue home entry)
+      c(7, 0),  // 26 (Blue start)
+      c(7, 1),  // 27
+      c(7, 2),  // 28
+      c(7, 3),  // 29
+      c(7, 4),  // 30
+      c(7, 5),  // 31
+      c(7, 6),  // 32
+      c(8, 6),  // 33
+      c(9, 6),  // 34
+      c(10, 6), // 35
+      c(11, 6), // 36
+      c(12, 6), // 37
+      c(13, 6), // 38
+      c(14, 6), // 39 (Yellow start)
+      c(14, 7), // 40
+      c(13, 7), // 41
+      c(12, 7), // 42
+      c(11, 7), // 43
+      c(10, 7), // 44
+      c(9, 7),  // 45
+      c(8, 7),  // 46
+      c(8, 8),  // 47
+      c(8, 9),  // 48
+      c(8, 10), // 49
+      c(8, 11), // 50
+      c(8, 12), // 51 (Red home entry)
+    ]);
+
     return positions;
   }
 }

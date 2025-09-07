@@ -205,22 +205,24 @@ class _GameScreenState extends State<GameScreen> {
         ),
         child: Stack(
           children: [
-            // Game board
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Selector<GameProvider, Map<String, Object>>(
-                selector: (_, gp) => {
-                  'pieces': gp.allBoardPieces,
-                  'movable': gp.getMovablePieces().toSet(),
-                  'current': gp.currentPlayerColor,
-                },
-                builder: (context, data, _) => BoardWidget(
-                  pieces: data['pieces'] as List<Piece>,
-                  onPieceSelected: (piece) {
-                    context.read<GameProvider>().movePiece(piece);
+            // Game board (isolated repaint)
+            RepaintBoundary(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Selector<GameProvider, Map<String, Object>>(
+                  selector: (_, gp) => {
+                    'pieces': gp.allBoardPieces,
+                    'movable': gp.getMovablePieces().toSet(),
+                    'current': gp.currentPlayerColor,
                   },
-                  currentPlayer: data['current'] as PlayerColor,
-                  movablePieces: data['movable'] as Set<Piece>,
+                  builder: (context, data, _) => BoardWidget(
+                    pieces: data['pieces'] as List<Piece>,
+                    onPieceSelected: (piece) {
+                      context.read<GameProvider>().movePiece(piece);
+                    },
+                    currentPlayer: data['current'] as PlayerColor,
+                    movablePieces: data['movable'] as Set<Piece>,
+                  ),
                 ),
               ),
             ),
@@ -276,7 +278,8 @@ class _GameScreenState extends State<GameScreen> {
       top: position['top'],
       right: position['right'],
       bottom: position['bottom'],
-      child: Container(
+      child: RepaintBoundary(
+        child: Container(
         width: 70,
         height: 100,
         child: Column(
@@ -304,7 +307,8 @@ class _GameScreenState extends State<GameScreen> {
             ),
             const SizedBox(height: 4),
             // Dice
-            DiceWidget(
+            RepaintBoundary(
+              child: DiceWidget(
               key: ValueKey('dice-${player.color.name}'),
               size: 50,
               isEnabled: isEnabled,
@@ -316,9 +320,11 @@ class _GameScreenState extends State<GameScreen> {
                   context.read<GameProvider>().rollDice();
                 }
               },
+              ),
             ),
           ],
         ),
+      ),
       ),
     );
   }

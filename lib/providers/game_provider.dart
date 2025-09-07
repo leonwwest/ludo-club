@@ -112,8 +112,8 @@ class GameProvider extends ChangeNotifier {
       _gameState = _gameState.copyWith(phase: GamePhase.animating);
       notifyListeners();
 
-      await Future.delayed(const Duration(milliseconds: 400));
-      await _audioService.playDiceSound();
+      // Start sound quickly to reduce perceived latency
+      unawaited(_audioService.playDiceSound());
 
       final diceValue = Random().nextInt(GameConstants.diceSides) + 1;
       _gameState = _gameState.copyWith(lastDiceValue: diceValue, currentRollCount: _gameState.currentRollCount + 1);
@@ -122,7 +122,7 @@ class GameProvider extends ChangeNotifier {
       final moves = LudoGame.getMovablePieces(_gameState);
 
       if (moves.isEmpty) {
-        await Future.delayed(const Duration(milliseconds: 500));
+        await Future.delayed(const Duration(milliseconds: 200));
         _advanceToNextPlayer();
       } else {
         _gameState = _gameState.copyWith(phase: GamePhase.waitingForMove);
