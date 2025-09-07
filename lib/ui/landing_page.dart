@@ -29,7 +29,6 @@ class _LudoClubLandingPageState extends State<LudoClubLandingPage>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final width = MediaQuery.of(context).size.width;
     final isSmall = width < 768;
 
@@ -125,45 +124,7 @@ class _LudoClubLandingPageState extends State<LudoClubLandingPage>
                 ),
               ),
 
-              // MAIN - placeholder for future sections
-              Container(
-                color: const Color(0xFFF9FAFB),
-                padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 16),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 1100),
-                    child: Column(
-                      children: [
-                        Text(
-                          'Mehr bald…',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            color: Colors.black87,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
-              // FOOTER
-              Container(
-                color: const Color(0xFF1F2937),
-                padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 1100),
-                    child: Text(
-                      '© ${DateTime.now().year} Ludo Club',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
-                        color: Colors.white70,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+              // Removed placeholder and footer
             ],
           ),
         ),
