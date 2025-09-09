@@ -77,8 +77,8 @@ class LudoGame {
       int checkPos = (currentPos + i) % mainPathLength;
       if (checkPos == homeStart) {
         final remainingSteps = steps - i;
-        // Allow entry only if remaining steps fit home path length
-        if (remainingSteps <= homePathLength) {
+        // Allow entry only if remaining steps fit and are > 0 (must move into lane)
+        if (remainingSteps > 0 && remainingSteps <= homePathLength) {
           return true; // can enter home stretch this turn
         } else {
           break; // treat as normal main-path movement
@@ -194,8 +194,8 @@ class LudoGame {
       if (checkPos == homeStart) {
         // Calculate how many steps are left after reaching home stretch entry
         int remainingSteps = steps - i;
-        // Entering home stretch if fits; otherwise continue normal movement
-        if (remainingSteps <= homePathLength) {
+        // Enter home stretch only if remainingSteps > 0 and within lane length
+        if (remainingSteps > 0 && remainingSteps <= homePathLength) {
           return Piece(piece.color, piece.id, PiecePosition(remainingSteps));
         } else {
           // break to perform normal main-path movement

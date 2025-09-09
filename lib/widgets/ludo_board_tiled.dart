@@ -23,52 +23,51 @@ class LudoBoardTiled extends StatelessWidget {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final size = constraints.biggest.shortestSide;
-            // Build using a 3x3 layout that matches the HTML structure:
-            // [ Base(6x6) | VertTrack(3x6) | Base(6x6) ]
-            // [ HorTrack(6x3) | Center(3x3) | HorTrack(6x3) ]
-            // [ Base(6x6) | VertTrack(3x6) | Base(6x6) ]
             return SizedBox(
               width: size,
               height: size,
-              child: Column(
+              child: Stack(
+                fit: StackFit.expand,
                 children: [
-                  Expanded(
-                    flex: 6,
-                    child: Row(
-                      children: const [
-                        // Top-left should be GREEN
-                        Expanded(flex: 6, child: _Base(color: Color(0xFF22C55E), tokenColor: Color(0xFF16A34A))),
-                        // Top vertical track (toward center) belongs to BLUE
-                        Expanded(flex: 3, child: _TrackVertical(color: Color(0xFF3B82F6))),
-                        // Top-right should be BLUE
-                        Expanded(flex: 6, child: _Base(color: Color(0xFF3B82F6), tokenColor: Color(0xFF2563EB))),
-                      ],
-                    ),
+                  // Tiled background layout
+                  Column(
+                    children: [
+                      Expanded(
+                        flex: 6,
+                        child: Row(
+                          children: const [
+                            Expanded(flex: 6, child: _Base(color: Color(0xFF22C55E), tokenColor: Color(0xFF16A34A))),
+                            Expanded(flex: 3, child: _TrackVertical(color: Color(0xFF3B82F6))),
+                            Expanded(flex: 6, child: _Base(color: Color(0xFF3B82F6), tokenColor: Color(0xFF2563EB))),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        flex: 3,
+                        child: Row(
+                          children: const [
+                            Expanded(flex: 6, child: _TrackHorizontal(color: Color(0xFF22C55E))),
+                            Expanded(flex: 3, child: _CenterSquare()),
+                            Expanded(flex: 6, child: _TrackHorizontal(color: Color(0xFFF59E0B))),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        flex: 6,
+                        child: Row(
+                          children: const [
+                            Expanded(flex: 6, child: _Base(color: Color(0xFFEF4444), tokenColor: Color(0xFFDC2626))),
+                            Expanded(flex: 3, child: _TrackVertical(color: Color(0xFFEF4444))),
+                            Expanded(flex: 6, child: _Base(color: Color(0xFFF59E0B), tokenColor: Color(0xFFD97706))),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  Expanded(
-                    flex: 3,
-                    child: Row(
-                      children: const [
-                        // Left horizontal track (toward center) belongs to GREEN
-                        Expanded(flex: 6, child: _TrackHorizontal(color: Color(0xFF22C55E))),
-                        Expanded(flex: 3, child: _CenterSquare()),
-                        // Right horizontal track belongs to YELLOW
-                        Expanded(flex: 6, child: _TrackHorizontal(color: Color(0xFFF59E0B))),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    flex: 6,
-                    child: Row(
-                      children: const [
-                        // Bottom-left should be RED
-                        Expanded(flex: 6, child: _Base(color: Color(0xFFEF4444), tokenColor: Color(0xFFDC2626))),
-                        // Bottom vertical track belongs to RED
-                        Expanded(flex: 3, child: _TrackVertical(color: Color(0xFFEF4444))),
-                        // Bottom-right should be YELLOW
-                        Expanded(flex: 6, child: _Base(color: Color(0xFFF59E0B), tokenColor: Color(0xFFD97706))),
-                      ],
-                    ),
+                  // Grid-accurate markers so pins align perfectly with circles
+                  CustomPaint(
+                    painter: _MarkersPainter(),
+                    size: Size.square(size),
                   ),
                 ],
               ),
@@ -196,6 +195,93 @@ class _CenterPainter extends CustomPainter {
     canvas.drawPath(p2, blue);
     canvas.drawPath(p3, red);
     canvas.drawPath(p4, yellow);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// Draw grid-aligned circles at exact centers where pins should be in bases
+/// and subtle home-stretch lanes matching the logic grid (15x15).
+class _MarkersPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double cell = size.width / 15.0;
+
+    // Helper to draw ring circle
+    void ring(int col, int row, {Color fill = Colors.white, Color stroke = Colors.white}) {
+      final center = Offset(cell * (col + 0.5), cell * (row + 0.5));
+      final r = cell * 0.35;
+      final paintFill = Paint()..color = fill;
+      final paintStroke = Paint()
+        ..color = stroke
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = cell * 0.08;
+      canvas.drawCircle(center, r, paintFill);
+      canvas.drawCircle(center, r, paintStroke);
+    }
+
+    // Base circles (match BoardWidget starting coords)
+    // Red (bottom-left) at (1,11) (3,11) (1,13) (3,13)
+    final redFill = const Color(0xFFEF4444).withOpacity(0.25);
+    for (final p in const [
+      (1, 11), (3, 11), (1, 13), (3, 13),
+    ]) {
+      ring(p.$1, p.$2, fill: redFill);
+    }
+
+    // Green (top-left) at (1,1) (3,1) (1,3) (3,3)
+    final greenFill = const Color(0xFF22C55E).withOpacity(0.25);
+    for (final p in const [
+      (1, 1), (3, 1), (1, 3), (3, 3),
+    ]) {
+      ring(p.$1, p.$2, fill: greenFill);
+    }
+
+    // Blue (top-right) at (11,1) (13,1) (11,3) (13,3)
+    final blueFill = const Color(0xFF3B82F6).withOpacity(0.25);
+    for (final p in const [
+      (11, 1), (13, 1), (11, 3), (13, 3),
+    ]) {
+      ring(p.$1, p.$2, fill: blueFill);
+    }
+
+    // Yellow (bottom-right) at (11,11) (13,11) (11,13) (13,13)
+    final yellowFill = const Color(0xFFF59E0B).withOpacity(0.25);
+    for (final p in const [
+      (11, 11), (13, 11), (11, 13), (13, 13),
+    ]) {
+      ring(p.$1, p.$2, fill: yellowFill);
+    }
+
+    // Home stretches (subtle tinted lanes) exactly on logic lanes
+    final stretchPaint = Paint()..style = PaintingStyle.fill;
+
+    // Red vertical from rows 9..13 at column 7
+    stretchPaint.color = const Color(0xFFEF4444).withOpacity(0.18);
+    canvas.drawRect(Rect.fromLTWH(cell * 7, cell * 9, cell, cell * 5), stretchPaint);
+
+    // Green horizontal just above the shifted main path (cols 2..6) at row 7
+    stretchPaint.color = const Color(0xFF22C55E).withOpacity(0.18);
+    canvas.drawRect(Rect.fromLTWH(cell * 2, cell * 7, cell * 5, cell), stretchPaint);
+
+    // Blue vertical goal lane from rows 1..5 at column 7
+    stretchPaint.color = const Color(0xFF3B82F6).withOpacity(0.18);
+    canvas.drawRect(Rect.fromLTWH(cell * 7, cell * 1, cell, cell * 5), stretchPaint);
+
+    // Yellow horizontal goal lane from cols 9..13 at row 7
+    stretchPaint.color = const Color(0xFFF59E0B).withOpacity(0.18);
+    canvas.drawRect(Rect.fromLTWH(cell * 9, cell * 7, cell * 5, cell), stretchPaint);
+
+    // Main path neutral cells to visualize the shifted track lightly
+    final neutral = Paint()..color = const Color(0xFFEFF2F7);
+
+    // Left top segment: (1..5, row 6)
+    canvas.drawRect(Rect.fromLTWH(cell * 1, cell * 6, cell * 5, cell), neutral);
+    // Top vertical segment: (col 8, rows 0..6)
+    canvas.drawRect(Rect.fromLTWH(cell * 8, 0, cell, cell * 7), neutral);
+    // Right horizontal segment: (cols 9..14, row 8)
+    canvas.drawRect(Rect.fromLTWH(cell * 9, cell * 8, cell * 6, cell), neutral);
   }
 
   @override

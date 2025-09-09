@@ -60,7 +60,8 @@ class BoardWidget extends StatelessWidget {
       duration: const Duration(milliseconds: GameConstants.pieceMoveDuration),
       curve: Curves.easeOut,
       left: position.dx - pieceSize / 2,
-      top: position.dy - (pieceSize * GameConstants.pinHeightRatio) / 2,
+      // Anchor the bottom tip of the teardrop to the board circle center
+      top: position.dy - (pieceSize * GameConstants.pinHeightRatio),
       child: LudoPin(
         key: ValueKey('pin-${piece.color.name}-${piece.id}'),
         color: ColorUtils.getColorString(piece.color),
@@ -130,12 +131,12 @@ class BoardWidget extends StatelessWidget {
     
     switch (piece.color) {
       case PlayerColor.red:
-        // Red home stretch goes upward in the center column toward the goal
-        // Align entry next to main path index 51 at (8,12)
+        // Red goal lane should be bottom -> center (vertical at column 7)
         return Offset(cellSize * 7.5, cellSize * (12.5 - position));
       case PlayerColor.green:
         return Offset(cellSize * (1.5 + position), cellSize * 7.5);
       case PlayerColor.blue:
+        // Blue goal lane should be top -> center (vertical at column 7)
         return Offset(cellSize * 7.5, cellSize * (1.5 + position));
       case PlayerColor.yellow:
         return Offset(cellSize * (13.5 - position), cellSize * 7.5);
@@ -166,41 +167,45 @@ class BoardWidget extends StatelessWidget {
       c(1, 8),  // 10
       c(0, 8),  // 11
       c(0, 7),  // 12 (Green home entry)
-      c(1, 7),  // 13 (Green start)
-      c(2, 7),  // 14
-      c(3, 7),  // 15
-      c(4, 7),  // 16
-      c(5, 7),  // 17
-      c(6, 7),  // 18
-      c(6, 6),  // 19
-      c(6, 5),  // 20
-      c(6, 4),  // 21
-      c(6, 3),  // 22
-      c(6, 2),  // 23
+      // Move main path above the green lane to row 6 to avoid overlap
+      c(1, 6),  // 13 (Green start visual row 6)
+      c(2, 6),  // 14
+      c(3, 6),  // 15
+      c(4, 6),  // 16
+      c(5, 6),  // 17
+      c(6, 6),  // 18
+      c(6, 5),  // 19
+      c(6, 4),  // 20
+      c(6, 3),  // 21
+      c(6, 2),  // 22
+      c(6, 1),  // 23
       c(6, 1),  // 24
       c(6, 0),  // 25 (Blue home entry)
-      c(7, 0),  // 26 (Blue start)
-      c(7, 1),  // 27
-      c(7, 2),  // 28
-      c(7, 3),  // 29
-      c(7, 4),  // 30
-      c(7, 5),  // 31
-      c(7, 6),  // 32
-      c(8, 6),  // 33
+      // Shift the top vertical main-path from center column 7 to 8 so it's
+      // adjacent to (not overlapping) the blue goal lane.
+      c(8, 0),  // 26 (Blue start visual column 8)
+      c(8, 1),  // 27
+      c(8, 2),  // 28
+      c(8, 3),  // 29
+      c(8, 4),  // 30
+      c(8, 5),  // 31
+      c(8, 6),  // 32
+      c(9, 6),  // 33
       c(9, 6),  // 34
       c(10, 6), // 35
       c(11, 6), // 36
       c(12, 6), // 37
       c(13, 6), // 38
       c(14, 6), // 39 (Yellow start)
-      c(14, 7), // 40
-      c(13, 7), // 41
-      c(12, 7), // 42
-      c(11, 7), // 43
-      c(10, 7), // 44
-      c(9, 7),  // 45
-      c(8, 7),  // 46
-      c(8, 8),  // 47
+      // Shift the right horizontal main-path below the yellow goal lane
+      c(14, 8), // 40
+      c(13, 8), // 41
+      c(12, 8), // 42
+      c(11, 8), // 43
+      c(10, 8), // 44
+      c(9, 8),  // 45
+      c(8, 8),  // 46
+      c(8, 9),  // 47
       c(8, 9),  // 48
       c(8, 10), // 49
       c(8, 11), // 50

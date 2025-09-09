@@ -167,8 +167,9 @@ class LudoBoardPainter extends CustomPainter {
     }
     
     // Green home stretch (horizontal, left to center)
+    // Start tint from column 2..6 (leave col 1 white for start cell at index 13)
     stretchPaint.color = ColorUtils.getPrimaryColor(PlayerColor.green).withOpacity(0.25);
-    for (int i = 1; i <= 5; i++) {
+    for (int i = 2; i <= 6; i++) {
       canvas.drawRRect(
         RRect.fromRectAndRadius(
           Rect.fromLTWH(cellSize * i, cellSize * 7, cellSize, cellSize),

@@ -173,28 +173,26 @@ class _DiceWidgetState extends State<DiceWidget>
   }
 
   Widget _buildDiceFace() {
-    // Use custom dice for web or when SVGs have issues
-    if (kIsWeb) {
+    // Prefer robust fallback across platforms to avoid SVG hiccups
+    const bool preferSvgDice = false;
+
+    if (!preferSvgDice || kIsWeb) {
       return _buildFallbackDice();
     }
-    
-    // Try SVG first on non-web platforms
-    try {
-      return SvgPicture.asset(
-        'assets/dice/dice_$currentValue.svg',
-        width: widget.size * 0.8,
-        height: widget.size * 0.8,
-        colorFilter: widget.isEnabled
-            ? null
-            : ColorFilter.mode(
-                Colors.grey.shade600,
-                BlendMode.srcIn,
-              ),
-      );
-    } catch (e) {
-      // If SVG fails, use fallback
-      return _buildFallbackDice();
-    }
+
+    // SVG with placeholder fallback if load/render fails asynchronously
+    return SvgPicture.asset(
+      'assets/dice/dice_$currentValue.svg',
+      width: widget.size * 0.8,
+      height: widget.size * 0.8,
+      placeholderBuilder: (_) => _buildFallbackDice(),
+      colorFilter: widget.isEnabled
+          ? null
+          : ColorFilter.mode(
+              Colors.grey.shade600,
+              BlendMode.srcIn,
+            ),
+    );
   }
 
   Widget _buildFallbackDice() {
