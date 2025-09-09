@@ -138,7 +138,7 @@ class _GameScreenState extends State<GameScreen> {
                                   Text(
                                     status,
                                     style: GoogleFonts.poppins(
-                                      color: Colors.white.withOpacity(.9),
+              color: Colors.white.withOpacity(.9),
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
