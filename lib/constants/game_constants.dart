@@ -8,16 +8,16 @@ class GameConstants {
   static const int requiredRollToLeaveBase = 6;
   
   // Animation durations
-  static const int diceAnimationDuration = 800;
-  static const int pieceMoveDuration = 200;
-  static const int bounceAnimationDuration = 200;
-  static const int shakeAnimationDuration = 600;
+  static const int diceAnimationDuration = 350; // Faster dice spin
+  static const int pieceMoveDuration = 140; // Snappier piece moves
+  static const int bounceAnimationDuration = 140;
+  static const int shakeAnimationDuration = 300;
   
   // Game timing
-  static const int diceRollSteps = 6;
-  static const int diceRollStepDelay = 50;
-  static const int aiMinThinkingTime = 500;
-  static const int aiMaxThinkingTime = 1500;
+  static const int diceRollSteps = 4; // Fewer intermediate faces
+  static const int diceRollStepDelay = 40; // Quicker cycle
+  static const int aiMinThinkingTime = 150;
+  static const int aiMaxThinkingTime = 350;
   
   // UI dimensions
   static const double pinSizeRatio = 1.0 / 15.0; // Pin size relative to board size

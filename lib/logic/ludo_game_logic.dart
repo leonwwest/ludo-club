@@ -77,8 +77,8 @@ class LudoGame {
       int checkPos = (currentPos + i) % mainPathLength;
       if (checkPos == homeStart) {
         final remainingSteps = steps - i;
-        // Allow entry only if remaining steps fit home path length
-        if (remainingSteps <= homePathLength) {
+        // Allow entry only if remaining steps fit and are > 0 (must move into lane)
+        if (remainingSteps > 0 && remainingSteps <= homePathLength) {
           return true; // can enter home stretch this turn
         } else {
           break; // treat as normal main-path movement
@@ -124,7 +124,7 @@ class LudoGame {
               color: updatedPlayers[i].color,
               pieces: updatedPlayers[i].pieces.map((p) {
                 if (p.id == opponentPiece.id) {
-                  return Piece(p.color, p.id, const PiecePosition(-1, isHome: true));
+                  return Piece(p.color, p.id, const PiecePosition(-1));
                 }
                 return p;
               }).toList(),
@@ -178,9 +178,9 @@ class LudoGame {
       int newFieldId = piece.position.fieldId + steps;
       if (newFieldId == homePathLength) {
         // Piece reaches the finish!
-        return Piece(piece.color, piece.id, PiecePosition(homePathLength, isHome: true), isSafe: true);
+        return Piece(piece.color, piece.id, const PiecePosition(homePathLength), isSafe: true);
       } else {
-        return Piece(piece.color, piece.id, PiecePosition(newFieldId, isHome: true));
+        return Piece(piece.color, piece.id, PiecePosition(newFieldId));
       }
     }
 
@@ -194,9 +194,9 @@ class LudoGame {
       if (checkPos == homeStart) {
         // Calculate how many steps are left after reaching home stretch entry
         int remainingSteps = steps - i;
-        // Entering home stretch if fits; otherwise continue normal movement
-        if (remainingSteps <= homePathLength) {
-          return Piece(piece.color, piece.id, PiecePosition(remainingSteps, isHome: true));
+        // Enter home stretch only if remainingSteps > 0 and within lane length
+        if (remainingSteps > 0 && remainingSteps <= homePathLength) {
+          return Piece(piece.color, piece.id, PiecePosition(remainingSteps));
         } else {
           // break to perform normal main-path movement
           break;

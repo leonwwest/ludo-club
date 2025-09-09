@@ -75,7 +75,7 @@ class _LudoPinState extends State<LudoPin>
             boxShadow: widget.isHighlighted
                 ? [
                     BoxShadow(
-                      color: _getColorForString(widget.color).withOpacity(0.6),
+                      color: _getColorForString(widget.color).withValues(alpha: 0.6),
                       blurRadius: 10,
                       spreadRadius: 2,
                     )
@@ -83,7 +83,7 @@ class _LudoPinState extends State<LudoPin>
                 : _isHovered
                     ? [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.3),
+                          color: Colors.black.withValues(alpha: 0.3),
                           blurRadius: 8,
                           spreadRadius: 1,
                         )
@@ -104,7 +104,7 @@ class _LudoPinState extends State<LudoPin>
                       shape: BoxShape.circle,
                       gradient: RadialGradient(
                         colors: [
-                          _getColorForString(widget.color).withOpacity(0.3),
+                          _getColorForString(widget.color).withValues(alpha: 0.3),
                           Colors.transparent,
                         ],
                       ),
@@ -130,7 +130,7 @@ class _LudoPinState extends State<LudoPin>
                       shadows: [
                         Shadow(
                           blurRadius: 3,
-                          color: Colors.black.withOpacity(0.8),
+                          color: Colors.black.withValues(alpha: 0.8),
                           offset: const Offset(1, 1),
                         ),
                       ],
@@ -148,13 +148,13 @@ class _LudoPinState extends State<LudoPin>
   Color _getColorForString(String colorName) {
     switch (colorName.toLowerCase()) {
       case 'red':
-        return Colors.red;
+        return const Color(0xFFCC2936);
       case 'green':
-        return Colors.green;
+        return const Color(0xFF2F9E44);
       case 'blue':
-        return Colors.blue;
+        return const Color(0xFF1971C2);
       case 'yellow':
-        return Colors.amber;
+        return const Color(0xFFFAB005);
       default:
         return Colors.grey;
     }

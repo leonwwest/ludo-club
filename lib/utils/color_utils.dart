@@ -2,17 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:ludo_club/models/ludo_objects.dart';
 
 class ColorUtils {
+  // Brand/base colors matching pin SVGs (darker gradient stop)
+  static const Color _redBase = Color(0xFFCC2936);
+  static const Color _greenBase = Color(0xFF2F9E44);
+  static const Color _blueBase = Color(0xFF1971C2);
+  static const Color _yellowBase = Color(0xFFFAB005);
+
   // Convert PlayerColor enum to display Color for UI
   static Color getDisplayColor(PlayerColor playerColor) {
     switch (playerColor) {
       case PlayerColor.red:
-        return Colors.red.shade700;
+        return _redBase;
       case PlayerColor.green:
-        return Colors.green.shade700;
+        return _greenBase;
       case PlayerColor.yellow:
-        return Colors.yellow.shade600;
+        return _yellowBase;
       case PlayerColor.blue:
-        return Colors.blue.shade700;
+        return _blueBase;
     }
   }
 
@@ -34,13 +40,13 @@ class ColorUtils {
   static Color getHomeAreaColor(PlayerColor playerColor) {
     switch (playerColor) {
       case PlayerColor.red:
-        return Colors.red.shade100;
+        return _redBase.withOpacity(0.18);
       case PlayerColor.green:
-        return Colors.green.shade100;
+        return _greenBase.withOpacity(0.18);
       case PlayerColor.blue:
-        return Colors.blue.shade100;
+        return _blueBase.withOpacity(0.18);
       case PlayerColor.yellow:
-        return Colors.yellow.shade100;
+        return _yellowBase.withOpacity(0.18);
     }
   }
 
@@ -48,13 +54,13 @@ class ColorUtils {
   static Color getPrimaryColor(PlayerColor playerColor) {
     switch (playerColor) {
       case PlayerColor.red:
-        return Colors.red.shade600;
+        return _redBase;
       case PlayerColor.green:
-        return Colors.green.shade600;
+        return _greenBase;
       case PlayerColor.blue:
-        return Colors.blue.shade600;
+        return _blueBase;
       case PlayerColor.yellow:
-        return Colors.yellow.shade600;
+        return _yellowBase;
     }
   }
 } 

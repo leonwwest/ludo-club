@@ -3,6 +3,7 @@ import 'package:ludo_club/models/ludo_objects.dart';
 import 'package:ludo_club/widgets/ludo_pin.dart';
 import 'package:ludo_club/utils/color_utils.dart';
 import 'package:ludo_club/constants/game_constants.dart';
+import 'package:ludo_club/widgets/ludo_board_tiled.dart';
 
 class BoardWidget extends StatelessWidget {
   final List<Piece> pieces;
@@ -47,42 +48,7 @@ class BoardWidget extends StatelessWidget {
   }
 
   Widget _buildBoardBackground(double size) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.black, width: 2),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(6),
-        child: Image.asset(
-          'assets/board/ludo_board_final.webp',
-          width: size,
-          height: size,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            // Fallback in case the image fails to load
-            return Container(
-              width: size,
-              height: size,
-              color: Colors.white,
-                              child: const Center(
-                  child: Text(
-                    'ludo_board_final.webp\nNot Found',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.red,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-            );
-          },
-        ),
-      ),
-    );
+    return SizedBox(width: size, height: size, child: const LudoBoardTiled());
   }
 
   Widget _buildPiece(Piece piece, double boardSize) {
@@ -94,7 +60,8 @@ class BoardWidget extends StatelessWidget {
       duration: const Duration(milliseconds: GameConstants.pieceMoveDuration),
       curve: Curves.easeOut,
       left: position.dx - pieceSize / 2,
-      top: position.dy - (pieceSize * GameConstants.pinHeightRatio) / 2,
+      // Anchor the bottom tip of the teardrop to the board circle center
+      top: position.dy - (pieceSize * GameConstants.pinHeightRatio),
       child: LudoPin(
         key: ValueKey('pin-${piece.color.name}-${piece.id}'),
         color: ColorUtils.getColorString(piece.color),
@@ -164,10 +131,12 @@ class BoardWidget extends StatelessWidget {
     
     switch (piece.color) {
       case PlayerColor.red:
-        return Offset(cellSize * 7.5, cellSize * (13.5 - position));
+        // Red goal lane should be bottom -> center (vertical at column 7)
+        return Offset(cellSize * 7.5, cellSize * (12.5 - position));
       case PlayerColor.green:
         return Offset(cellSize * (1.5 + position), cellSize * 7.5);
       case PlayerColor.blue:
+        // Blue goal lane should be top -> center (vertical at column 7)
         return Offset(cellSize * 7.5, cellSize * (1.5 + position));
       case PlayerColor.yellow:
         return Offset(cellSize * (13.5 - position), cellSize * 7.5);
@@ -175,59 +144,74 @@ class BoardWidget extends StatelessWidget {
   }
 
   List<Offset> _getMainPathPositions(double boardSize) {
-    final cellSize = boardSize / 15;
+    final cellSize = boardSize / GameConstants.boardGridSize;
     final positions = <Offset>[];
-    
-    // Main path - 52 positions going clockwise
-    // Starting from red's start position
-    
-    // Red side (bottom, moving left)
-    positions.add(Offset(cellSize * 6.5, cellSize * 13.5));
-    for (int i = 1; i <= 5; i++) {
-      positions.add(Offset(cellSize * 6.5, cellSize * (14.5 - i)));
-    }
-    
-    // Corner and left side (moving up)
-    for (int i = 5; i >= 0; i--) {
-      positions.add(Offset(cellSize * (0.5 + i), cellSize * 8.5));
-    }
-    positions.add(Offset(cellSize * 0.5, cellSize * 7.5));
-    
-    // Green side (left, moving up)
-    positions.add(Offset(cellSize * 0.5, cellSize * 6.5));
-    for (int i = 1; i <= 5; i++) {
-      positions.add(Offset(cellSize * (0.5 + i), cellSize * 6.5));
-    }
-    
-    // Corner and top side (moving right)
-    for (int i = 5; i >= 0; i--) {
-      positions.add(Offset(cellSize * 6.5, cellSize * (0.5 + i)));
-    }
-    positions.add(Offset(cellSize * 7.5, cellSize * 0.5));
-    
-    // Blue side (top, moving right)
-    positions.add(Offset(cellSize * 8.5, cellSize * 0.5));
-    for (int i = 1; i <= 5; i++) {
-      positions.add(Offset(cellSize * 8.5, cellSize * (0.5 + i)));
-    }
-    
-    // Corner and right side (moving down)
-    for (int i = 9; i <= 14; i++) {
-      positions.add(Offset(cellSize * i, cellSize * 6.5));
-    }
-    positions.add(Offset(cellSize * 14.5, cellSize * 7.5));
-    
-    // Yellow side (right, moving down)
-    positions.add(Offset(cellSize * 14.5, cellSize * 8.5));
-    for (int i = 13; i >= 9; i--) {
-      positions.add(Offset(cellSize * i, cellSize * 8.5));
-    }
-    
-    // Corner and back to start
-    for (int i = 9; i <= 14; i++) {
-      positions.add(Offset(cellSize * 8.5, cellSize * i));
-    }
-    
+    Offset c(int col, int row) => Offset(
+          cellSize * (col + 0.5),
+          cellSize * (row + 0.5),
+        );
+
+    // 52 main-path positions, clockwise, matching logic indices:
+    // Red start (0) at (6,13)
+    positions.addAll([
+      c(6, 13), // 0
+      c(6, 12), // 1
+      c(6, 11), // 2
+      c(6, 10), // 3
+      c(6, 9),  // 4
+      c(6, 8),  // 5
+      c(5, 8),  // 6
+      c(4, 8),  // 7
+      c(3, 8),  // 8
+      c(2, 8),  // 9
+      c(1, 8),  // 10
+      c(0, 8),  // 11
+      c(0, 7),  // 12 (Green home entry)
+      // Move main path above the green lane to row 6 to avoid overlap
+      c(1, 6),  // 13 (Green start visual row 6)
+      c(2, 6),  // 14
+      c(3, 6),  // 15
+      c(4, 6),  // 16
+      c(5, 6),  // 17
+      c(6, 6),  // 18
+      c(6, 5),  // 19
+      c(6, 4),  // 20
+      c(6, 3),  // 21
+      c(6, 2),  // 22
+      c(6, 1),  // 23
+      c(6, 1),  // 24
+      c(6, 0),  // 25 (Blue home entry)
+      // Shift the top vertical main-path from center column 7 to 8 so it's
+      // adjacent to (not overlapping) the blue goal lane.
+      c(8, 0),  // 26 (Blue start visual column 8)
+      c(8, 1),  // 27
+      c(8, 2),  // 28
+      c(8, 3),  // 29
+      c(8, 4),  // 30
+      c(8, 5),  // 31
+      c(8, 6),  // 32
+      c(9, 6),  // 33
+      c(9, 6),  // 34
+      c(10, 6), // 35
+      c(11, 6), // 36
+      c(12, 6), // 37
+      c(13, 6), // 38
+      c(14, 6), // 39 (Yellow start)
+      // Shift the right horizontal main-path below the yellow goal lane
+      c(14, 8), // 40
+      c(13, 8), // 41
+      c(12, 8), // 42
+      c(11, 8), // 43
+      c(10, 8), // 44
+      c(9, 8),  // 45
+      c(8, 8),  // 46
+      c(8, 9),  // 47
+      c(8, 9),  // 48
+      c(8, 10), // 49
+      c(8, 11), // 50
+      c(8, 12), // 51 (Red home entry)
+    ]);
+
     return positions;
   }
 }

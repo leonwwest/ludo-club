@@ -44,22 +44,22 @@ class _DiceWidgetState extends State<DiceWidget>
     
     _rotationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 800), // Perfectly synced with rolling duration
+      duration: const Duration(milliseconds: GameConstants.diceAnimationDuration),
     );
     
     _scaleController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 200),
+      duration: const Duration(milliseconds: GameConstants.bounceAnimationDuration),
     );
     
     _shakeController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: GameConstants.shakeAnimationDuration),
     );
 
     _rotationAnimation = Tween<double>(
       begin: 0,
-      end: 4, // 4 full rotations for more drama
+      end: 1.2, // ~1 rotation for responsiveness
     ).animate(CurvedAnimation(
       parent: _rotationController,
       curve: Curves.easeInOutCubic,
@@ -112,13 +112,12 @@ class _DiceWidgetState extends State<DiceWidget>
         isRolling = true;
       });
 
-      // Start main animations for spectacular effect
+      // Start animations (short and responsive)
       _rotationController.forward(from: 0);
       _shakeController.forward(from: 0);
-      // Removed complex pulse animations to prevent glitches
+      // Keep pulse minimal to avoid jank
       
-      // Simulate rolling with multiple value changes (faster animation)
-      // Optimized for better game speed (400ms total)
+      // Simulate rolling with a few value changes (fast)
       for (int i = 0; i < GameConstants.diceRollSteps; i++) {
         await Future.delayed(const Duration(milliseconds: GameConstants.diceRollStepDelay));
         if (mounted) {
@@ -128,9 +127,8 @@ class _DiceWidgetState extends State<DiceWidget>
         }
       }
 
-      // End animation and wait for GameProvider to provide the actual value
-      // Total time: diceRollSteps × diceRollStepDelay + 100ms
-      await Future.delayed(const Duration(milliseconds: 100));
+      // End animation and wait briefly for GameProvider to provide the actual value
+      await Future.delayed(const Duration(milliseconds: 60));
       
       if (mounted) {
         setState(() {
@@ -153,7 +151,7 @@ class _DiceWidgetState extends State<DiceWidget>
             });
           }
           
-          // Enhanced bounce effect on landing
+          // Quick bounce effect on landing
           _scaleController.forward().then((_) {
             if (mounted) {
               _scaleController.reverse();
@@ -175,28 +173,26 @@ class _DiceWidgetState extends State<DiceWidget>
   }
 
   Widget _buildDiceFace() {
-    // Use custom dice for web or when SVGs have issues
-    if (kIsWeb) {
+    // Prefer robust fallback across platforms to avoid SVG hiccups
+    const bool preferSvgDice = false;
+
+    if (!preferSvgDice || kIsWeb) {
       return _buildFallbackDice();
     }
-    
-    // Try SVG first on non-web platforms
-    try {
-      return SvgPicture.asset(
-        'assets/dice/dice_$currentValue.svg',
-        width: widget.size * 0.8,
-        height: widget.size * 0.8,
-        colorFilter: widget.isEnabled
-            ? null
-            : ColorFilter.mode(
-                Colors.grey.shade600,
-                BlendMode.srcIn,
-              ),
-      );
-    } catch (e) {
-      // If SVG fails, use fallback
-      return _buildFallbackDice();
-    }
+
+    // SVG with placeholder fallback if load/render fails asynchronously
+    return SvgPicture.asset(
+      'assets/dice/dice_$currentValue.svg',
+      width: widget.size * 0.8,
+      height: widget.size * 0.8,
+      placeholderBuilder: (_) => _buildFallbackDice(),
+      colorFilter: widget.isEnabled
+          ? null
+          : ColorFilter.mode(
+              Colors.grey.shade600,
+              BlendMode.srcIn,
+            ),
+    );
   }
 
   Widget _buildFallbackDice() {
@@ -311,6 +307,29 @@ class _DiceWidgetState extends State<DiceWidget>
 
   @override
   Widget build(BuildContext context) {
+    // Build box shadows without collection-if to avoid parser issues
+    List<BoxShadow> _buildShadows() {
+      final shadows = <BoxShadow>[
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.3),
+          blurRadius: isRolling ? 15 : 6,
+          spreadRadius: isRolling ? 3 : 1,
+          offset: const Offset(0, 3),
+        ),
+      ];
+      if (isRolling) {
+        shadows.add(
+          BoxShadow(
+            color: Colors.blue.withValues(alpha: 0.4),
+            blurRadius: 20,
+            spreadRadius: 3,
+            offset: const Offset(0, 0),
+          ),
+        );
+      }
+      return shadows;
+    }
+
     return Semantics(
       label: 'Dice',
       hint: widget.isEnabled ? 'Tap to roll' : 'Disabled',
@@ -319,99 +338,79 @@ class _DiceWidgetState extends State<DiceWidget>
       child: GestureDetector(
         onTap: rollDice,
         child: AnimatedBuilder(
-          animation: Listenable.merge([
+          animation: Listenable.merge(<Listenable>[
             _rotationAnimation,
             _scaleAnimation,
             _shakeAnimation,
           ]),
           builder: (context, child) {
-          final shakeIntensity = isRolling ? 6.0 : 0.0; // Stronger shake during rolling
-          
-          return Transform.scale(
-            scale: _scaleAnimation.value,
-            child: Transform.translate(
-              offset: Offset(
-                math.sin(_shakeAnimation.value * 6 * math.pi) * shakeIntensity,
-                math.cos(_shakeAnimation.value * 4 * math.pi) * (shakeIntensity * 0.7),
-              ),
-              child: Transform.rotate(
-                angle: _rotationAnimation.value * 2 * math.pi,
-                child: Container(
-                  width: widget.size,
-                  height: widget.size,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      // Main shadow
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.3),
-                        blurRadius: isRolling ? 15 : 6,
-                        spreadRadius: isRolling ? 3 : 1,
-                        offset: const Offset(0, 3),
-                      ),
-                      // Simplified glow effect during rolling
-                      if (isRolling)
-                        BoxShadow(
-                          color: Colors.blue.withOpacity(0.4),
-                          blurRadius: 20,
-                          spreadRadius: 3,
-                          offset: const Offset(0, 0),
-                        ),
-                    ],
-                    gradient: widget.isEnabled
-                        ? const LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              Color(0xFFFFFFFF),
-                              Color(0xFFF0F0F0),
-                            ],
-                          )
-                        : LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              Colors.grey.shade300,
-                              Colors.grey.shade400,
-                            ],
-                          ),
-                  ),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      // Dice display with fallback
-                      Opacity(
-                        opacity: isRolling ? 0.8 : 1.0,
-                        child: _buildDiceFace(),
-                      ),
-                      
-                      // Simplified rolling indicator
-                      if (isRolling)
-                        Container(
-                          width: widget.size,
-                          height: widget.size,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            gradient: LinearGradient(
+            final double shakeIntensity = isRolling ? 6.0 : 0.0;
+
+            return Transform.scale(
+              scale: _scaleAnimation.value,
+              child: Transform.translate(
+                offset: Offset(
+                  math.sin(_shakeAnimation.value * 6 * math.pi) * shakeIntensity,
+                  math.cos(_shakeAnimation.value * 4 * math.pi) * (shakeIntensity * 0.7),
+                ),
+                child: Transform.rotate(
+                  angle: _rotationAnimation.value * 2 * math.pi,
+                  child: Container(
+                    width: widget.size,
+                    height: widget.size,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: _buildShadows(),
+                      gradient: widget.isEnabled
+                          ? const LinearGradient(
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
-                              colors: [
-                                Colors.blue.withOpacity(0.15),
-                                Colors.purple.withOpacity(0.15),
-                                Colors.cyan.withOpacity(0.1),
+                              colors: <Color>[
+                                Color(0xFFFFFFFF),
+                                Color(0xFFF0F0F0),
+                              ],
+                            )
+                          : LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: <Color>[
+                                Colors.grey.shade300,
+                                Colors.grey.shade400,
                               ],
                             ),
-                          ),
+                    ),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: <Widget>[
+                        Opacity(
+                          opacity: isRolling ? 0.8 : 1.0,
+                          child: _buildDiceFace(),
                         ),
-                      
-                      // No overlay when disabled - keep dice visible
-                    ],
+                        if (isRolling)
+                          Container(
+                            width: widget.size,
+                            height: widget.size,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              colors: <Color>[
+                                  Colors.blue.withValues(alpha: 0.15),
+                                  Colors.purple.withValues(alpha: 0.15),
+                                  Colors.cyan.withValues(alpha: 0.10),
+                                ],
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }

@@ -38,14 +38,13 @@ class DatabaseInitializationService {
       
       return true;
     } catch (e) {
-      print('Failed to initialize database: $e');
       return false;
     }
   }
 
   // Perform migration from old SharedPreferences system
   Future<void> _performMigration(int fromVersion) async {
-    print('Performing database migration from version $fromVersion');
+    // Performing database migration from a previous version
     
     if (fromVersion == 0) {
       // Initial migration from SharedPreferences
@@ -66,9 +65,9 @@ class DatabaseInitializationService {
       // Migrate old saved games
       await _migrateSavedGames(prefs);
       
-      print('Migration from SharedPreferences completed successfully');
+      // Migration succeeded
     } catch (e) {
-      print('Error during migration: $e');
+      // Migration failed; continue running without aborting
       // Don't throw - we want the app to continue working even if migration fails
     }
   }
@@ -107,9 +106,9 @@ class DatabaseInitializationService {
         }
       }
       
-      print('Migrated ${decoded.length} player statistics records');
+      // Migration count logged internally if needed
     } catch (e) {
-      print('Error migrating player statistics: $e');
+      // Ignore migration errors
     }
   }
 
@@ -138,16 +137,16 @@ class DatabaseInitializationService {
             timestamp: oldSavedGame.timestamp,
             gameStateJson: json.encode(oldSavedGame.gameState.toJson()),
             metadata: _generateLegacyMetadata(oldSavedGame.gameState),
-            isOnlineGame: false, // Old games were local only
+            // isOnlineGame defaults to false
           );
           
           await _db.saveGame(enhancedSavedGame);
         }
       }
       
-      print('Migrated ${decoded.length} saved games');
+      // Saved games migrated
     } catch (e) {
-      print('Error migrating saved games: $e');
+      // Ignore migration errors
     }
   }
 
@@ -171,7 +170,6 @@ class DatabaseInitializationService {
       );
       
       await _db.saveUserProfile(defaultProfile);
-      print('Created default user profile');
     }
   }
 
@@ -208,7 +206,7 @@ class DatabaseInitializationService {
     
     try {
       // Check if we can read from all tables
-      final userProfiles = await _db.getUserProfile('test');
+      await _db.getUserProfile('test');
       health.userProfilesAccessible = true;
       
       final playerStats = await _db.getAllPlayerStats();
@@ -245,7 +243,6 @@ class DatabaseInitializationService {
       
       return true;
     } catch (e) {
-      print('Error resetting database: $e');
       return false;
     }
   }
@@ -273,7 +270,6 @@ class DatabaseInitializationService {
       await prefs.setString('last_backup', timestamp);
       return true;
     } catch (e) {
-      print('Error creating backup: $e');
       return false;
     }
   }
@@ -287,9 +283,9 @@ class DatabaseInitializationService {
       await prefs.remove('player_stats_list');
       await prefs.remove('saved_games');
       
-      print('Cleaned up old migration data');
+      // Cleaned up
     } catch (e) {
-      print('Error cleaning up old data: $e');
+      // Ignore cleanup errors
     }
   }
 }

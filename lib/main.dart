@@ -1,19 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:ludo_club/providers/game_provider.dart';
-import 'package:ludo_club/ui/home_screen.dart';
 // Temporarily commented out due to Firebase dependency issues
 // import 'package:ludo_club/services/database_initialization_service.dart';
 import 'package:ludo_club/services/audio_service.dart';
+import 'package:ludo_club/ui/landing_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Disable runtime font fetching to avoid network access at runtime.
+  // This prevents google_fonts from trying to download fonts on desktop.
+  GoogleFonts.config.allowRuntimeFetching = false;
   
   // Temporarily disabled database initialization due to Firebase dependency issues
   // This allows the core game to run while Firebase issues are resolved
   // final dbInitService = DatabaseInitializationService();
   // final databaseInitialized = await dbInitService.initializeDatabase();
-  print('Database initialization temporarily disabled - using in-memory game state only.');
+  // Database initialization temporarily disabled - using in-memory game state only.
   
   // Initialize audio service
   final audioService = AudioService();
@@ -40,7 +44,7 @@ class MyApp extends StatelessWidget {
           primarySwatch: Colors.blue,
           visualDensity: VisualDensity.adaptivePlatformDensity,
         ),
-        home: const HomeScreen(),
+        home: const LudoClubLandingPage(),
         debugShowCheckedModeBanner: false,
       ),
     );

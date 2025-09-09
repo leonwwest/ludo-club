@@ -53,8 +53,7 @@ class UserProfile {
       'avatar_url': avatarUrl,
       'created_at': createdAt.toIso8601String(),
       'last_active': lastActive.toIso8601String(),
-      'preferences': preferences != null ? 
-          preferences.toString() : null, // Store as JSON string in SQLite
+      'preferences': preferences?.toString(), // Store as JSON string in SQLite
     };
   }
 
@@ -167,8 +166,7 @@ class EnhancedPlayerStats {
           DateTime.parse(map['last_played'] as String) : null,
       favoriteColor: map['favorite_color'] as int,
       // Note: In a real implementation, you'd properly parse these JSON strings
-      aiWins: const {},
-      versusStats: const {},
+      // Defaults for maps are handled by the constructor
     );
   }
 }
@@ -243,10 +241,6 @@ class GameHistory {
       totalTurns: map['total_turns'] as int,
       wasOnline: (map['was_online'] as int) == 1,
       // Note: In a real implementation, you'd properly parse these JSON strings
-      finalScores: const {},
-      capturesPerPlayer: const {},
-      rollsPerPlayer: const {},
-      averageRollPerPlayer: const {},
     );
   }
 }
@@ -357,7 +351,7 @@ class EnhancedSavedGame {
       thumbnail: map['thumbnail'] as String,
       timestamp: DateTime.parse(map['timestamp'] as String),
       gameStateJson: map['game_state_json'] as String,
-      metadata: const {}, // Would parse JSON string in real implementation
+      // metadata defaults to an empty map
       isOnlineGame: (map['is_online_game'] as int) == 1,
       lobbyId: map['lobby_id'] as String?,
     );

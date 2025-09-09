@@ -1,13 +1,9 @@
-import 'dart:convert';
-import 'dart:io';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 // Temporarily commented out due to Firebase dependency issues
 // import 'package:cloud_firestore/cloud_firestore.dart';
 // import 'package:firebase_auth/firebase_auth.dart';
 import 'package:ludo_club/models/database_models.dart';
-import 'package:ludo_club/models/game_state.dart';
-import 'package:uuid/uuid.dart';
 import 'package:ludo_club/constants/game_constants.dart';
 
 class DatabaseService {
@@ -412,7 +408,6 @@ class DatabaseService {
   // SYNC OPERATIONS - Temporarily disabled due to Firebase dependency issues
   Future<void> syncWithFirebase() async {
     // Firebase sync temporarily disabled
-    print('Firebase sync is currently disabled due to dependency issues');
     return;
     
     // Original Firebase sync code commented out:
@@ -435,7 +430,6 @@ class DatabaseService {
 
   Future<void> syncFromFirebase() async {
     // Firebase sync temporarily disabled
-    print('Firebase sync is currently disabled due to dependency issues');
     return;
     
          // Original Firebase sync code commented out:

@@ -2,7 +2,6 @@
 // into your existing Ludo Club UI components
 
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:ludo_club/services/enhanced_statistics_service.dart';
 import 'package:ludo_club/services/enhanced_save_load_service.dart';
@@ -499,7 +498,6 @@ class GameProviderDatabaseIntegration {
         gameType: 'quick_play', // or determine based on game mode
       );
     } catch (e) {
-      print('Failed to record game result: $e');
       // Game continues even if stats recording fails
     }
   }
@@ -515,7 +513,6 @@ class GameProviderDatabaseIntegration {
         existingAutoSaveId: _currentAutoSaveId,
       );
     } catch (e) {
-      print('Auto-save failed: $e');
       // Continue game even if auto-save fails
     }
   }
@@ -528,7 +525,7 @@ Future<void> showLeaderboard(BuildContext context) async {
   showDialog(
     context: context,
     builder: (context) => FutureBuilder<List<EnhancedPlayerStats>>(
-      future: statsService.getLeaderboard(type: LeaderboardType.wins, limit: 10),
+      future: statsService.getLeaderboard(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const AlertDialog(
