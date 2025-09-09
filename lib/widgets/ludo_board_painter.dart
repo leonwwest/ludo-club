@@ -155,7 +155,7 @@ class LudoBoardPainter extends CustomPainter {
     final stretchPaint = Paint()..style = PaintingStyle.fill;
     
     // Red home stretch (vertical, bottom to center)
-    stretchPaint.color = Colors.red.shade200;
+    stretchPaint.color = ColorUtils.getPrimaryColor(PlayerColor.red).withOpacity(0.25);
     for (int i = 1; i <= 5; i++) {
       canvas.drawRRect(
         RRect.fromRectAndRadius(
@@ -167,7 +167,7 @@ class LudoBoardPainter extends CustomPainter {
     }
     
     // Green home stretch (horizontal, left to center)
-    stretchPaint.color = Colors.green.shade200;
+    stretchPaint.color = ColorUtils.getPrimaryColor(PlayerColor.green).withOpacity(0.25);
     for (int i = 1; i <= 5; i++) {
       canvas.drawRRect(
         RRect.fromRectAndRadius(
@@ -179,7 +179,7 @@ class LudoBoardPainter extends CustomPainter {
     }
     
     // Blue home stretch (vertical, top to center)
-    stretchPaint.color = Colors.blue.shade200;
+    stretchPaint.color = ColorUtils.getPrimaryColor(PlayerColor.blue).withOpacity(0.25);
     for (int i = 1; i <= 5; i++) {
       canvas.drawRRect(
         RRect.fromRectAndRadius(
@@ -191,7 +191,7 @@ class LudoBoardPainter extends CustomPainter {
     }
     
     // Yellow home stretch (horizontal, right to center)
-    stretchPaint.color = Colors.yellow.shade200;
+    stretchPaint.color = ColorUtils.getPrimaryColor(PlayerColor.yellow).withOpacity(0.25);
     for (int i = 1; i <= 5; i++) {
       canvas.drawRRect(
         RRect.fromRectAndRadius(
@@ -263,7 +263,7 @@ class LudoBoardPainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
     
     // Red start
-    startPaint.color = Colors.red.shade600;
+    startPaint.color = ColorUtils.getPrimaryColor(PlayerColor.red);
     canvas.drawCircle(
       Offset(cellSize * 0.5, cellSize * 13.5),
       cellSize * 0.4,
@@ -276,7 +276,7 @@ class LudoBoardPainter extends CustomPainter {
     );
     
     // Green start
-    startPaint.color = Colors.green.shade600;
+    startPaint.color = ColorUtils.getPrimaryColor(PlayerColor.green);
     canvas.drawCircle(
       Offset(cellSize * 1.5, cellSize * 0.5),
       cellSize * 0.4,
@@ -289,7 +289,7 @@ class LudoBoardPainter extends CustomPainter {
     );
     
     // Blue start
-    startPaint.color = Colors.blue.shade600;
+    startPaint.color = ColorUtils.getPrimaryColor(PlayerColor.blue);
     canvas.drawCircle(
       Offset(cellSize * 13.5, cellSize * 1.5),
       cellSize * 0.4,
@@ -302,7 +302,7 @@ class LudoBoardPainter extends CustomPainter {
     );
     
     // Yellow start
-    startPaint.color = Colors.yellow.shade600;
+    startPaint.color = ColorUtils.getPrimaryColor(PlayerColor.yellow);
     canvas.drawCircle(
       Offset(cellSize * 13.5, cellSize * 13.5),
       cellSize * 0.4,

@@ -148,13 +148,13 @@ class _LudoPinState extends State<LudoPin>
   Color _getColorForString(String colorName) {
     switch (colorName.toLowerCase()) {
       case 'red':
-        return Colors.red;
+        return const Color(0xFFCC2936);
       case 'green':
-        return Colors.green;
+        return const Color(0xFF2F9E44);
       case 'blue':
-        return Colors.blue;
+        return const Color(0xFF1971C2);
       case 'yellow':
-        return Colors.amber;
+        return const Color(0xFFFAB005);
       default:
         return Colors.grey;
     }

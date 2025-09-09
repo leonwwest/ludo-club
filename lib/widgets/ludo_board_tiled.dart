@@ -36,9 +36,12 @@ class LudoBoardTiled extends StatelessWidget {
                     flex: 6,
                     child: Row(
                       children: const [
-                        Expanded(flex: 6, child: _Base(color: Color(0xFFEF4444), tokenColor: Color(0xFFDC2626))),
-                        Expanded(flex: 3, child: _TrackVertical(color: Color(0xFFF59E0B))),
-                        Expanded(flex: 6, child: _Base(color: Color(0xFFF59E0B), tokenColor: Color(0xFFD97706))),
+                        // Top-left should be GREEN
+                        Expanded(flex: 6, child: _Base(color: Color(0xFF22C55E), tokenColor: Color(0xFF16A34A))),
+                        // Top vertical track (toward center) belongs to BLUE
+                        Expanded(flex: 3, child: _TrackVertical(color: Color(0xFF3B82F6))),
+                        // Top-right should be BLUE
+                        Expanded(flex: 6, child: _Base(color: Color(0xFF3B82F6), tokenColor: Color(0xFF2563EB))),
                       ],
                     ),
                   ),
@@ -46,9 +49,11 @@ class LudoBoardTiled extends StatelessWidget {
                     flex: 3,
                     child: Row(
                       children: const [
-                        Expanded(flex: 6, child: _TrackHorizontal(color: Color(0xFFEF4444))),
-                        Expanded(flex: 3, child: _CenterSquare()),
+                        // Left horizontal track (toward center) belongs to GREEN
                         Expanded(flex: 6, child: _TrackHorizontal(color: Color(0xFF22C55E))),
+                        Expanded(flex: 3, child: _CenterSquare()),
+                        // Right horizontal track belongs to YELLOW
+                        Expanded(flex: 6, child: _TrackHorizontal(color: Color(0xFFF59E0B))),
                       ],
                     ),
                   ),
@@ -56,9 +61,12 @@ class LudoBoardTiled extends StatelessWidget {
                     flex: 6,
                     child: Row(
                       children: const [
-                        Expanded(flex: 6, child: _Base(color: Color(0xFF3B82F6), tokenColor: Color(0xFF2563EB))),
-                        Expanded(flex: 3, child: _TrackVertical(color: Color(0xFF3B82F6))),
-                        Expanded(flex: 6, child: _Base(color: Color(0xFF22C55E), tokenColor: Color(0xFF16A34A))),
+                        // Bottom-left should be RED
+                        Expanded(flex: 6, child: _Base(color: Color(0xFFEF4444), tokenColor: Color(0xFFDC2626))),
+                        // Bottom vertical track belongs to RED
+                        Expanded(flex: 3, child: _TrackVertical(color: Color(0xFFEF4444))),
+                        // Bottom-right should be YELLOW
+                        Expanded(flex: 6, child: _Base(color: Color(0xFFF59E0B), tokenColor: Color(0xFFD97706))),
                       ],
                     ),
                   ),
@@ -171,10 +179,10 @@ class _CenterSquare extends StatelessWidget {
 class _CenterPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
+    final green = Paint()..color = const Color(0xFF22C55E);
+    final blue = Paint()..color = const Color(0xFF3B82F6);
     final red = Paint()..color = const Color(0xFFEF4444);
     final yellow = Paint()..color = const Color(0xFFF59E0B);
-    final blue = Paint()..color = const Color(0xFF3B82F6);
-    final green = Paint()..color = const Color(0xFF22C55E);
 
     final w = size.width, h = size.height;
 
@@ -183,10 +191,11 @@ class _CenterPainter extends CustomPainter {
     final p3 = Path()..moveTo(0, h)..lineTo(w, h)..lineTo(0, 0)..close();
     final p4 = Path()..moveTo(w, 0)..lineTo(w, h)..lineTo(0, h)..close();
 
-    canvas.drawPath(p1, red);
-    canvas.drawPath(p2, yellow);
-    canvas.drawPath(p3, blue);
-    canvas.drawPath(p4, green);
+    // Top-left GREEN, top-right BLUE, bottom-left RED, bottom-right YELLOW
+    canvas.drawPath(p1, green);
+    canvas.drawPath(p2, blue);
+    canvas.drawPath(p3, red);
+    canvas.drawPath(p4, yellow);
   }
 
   @override
