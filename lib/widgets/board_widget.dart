@@ -47,40 +47,12 @@ class BoardWidget extends StatelessWidget {
   }
 
   Widget _buildBoardBackground(double size) {
-    return Container(
+    return SizedBox(
       width: size,
       height: size,
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.black, width: 2),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(6),
-        child: Image.asset(
-          'assets/board/ludo_board_final.webp',
-          width: size,
-          height: size,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            // Fallback in case the image fails to load
-            return Container(
-              width: size,
-              height: size,
-              color: Colors.white,
-                              child: const Center(
-                  child: Text(
-                    'ludo_board_final.webp\nNot Found',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.red,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-            );
-          },
-        ),
+      child: CustomPaint(
+        size: Size.square(size),
+        painter: LudoBoardPainter(),
       ),
     );
   }
