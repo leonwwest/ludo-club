@@ -279,7 +279,7 @@ class _GameScreenState extends State<GameScreen> {
       right: position['right'],
       bottom: position['bottom'],
       child: RepaintBoundary(
-        child: Container(
+        child: SizedBox(
         width: 70,
         height: 100,
         child: Column(
@@ -289,7 +289,7 @@ class _GameScreenState extends State<GameScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: ColorUtils.getDisplayColor(player.color).withOpacity(0.8),
+                color: ColorUtils.getDisplayColor(player.color).withValues(alpha: 0.8),
                 borderRadius: BorderRadius.circular(12),
                 border: isCurrentPlayer 
                     ? Border.all(color: Colors.white, width: 2)

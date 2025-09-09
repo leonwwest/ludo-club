@@ -31,7 +31,6 @@ class AIService {
     
     if (movablePieces.isEmpty) {
       return AIDecision(
-        selectedPiece: null,
         reasoning: "No movable pieces available",
         confidence: 1.0,
       );
@@ -197,7 +196,6 @@ class AIService {
     return AIDecision(
       selectedPiece: movablePieces.last,
       reasoning: "Expert fallback",
-      confidence: 0.5,
     );
   }
 

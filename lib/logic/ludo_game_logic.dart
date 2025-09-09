@@ -124,7 +124,7 @@ class LudoGame {
               color: updatedPlayers[i].color,
               pieces: updatedPlayers[i].pieces.map((p) {
                 if (p.id == opponentPiece.id) {
-                  return Piece(p.color, p.id, const PiecePosition(-1, isHome: true));
+                  return Piece(p.color, p.id, const PiecePosition(-1));
                 }
                 return p;
               }).toList(),
@@ -178,9 +178,9 @@ class LudoGame {
       int newFieldId = piece.position.fieldId + steps;
       if (newFieldId == homePathLength) {
         // Piece reaches the finish!
-        return Piece(piece.color, piece.id, PiecePosition(homePathLength, isHome: true), isSafe: true);
+        return Piece(piece.color, piece.id, const PiecePosition(homePathLength), isSafe: true);
       } else {
-        return Piece(piece.color, piece.id, PiecePosition(newFieldId, isHome: true));
+        return Piece(piece.color, piece.id, PiecePosition(newFieldId));
       }
     }
 
@@ -196,7 +196,7 @@ class LudoGame {
         int remainingSteps = steps - i;
         // Entering home stretch if fits; otherwise continue normal movement
         if (remainingSteps <= homePathLength) {
-          return Piece(piece.color, piece.id, PiecePosition(remainingSteps, isHome: true));
+          return Piece(piece.color, piece.id, PiecePosition(remainingSteps));
         } else {
           // break to perform normal main-path movement
           break;

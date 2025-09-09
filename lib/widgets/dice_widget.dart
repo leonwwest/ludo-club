@@ -312,8 +312,8 @@ class _DiceWidgetState extends State<DiceWidget>
     // Build box shadows without collection-if to avoid parser issues
     List<BoxShadow> _buildShadows() {
       final shadows = <BoxShadow>[
-        BoxShadow(
-          color: Colors.black.withOpacity(0.3),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.3),
           blurRadius: isRolling ? 15 : 6,
           spreadRadius: isRolling ? 3 : 1,
           offset: const Offset(0, 3),
@@ -322,7 +322,7 @@ class _DiceWidgetState extends State<DiceWidget>
       if (isRolling) {
         shadows.add(
           BoxShadow(
-            color: Colors.blue.withOpacity(0.4),
+            color: Colors.blue.withValues(alpha: 0.4),
             blurRadius: 20,
             spreadRadius: 3,
             offset: const Offset(0, 0),
@@ -397,10 +397,10 @@ class _DiceWidgetState extends State<DiceWidget>
                               gradient: LinearGradient(
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
-                                colors: <Color>[
-                                  Colors.blue.withOpacity(0.15),
-                                  Colors.purple.withOpacity(0.15),
-                                  Colors.cyan.withOpacity(0.1),
+                              colors: <Color>[
+                                  Colors.blue.withValues(alpha: 0.15),
+                                  Colors.purple.withValues(alpha: 0.15),
+                                  Colors.cyan.withValues(alpha: 0.10),
                                 ],
                               ),
                             ),

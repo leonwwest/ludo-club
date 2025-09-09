@@ -77,7 +77,6 @@ class EnhancedSaveLoadService {
       final gameStateJson = json.decode(savedGame.gameStateJson) as Map<String, dynamic>;
       return GameState.fromJson(gameStateJson);
     } catch (e) {
-      print('Error loading game: $e');
       return null;
     }
   }
@@ -88,7 +87,6 @@ class EnhancedSaveLoadService {
       final savedGames = await _db.getSavedGames(userId);
       return savedGames.map((game) => SavedGameInfo.fromEnhancedSavedGame(game)).toList();
     } catch (e) {
-      print('Error getting saved games: $e');
       return [];
     }
   }
@@ -150,7 +148,6 @@ class EnhancedSaveLoadService {
       await _db.deleteSavedGame(gameId);
       return true;
     } catch (e) {
-      print('Error deleting saved game: $e');
       return false;
     }
   }
@@ -190,7 +187,6 @@ class EnhancedSaveLoadService {
         metadata: metadata,
       );
     } catch (e) {
-      print('Error during auto-save: $e');
       return null;
     }
   }
@@ -207,7 +203,6 @@ class EnhancedSaveLoadService {
       };
       return json.encode(exportData);
     } catch (e) {
-      print('Error exporting game data: $e');
       return '';
     }
   }
@@ -238,7 +233,6 @@ class EnhancedSaveLoadService {
       
       return true;
     } catch (e) {
-      print('Error importing game data: $e');
       return false;
     }
   }
@@ -277,7 +271,6 @@ class EnhancedSaveLoadService {
             savedGames.map((g) => g.timestamp).reduce((a, b) => a.isAfter(b) ? a : b) : null,
       );
     } catch (e) {
-      print('Error getting storage stats: $e');
       return StorageStats.empty();
     }
   }
@@ -299,7 +292,6 @@ class EnhancedSaveLoadService {
       final toDelete = autoSaves.skip(keepCount).map((game) => game.id).toList();
       return await deleteSavedGames(toDelete);
     } catch (e) {
-      print('Error cleaning up auto-saves: $e');
       return 0;
     }
   }

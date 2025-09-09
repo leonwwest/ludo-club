@@ -266,14 +266,14 @@ class GameProvider extends ChangeNotifier {
         name: 'Player 1',
         type: PlayerType.human,
         color: PlayerColor.red,
-        pieces: List.generate(GameConstants.tokensPerPlayer, (j) => Piece(PlayerColor.red, j, const PiecePosition(GameState.basePosition, isHome: true))),
+        pieces: List.generate(GameConstants.tokensPerPlayer, (j) => Piece(PlayerColor.red, j, const PiecePosition(GameState.basePosition))),
       ),
       Player(
         id: 'player2', 
         name: 'Player 2',
         type: PlayerType.human,
         color: PlayerColor.green,
-        pieces: List.generate(GameConstants.tokensPerPlayer, (j) => Piece(PlayerColor.green, j, const PiecePosition(GameState.basePosition, isHome: true))),
+        pieces: List.generate(GameConstants.tokensPerPlayer, (j) => Piece(PlayerColor.green, j, const PiecePosition(GameState.basePosition))),
       ),
     ];
     

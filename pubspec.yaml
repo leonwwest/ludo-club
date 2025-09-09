@@ -2,7 +2,7 @@ name: ludo_club
 description: Ein modernes Ludo Club Spiel
 version: 1.0.0+1
 environment:
-  sdk: ">=2.17.0 <3.0.0"
+  sdk: ">=3.0.0 <4.0.0"
 dependencies:
   flutter:
     sdk: flutter
@@ -21,7 +21,8 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^2.0.0
+  # Bump lints to a Dart 3-compatible baseline
+  flutter_lints: ^5.0.0
 flutter:
   uses-material-design: true
   

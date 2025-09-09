@@ -85,7 +85,7 @@ class _LudoClubLandingPageState extends State<LudoClubLandingPage>
                             borderRadius: BorderRadius.circular(24),
                             child: Material(
                               elevation: 16,
-                              shadowColor: Colors.black.withOpacity(0.35),
+                              shadowColor: Colors.black.withValues(alpha: 0.35),
                               child: Image.asset(
                                 'assets/images/ludo_board.png',
                                 width: isSmall ? width - 32 : 560,
@@ -187,7 +187,7 @@ class _PillButton extends StatelessWidget {
         foregroundColor: foreground,
         padding: const EdgeInsets.symmetric(horizontal: 22),
         shape: const StadiumBorder(),
-        shadowColor: Colors.black.withOpacity(0.25),
+  shadowColor: Colors.black.withValues(alpha: 0.25),
       ),
     );
   }
@@ -202,7 +202,7 @@ class _FrostedIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white.withOpacity(0.2),
+      color: Colors.white.withValues(alpha: 0.2),
       shape: const CircleBorder(),
       child: InkWell(
         customBorder: const CircleBorder(),
@@ -235,7 +235,7 @@ class _MobileMenuOverlay extends StatelessWidget {
         curve: Curves.easeOut,
         child: Container(
           alignment: Alignment.center,
-          color: Colors.black.withOpacity(0.92),
+          color: Colors.black.withValues(alpha: 0.92),
           child: Stack(
             children: [
               // Link list
@@ -291,5 +291,4 @@ class _MenuLink extends StatelessWidget {
     );
   }
 }
-
 
