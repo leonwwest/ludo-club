@@ -3,6 +3,7 @@ import 'package:ludo_club/models/ludo_objects.dart';
 import 'package:ludo_club/widgets/ludo_pin.dart';
 import 'package:ludo_club/utils/color_utils.dart';
 import 'package:ludo_club/constants/game_constants.dart';
+import 'package:ludo_club/widgets/ludo_board_tiled.dart';
 
 class BoardWidget extends StatelessWidget {
   final List<Piece> pieces;
@@ -47,14 +48,7 @@ class BoardWidget extends StatelessWidget {
   }
 
   Widget _buildBoardBackground(double size) {
-    return SizedBox(
-      width: size,
-      height: size,
-      child: CustomPaint(
-        size: Size.square(size),
-        painter: LudoBoardPainter(),
-      ),
-    );
+    return SizedBox(width: size, height: size, child: const LudoBoardTiled());
   }
 
   Widget _buildPiece(Piece piece, double boardSize) {
