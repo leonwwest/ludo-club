@@ -19,7 +19,7 @@ class GameRules {
     this.captureReturnsToHome = true,
     this.multipleOccupancyAllowed = false,
     this.piecesToWin = 4,
-    this.exactRollToFinish = false,
+    this.exactRollToFinish = true,
     this.aiThinkingTimeMultiplier = 1.0,
   });
 

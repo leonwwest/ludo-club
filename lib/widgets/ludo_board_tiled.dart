@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:math' as math;
+import 'package:ludo_club/logic/ludo_path.dart';
 
 /// A tiled, grid-based Ludo board background composed of bases and tracks.
 /// Designed to align with a 15x15 logical grid, without margins/padding, so
@@ -282,10 +284,41 @@ class _MarkersPainter extends CustomPainter {
     canvas.drawRect(Rect.fromLTWH(cell * 8, 0, cell, cell * 7), neutral);
     // Right horizontal segment: (cols 9..14, row 8)
     canvas.drawRect(Rect.fromLTWH(cell * 9, cell * 8, cell * 6, cell), neutral);
+
+    // Draw safe-field stars at canonical indices using path mapping
+    void starAtIndex(int index, {Color color = const Color(0xFF16A34A)}) {
+      if (index < 0 || index >= LudoPath.coords.length) return;
+      final g = LudoPath.coords[index];
+      final center = Offset(cell * (g.dx + 0.5), cell * (g.dy + 0.5));
+      _drawStar(canvas, center, cell * 0.28, Paint()..color = color.withOpacity(0.9));
+    }
+
+    // Safe indices (start tiles + stars): 0,8,13,21,26,34,39,47
+    for (final idx in const [0, 8, 13, 21, 26, 34, 39, 47]) {
+      starAtIndex(idx);
+    }
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
 
+  void _drawStar(Canvas canvas, Offset center, double radius, Paint paint) {
+    final path = Path();
+    const double starAngle = math.pi / 5;
+
+    for (int i = 0; i < 10; i++) {
+      final angle = i * starAngle;
+      final r = i.isEven ? radius : radius * 0.5;
+      final x = center.dx + r * math.cos(angle - math.pi / 2);
+      final y = center.dy + r * math.sin(angle - math.pi / 2);
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+    path.close();
+    canvas.drawPath(path, paint);
+  }
+}
 

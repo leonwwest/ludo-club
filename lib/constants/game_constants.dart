@@ -2,7 +2,7 @@ class GameConstants {
   // Board dimensions
   static const int boardGridSize = 15;
   static const int totalMainPathFields = 52;
-  static const int homePathLength = 6;
+  static const int homePathLength = 5;
   static const int tokensPerPlayer = 4;
   static const int diceSides = 6;
   static const int requiredRollToLeaveBase = 6;

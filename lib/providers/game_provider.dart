@@ -18,6 +18,7 @@ class GameProvider extends ChangeNotifier {
   bool _showReachedHomeEffect = false;
   PlayerColor? _reachedHomePlayerId;
   int? _reachedHomeTokenIndex;
+  int _consecutiveSixes = 0; // Track consecutive 6s per active player
   
   bool _showCaptureEffect = false;
   PlayerColor? _capturedPlayerId;
@@ -119,6 +120,22 @@ class GameProvider extends ChangeNotifier {
       _gameState = _gameState.copyWith(lastDiceValue: diceValue, currentRollCount: _gameState.currentRollCount + 1);
       notifyListeners(); // Notify immediately so DiceWidget can show correct value
 
+      // Handle 3x6 rule (maxConsecutiveSixes from rules)
+      if (diceValue == 6) {
+        final limit = _gameState.rules.maxConsecutiveSixes;
+        if (_consecutiveSixes + 1 >= limit) {
+          // Third 6 does not count, turn ends
+          _consecutiveSixes = 0;
+          await Future.delayed(const Duration(milliseconds: 200));
+          _advanceToNextPlayer();
+          return;
+        } else {
+          _consecutiveSixes += 1;
+        }
+      } else {
+        _consecutiveSixes = 0;
+      }
+
       final moves = LudoGame.getMovablePieces(_gameState);
 
       if (moves.isEmpty) {
@@ -189,7 +206,11 @@ class GameProvider extends ChangeNotifier {
     }
 
     // Check for 6 or capture: get another turn
-    if (_gameState.lastDiceValue == GameConstants.requiredRollToLeaveBase || moveResult.capturedOpponentPiece != null) {
+    final rules = _gameState.rules;
+    final gotSix = _gameState.lastDiceValue == 6;
+    final gotCapture = moveResult.capturedOpponentPiece != null;
+    final getExtraTurn = (rules.extraTurnOnSix && gotSix) || (rules.extraTurnOnCapture && gotCapture);
+    if (getExtraTurn) {
       nextTurn().catchError((error) {
         // Handle errors gracefully to prevent crashes
       });
@@ -207,6 +228,7 @@ class GameProvider extends ChangeNotifier {
       lastDiceValue: 0,
       currentRollCount: 0,
     );
+    _consecutiveSixes = 0; // reset consecutive 6s on player change
     
     // Clear performance cache on player change
     _cachedMovablePieces = null;

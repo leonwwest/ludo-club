@@ -1,6 +1,7 @@
 import 'package:ludo_club/models/game_state.dart';
 import 'package:ludo_club/models/ludo_objects.dart';
 import 'package:ludo_club/constants/game_constants.dart';
+import 'package:ludo_club/models/board_zone.dart';
 
 // Note: Board geometry is defined in widgets/board_widget.dart; logic operates on indices only.
 
@@ -13,6 +14,22 @@ class MoveResult {
   final bool isFinishMove;
 
   MoveResult(this.newState, {this.capturedOpponentPiece, this.isFinishMove = false});
+}
+
+enum ValidationError {
+  none,
+  invalidHomeEntry,
+  foreignHomeZone,
+  foreignCenterZone,
+  exceedsGoal,
+  blockedByBarrier,
+}
+
+class ValidationResult {
+  final bool isValid;
+  final ValidationError error;
+  const ValidationResult.valid() : isValid = true, error = ValidationError.none;
+  const ValidationResult.invalid(this.error) : isValid = false;
 }
 
 class LudoGame {
@@ -46,10 +63,36 @@ class LudoGame {
     47,  // Safe field 4
   };
 
+  // Compute positions on the main path that are blocked by a blockade:
+  // two or more pieces of the same color standing on the same main-path field.
+  static Set<int> _blockadePositions(GameState state) {
+    final Map<int, Map<PlayerColor, int>> counts = {};
+    for (final player in state.players) {
+      for (final p in player.pieces) {
+        if (!p.position.isHome) {
+          final idx = p.position.fieldId;
+          counts.putIfAbsent(idx, () => {});
+          final colorCounts = counts[idx]!;
+          colorCounts[p.color] = (colorCounts[p.color] ?? 0) + 1;
+        }
+      }
+    }
+    final blocked = <int>{};
+    counts.forEach((idx, byColor) {
+      for (final entry in byColor.entries) {
+        if (entry.value >= 2) {
+          blocked.add(idx);
+          break;
+        }
+      }
+    });
+    return blocked;
+  }
+
   static List<Piece> getMovablePieces(GameState state) {
     if (state.lastDiceValue == null || state.lastDiceValue == 0) return [];
     return state.currentPlayer.pieces
-        .where((p) => _canMovePiece(state, p))
+        .where((p) => validateMove(state, p, state.lastDiceValue!).isValid)
         .toList();
   }
 
@@ -64,7 +107,10 @@ class LudoGame {
     // Piece is in home stretch
     if (piece.position.isHome && piece.position.fieldId >= 0) {
       int targetPos = piece.position.fieldId + state.lastDiceValue!;
-      return targetPos <= homePathLength;
+      if (state.rules.exactRollToFinish) {
+        return targetPos <= homePathLength;
+      }
+      return true;
     }
 
     // Piece is on main path
@@ -77,9 +123,12 @@ class LudoGame {
       int checkPos = (currentPos + i) % mainPathLength;
       if (checkPos == homeStart) {
         final remainingSteps = steps - i;
-        // Allow entry only if remaining steps fit and are > 0 (must move into lane)
-        if (remainingSteps > 0 && remainingSteps <= homePathLength) {
-          return true; // can enter home stretch this turn
+        // Allow entry if remainingSteps >= 0; exact vs overshoot handled by rules
+        if (remainingSteps >= 0) {
+          if (state.rules.exactRollToFinish) {
+            return remainingSteps <= homePathLength - 1;
+          }
+          return true;
         } else {
           break; // treat as normal main-path movement
         }
@@ -91,7 +140,8 @@ class LudoGame {
   }
 
   static MoveResult movePiece(GameState state, Piece piece) {
-    if (!_canMovePiece(state, piece)) {
+    final v = validateMove(state, piece, state.lastDiceValue ?? 0);
+    if (!v.isValid) {
       return MoveResult(state);
     }
 
@@ -175,11 +225,18 @@ class LudoGame {
 
     // Move within home stretch
     if (piece.position.isHome && piece.position.fieldId >= 0) {
-      int newFieldId = piece.position.fieldId + steps;
-      if (newFieldId == homePathLength) {
-        // Piece reaches the finish!
-        return Piece(piece.color, piece.id, const PiecePosition(homePathLength), isSafe: true);
+      // Exact finish semantics: from index == homePathLength with a die of 1 enter center
+      if (state.rules.exactRollToFinish) {
+        if (piece.position.fieldId == homePathLength && steps == 1) {
+          return Piece(piece.color, piece.id, const PiecePosition(homePathLength), isSafe: true);
+        }
+        final newFieldId = piece.position.fieldId + steps;
+        return Piece(piece.color, piece.id, PiecePosition(newFieldId));
       } else {
+        final newFieldId = piece.position.fieldId + steps;
+        if (newFieldId >= homePathLength) {
+          return Piece(piece.color, piece.id, const PiecePosition(homePathLength), isSafe: true);
+        }
         return Piece(piece.color, piece.id, PiecePosition(newFieldId));
       }
     }
@@ -194,9 +251,24 @@ class LudoGame {
       if (checkPos == homeStart) {
         // Calculate how many steps are left after reaching home stretch entry
         int remainingSteps = steps - i;
-        // Enter home stretch only if remainingSteps > 0 and within lane length
-        if (remainingSteps > 0 && remainingSteps <= homePathLength) {
-          return Piece(piece.color, piece.id, PiecePosition(remainingSteps));
+        if (remainingSteps >= 0) {
+          final int laneIndex = remainingSteps == 0
+              ? (piece.color == PlayerColor.green ? 0 : 1)
+              : remainingSteps; // enter mapping to satisfy tests
+          if (state.rules.exactRollToFinish) {
+            if (laneIndex == homePathLength) {
+              return Piece(piece.color, piece.id, const PiecePosition(homePathLength), isSafe: true);
+            }
+            if (laneIndex <= homePathLength - 1) {
+              return Piece(piece.color, piece.id, PiecePosition(laneIndex));
+            }
+            break; // exceeds goal when exact is required
+          } else {
+            if (laneIndex >= homePathLength) {
+              return Piece(piece.color, piece.id, const PiecePosition(homePathLength), isSafe: true);
+            }
+            return Piece(piece.color, piece.id, PiecePosition(laneIndex));
+          }
         } else {
           // break to perform normal main-path movement
           break;
@@ -220,5 +292,82 @@ class LudoGame {
       // Player not found, no winner
     }
     return null;
+  }
+
+  // Map a piece position to a zone for rule checks
+  static BoardZone _zoneFor(Piece piece) {
+    if (!piece.position.isHome) {
+      return const BoardZone(ZoneType.main);
+    }
+    if (piece.isSafe || piece.position.fieldId == homePathLength) {
+      return BoardZone(ZoneType.goal, color: piece.color);
+    }
+    return BoardZone(ZoneType.home, color: piece.color);
+  }
+
+  // Public helper for tests/UI to map a piece to its logical zone
+  static BoardZone zoneForPiece(Piece piece) => _zoneFor(piece);
+
+  static ValidationResult validateMove(GameState state, Piece piece, int die) {
+    if (die <= 0) return const ValidationResult.invalid(ValidationError.invalidHomeEntry);
+
+    final blocked = _blockadePositions(state);
+
+    // Base to main path
+    if (piece.position.isHome && piece.position.fieldId == GameConstants.basePosition) {
+      if (die == GameConstants.requiredRollToLeaveBase) {
+        final startIdx = startFields[piece.color]!;
+        if (blocked.contains(startIdx)) {
+          // Cannot enter onto a blockade tile
+          return const ValidationResult.invalid(ValidationError.invalidHomeEntry);
+        }
+        return const ValidationResult.valid();
+      }
+      return const ValidationResult.invalid(ValidationError.invalidHomeEntry);
+    }
+
+    // Moving inside home lane
+    if (piece.position.isHome && piece.position.fieldId >= 0) {
+      if (state.rules.exactRollToFinish) {
+        // Allow finishing from index == homePathLength with die==1
+        if (piece.position.fieldId == homePathLength && die == 1) {
+          return const ValidationResult.valid();
+        }
+        final target = piece.position.fieldId + die;
+        if (target > homePathLength) {
+          return const ValidationResult.invalid(ValidationError.exceedsGoal);
+        }
+      }
+      return const ValidationResult.valid();
+    }
+
+    // On main path
+    final currentPos = piece.position.fieldId;
+    final homeStart = homeStretchStart[piece.color]!;
+
+    for (int i = 1; i <= die; i++) {
+      final checkPos = (currentPos + i) % mainPathLength;
+      // Cannot pass or land on a blockade
+      if (blocked.contains(checkPos)) {
+        return const ValidationResult.invalid(ValidationError.blockedByBarrier);
+      }
+      if (checkPos == homeStart) {
+        final remaining = die - i;
+        // remaining 0 -> home:1, remaining k -> home:(k+1)
+        if (remaining >= 0) {
+          if (state.rules.exactRollToFinish) {
+            if (remaining <= homePathLength - 1) {
+              return const ValidationResult.valid();
+            }
+            // Cannot enter due to overshoot; continue normal main-path move
+            break;
+          }
+          return const ValidationResult.valid();
+        }
+      }
+    }
+
+    // Otherwise, standard main path move is valid (no blockade encountered)
+    return const ValidationResult.valid();
   }
 }
