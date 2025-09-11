@@ -18,7 +18,8 @@ class AudioService {
   static const String _diceSoundPath = 'assets/audio/dice_roll.mp3';
   static const String _moveSoundPath = 'assets/audio/move.mp3';
   static const String _captureSoundPath = 'assets/audio/capture.mp3';
-  static const String _finishSoundPath = 'assets/audio/victory.mp3';
+  // Use a distinct sound for finishing a piece; reuse move sound if no dedicated asset exists
+  static const String _finishSoundPath = 'assets/audio/move.mp3';
   static const String _victorySoundPath = 'assets/audio/victory.mp3';
 
   bool _soundEnabled = true;

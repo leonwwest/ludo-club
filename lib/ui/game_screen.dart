@@ -11,13 +11,13 @@ import 'package:ludo_club/widgets/dice_widget.dart';
 import 'package:ludo_club/utils/color_utils.dart';
 
 class GameScreen extends StatefulWidget {
-  const GameScreen({Key? key}) : super(key: key);
+  const GameScreen({super.key});
 
   @override
-  _GameScreenState createState() => _GameScreenState();
+  GameScreenState createState() => GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> {
+class GameScreenState extends State<GameScreen> {
   bool _winnerDialogShown = false;
 
   @override
@@ -32,8 +32,7 @@ class _GameScreenState extends State<GameScreen> {
       backgroundColor: Colors.transparent,
       body: Consumer<GameProvider>(
         builder: (context, gameProvider, child) {
-          final currentPlayerMeta =
-              gameProvider.getPlayerMeta(gameProvider.currentPlayerColor);
+          // currentPlayerMeta not needed here; UI selects directly from provider
           final bool isGameOver = gameProvider.gameState.isGameOver;
           final PlayerColor? winnerColor = gameProvider.gameState.winnerId;
 
@@ -46,8 +45,6 @@ class _GameScreenState extends State<GameScreen> {
             });
           }
           final bgGradient = const LinearGradient(
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
             colors: [Color(0xFF5D4BFF), Color(0xFF2EB9FF)],
           );
 
@@ -138,7 +135,7 @@ class _GameScreenState extends State<GameScreen> {
                                   Text(
                                     status,
                                     style: GoogleFonts.poppins(
-              color: Colors.white.withOpacity(.9),
+                                      color: Colors.white.withValues(alpha: .9),
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
@@ -445,7 +442,7 @@ class _GlassCard extends StatelessWidget {
         child: Container(
           padding: padding ?? const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.18),
+            color: Colors.white.withValues(alpha: 0.18),
             borderRadius: BorderRadius.circular(22),
             boxShadow: const [
               BoxShadow(blurRadius: 8, offset: Offset(0, 4), color: Color(0x1A000000)),
@@ -467,7 +464,7 @@ class _NameChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bg = highlighted ? color : color.withOpacity(.85);
+    final bg = highlighted ? color : color.withValues(alpha: .85);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(

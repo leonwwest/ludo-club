@@ -35,8 +35,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => GameProvider()),
-        Provider<AudioService>.value(value: audioService),
+        // Inject the shared AudioService instance directly into GameProvider
+        ChangeNotifierProvider(create: (_) => GameProvider(audioService: audioService)),
       ],
       child: MaterialApp(
         title: 'Ludo Club',

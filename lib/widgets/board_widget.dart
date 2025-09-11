@@ -13,12 +13,12 @@ class BoardWidget extends StatelessWidget {
   final Set<Piece> movablePieces;
 
   const BoardWidget({
-    Key? key,
+    super.key,
     required this.pieces,
     required this.onPieceSelected,
     required this.currentPlayer,
     required this.movablePieces,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

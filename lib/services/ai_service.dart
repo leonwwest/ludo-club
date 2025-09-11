@@ -23,7 +23,9 @@ class AIDecision {
 }
 
 class AIService {
-  final Random _random = Random();
+  final Random _random;
+
+  AIService({Random? random}) : _random = random ?? Random();
 
   /// Main entry point for AI decision making
   Future<AIDecision> makeMove(GameState gameState, AIDifficulty difficulty) async {

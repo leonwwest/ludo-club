@@ -40,13 +40,13 @@ class ColorUtils {
   static Color getHomeAreaColor(PlayerColor playerColor) {
     switch (playerColor) {
       case PlayerColor.red:
-        return _redBase.withOpacity(0.18);
+        return _redBase.withValues(alpha: 0.18);
       case PlayerColor.green:
-        return _greenBase.withOpacity(0.18);
+        return _greenBase.withValues(alpha: 0.18);
       case PlayerColor.blue:
-        return _blueBase.withOpacity(0.18);
+        return _blueBase.withValues(alpha: 0.18);
       case PlayerColor.yellow:
-        return _yellowBase.withOpacity(0.18);
+        return _yellowBase.withValues(alpha: 0.18);
     }
   }
 

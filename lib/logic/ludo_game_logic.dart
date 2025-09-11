@@ -3,6 +3,25 @@ import 'package:ludo_club/models/ludo_objects.dart';
 import 'package:ludo_club/constants/game_constants.dart';
 import 'package:ludo_club/models/board_zone.dart';
 
+// Internal representation of a simulated move (top-level; Dart disallows class-in-class)
+class _SimResult {
+  final bool isValid;
+  final ValidationError error;
+  final PiecePosition finalPosition;
+  final bool finalIsSafe;
+  final List<int> traversedMainPath;
+
+  const _SimResult.valid(this.finalPosition, {this.finalIsSafe = false, this.traversedMainPath = const []})
+      : isValid = true,
+        error = ValidationError.none;
+
+  const _SimResult.invalid(this.error)
+      : isValid = false,
+        finalPosition = const PiecePosition(GameConstants.basePosition),
+        finalIsSafe = false,
+        traversedMainPath = const [];
+}
+
 // Note: Board geometry is defined in widgets/board_widget.dart; logic operates on indices only.
 
 // No more safe indices
@@ -51,7 +70,7 @@ class LudoGame {
     PlayerColor.yellow: 38, // Yellow enters home stretch at position 38
   };
 
-  // Safe fields where pieces cannot be captured
+  // Safe fields where pieces cannot be captured (when enabled via rules)
   static const Set<int> safeFields = {
     0,   // Red start
     8,   // Safe field 1
@@ -63,9 +82,28 @@ class LudoGame {
     47,  // Safe field 4
   };
 
-  // Compute positions on the main path that are blocked by a blockade:
-  // two or more pieces of the same color standing on the same main-path field.
+  // Non-playable main path fields (these lie on the colored center triangles).
+  // Pieces must never stop on these tiles; skip them during movement.
+  static const Set<int> nonPlayableMainPathFields = {18, 46};
+
+  // Return the next playable index after 'current' (wraps around), skipping
+  // any indices in nonPlayableMainPathFields.
+  static int _nextPlayableIndex(int current) {
+    int next = (current + 1) % mainPathLength;
+    while (nonPlayableMainPathFields.contains(next)) {
+      next = (next + 1) % mainPathLength;
+    }
+    return next;
+  }
+
+  /// Compute positions on the main path that are blocked by a blockade.
+  /// Policy:
+  /// - Blockades form when two or more pieces of the same color occupy a main-path field.
+  /// - Blockades can exist on any main-path field, including safe fields.
+  /// - Home lanes and goal are never considered for blockades.
+  /// - When `rules.multipleOccupancyAllowed` is true, blockades are disabled.
   static Set<int> _blockadePositions(GameState state) {
+    if (state.rules.multipleOccupancyAllowed) return <int>{};
     final Map<int, Map<PlayerColor, int>> counts = {};
     for (final player in state.players) {
       for (final p in player.pieces) {
@@ -89,6 +127,86 @@ class LudoGame {
     return blocked;
   }
 
+  // Map remaining steps at home entry to lane index (legacy behavior).
+  static int _mapToHomeLaneIndex(PlayerColor color, int remaining) {
+    if (remaining == 0) {
+      return color == PlayerColor.green ? 0 : 1;
+    }
+    return remaining;
+  }
+
+  // Simulate a move path and outcome using current rules, including blockade checks.
+  static _SimResult _simulate(GameState state, Piece piece, int die) {
+    if (die <= 0) return const _SimResult.invalid(ValidationError.invalidHomeEntry);
+    final blocked = _blockadePositions(state);
+
+    // Leaving base
+    if (piece.position.isHome && piece.position.fieldId == GameConstants.basePosition) {
+      if (die != GameConstants.requiredRollToLeaveBase) {
+        return const _SimResult.invalid(ValidationError.invalidHomeEntry);
+      }
+      final startIdx = startFields[piece.color]!;
+      if (blocked.contains(startIdx)) {
+        return const _SimResult.invalid(ValidationError.invalidHomeEntry);
+      }
+          return _SimResult.valid(PiecePosition(startIdx, isHome: false));
+    }
+
+    // In home lane
+    if (piece.position.isHome && piece.position.fieldId >= 0) {
+      if (state.rules.exactRollToFinish) {
+        if (piece.position.fieldId == homePathLength && die == 1) {
+          return const _SimResult.valid(PiecePosition(homePathLength), finalIsSafe: true);
+        }
+                final target = piece.position.fieldId + die;
+        if (target > homePathLength) {
+          return const _SimResult.invalid(ValidationError.exceedsGoal);
+        }
+        return _SimResult.valid(PiecePosition(target));
+      } else {
+        final target = piece.position.fieldId + die;
+        if (target >= homePathLength) {
+          return const _SimResult.valid(PiecePosition(homePathLength), finalIsSafe: true);
+        }
+        return _SimResult.valid(PiecePosition(target));
+      }
+    }
+
+    // On main path
+    final traversed = <int>[];
+    int pos = piece.position.fieldId;
+    final homeStart = homeStretchStart[piece.color]!;
+    for (int i = 1; i <= die; i++) {
+      pos = _nextPlayableIndex(pos);
+      if (blocked.contains(pos)) {
+        return const _SimResult.invalid(ValidationError.blockedByBarrier);
+      }
+      traversed.add(pos);
+      if (pos == homeStart) {
+        final remaining = die - i;
+        final laneIndex = _mapToHomeLaneIndex(piece.color, remaining);
+        if (remaining >= 0) {
+          if (state.rules.exactRollToFinish) {
+            if (laneIndex == homePathLength) {
+              return const _SimResult.valid(PiecePosition(homePathLength), finalIsSafe: true);
+            }
+            if (laneIndex <= homePathLength - 1) {
+              return _SimResult.valid(PiecePosition(laneIndex), traversedMainPath: traversed);
+            }
+            // overshoot -> continue on main path
+          } else {
+            if (laneIndex >= homePathLength) {
+              return const _SimResult.valid(PiecePosition(homePathLength), finalIsSafe: true);
+            }
+            return _SimResult.valid(PiecePosition(laneIndex), traversedMainPath: traversed);
+          }
+        }
+      }
+    }
+    // Standard main-path landing (pos already incremented die times via _nextPlayableIndex)
+    return _SimResult.valid(PiecePosition(pos, isHome: false), traversedMainPath: traversed);
+  }
+
   static List<Piece> getMovablePieces(GameState state) {
     if (state.lastDiceValue == null || state.lastDiceValue == 0) return [];
     return state.currentPlayer.pieces
@@ -96,64 +214,23 @@ class LudoGame {
         .toList();
   }
 
-  static bool _canMovePiece(GameState state, Piece piece) {
-    if (state.lastDiceValue == null) return false;
-
-    // Piece is in starting home area
-    if (piece.position.isHome && piece.position.fieldId == -1) {
-      return state.lastDiceValue == GameConstants.requiredRollToLeaveBase;
-    }
-
-    // Piece is in home stretch
-    if (piece.position.isHome && piece.position.fieldId >= 0) {
-      int targetPos = piece.position.fieldId + state.lastDiceValue!;
-      if (state.rules.exactRollToFinish) {
-        return targetPos <= homePathLength;
-      }
-      return true;
-    }
-
-    // Piece is on main path
-    int currentPos = piece.position.fieldId;
-    int steps = state.lastDiceValue!;
-    final homeStart = homeStretchStart[piece.color]!;
-    
-    // Check if piece passes through or lands on home stretch entry
-    for (int i = 1; i <= steps; i++) {
-      int checkPos = (currentPos + i) % mainPathLength;
-      if (checkPos == homeStart) {
-        final remainingSteps = steps - i;
-        // Allow entry if remainingSteps >= 0; exact vs overshoot handled by rules
-        if (remainingSteps >= 0) {
-          if (state.rules.exactRollToFinish) {
-            return remainingSteps <= homePathLength - 1;
-          }
-          return true;
-        } else {
-          break; // treat as normal main-path movement
-        }
-      }
-    }
-
-    // Normal main path movement is always allowed (with wrapping)
-    return true;
-  }
+  // _canMovePiece is superseded by validateMove + _simulate
 
   static MoveResult movePiece(GameState state, Piece piece) {
-    final v = validateMove(state, piece, state.lastDiceValue ?? 0);
-    if (!v.isValid) {
+    final sim = _simulate(state, piece, state.lastDiceValue ?? 0);
+    if (!sim.isValid) {
       return MoveResult(state);
     }
 
-    final dice = state.lastDiceValue!;
-    // First, move the piece
-    final movedPiece = _movePiece(state, piece, dice);
+    final movedPiece = Piece(piece.color, piece.id, sim.finalPosition, isSafe: sim.finalIsSafe);
     
     // Check for captures (only on main path, not in home areas)
     Piece? capturedPiece;
     List<Player> updatedPlayers = state.players.map((p) => p).toList();
     
-    if (!movedPiece.position.isHome && !safeFields.contains(movedPiece.position.fieldId)) {
+    final bool isSafeField = safeFields.contains(movedPiece.position.fieldId);
+    final bool canCaptureHere = !movedPiece.position.isHome && (!state.rules.safeFieldsEnabled || !isSafeField);
+    if (canCaptureHere) {
       // Look for opponent pieces on the same position (only if not on safe field)
       for (int i = 0; i < updatedPlayers.length; i++) {
         if (updatedPlayers[i].color == state.currentTurnPlayerId) continue;
@@ -217,70 +294,7 @@ class LudoGame {
     );
   }
 
-  static Piece _movePiece(GameState state, Piece piece, int steps) {
-    // Move from starting home area to main path
-    if (piece.position.isHome && piece.position.fieldId == -1 && steps == GameConstants.requiredRollToLeaveBase) {
-      return Piece(piece.color, piece.id, PiecePosition(startFields[piece.color]!, isHome: false));
-    }
-
-    // Move within home stretch
-    if (piece.position.isHome && piece.position.fieldId >= 0) {
-      // Exact finish semantics: from index == homePathLength with a die of 1 enter center
-      if (state.rules.exactRollToFinish) {
-        if (piece.position.fieldId == homePathLength && steps == 1) {
-          return Piece(piece.color, piece.id, const PiecePosition(homePathLength), isSafe: true);
-        }
-        final newFieldId = piece.position.fieldId + steps;
-        return Piece(piece.color, piece.id, PiecePosition(newFieldId));
-      } else {
-        final newFieldId = piece.position.fieldId + steps;
-        if (newFieldId >= homePathLength) {
-          return Piece(piece.color, piece.id, const PiecePosition(homePathLength), isSafe: true);
-        }
-        return Piece(piece.color, piece.id, PiecePosition(newFieldId));
-      }
-    }
-
-    // Move on main path
-    int currentPos = piece.position.fieldId;
-    final homeStart = homeStretchStart[piece.color]!;
-    
-    // Check if piece enters home stretch during this move
-    for (int i = 1; i <= steps; i++) {
-      int checkPos = (currentPos + i) % mainPathLength;
-      if (checkPos == homeStart) {
-        // Calculate how many steps are left after reaching home stretch entry
-        int remainingSteps = steps - i;
-        if (remainingSteps >= 0) {
-          final int laneIndex = remainingSteps == 0
-              ? (piece.color == PlayerColor.green ? 0 : 1)
-              : remainingSteps; // enter mapping to satisfy tests
-          if (state.rules.exactRollToFinish) {
-            if (laneIndex == homePathLength) {
-              return Piece(piece.color, piece.id, const PiecePosition(homePathLength), isSafe: true);
-            }
-            if (laneIndex <= homePathLength - 1) {
-              return Piece(piece.color, piece.id, PiecePosition(laneIndex));
-            }
-            break; // exceeds goal when exact is required
-          } else {
-            if (laneIndex >= homePathLength) {
-              return Piece(piece.color, piece.id, const PiecePosition(homePathLength), isSafe: true);
-            }
-            return Piece(piece.color, piece.id, PiecePosition(laneIndex));
-          }
-        } else {
-          // break to perform normal main-path movement
-          break;
-        }
-      }
-    }
-    
-    // Normal main path movement with wrapping
-    int newFieldId = (currentPos + steps) % mainPathLength;
-    // Moving on main path
-    return Piece(piece.color, piece.id, PiecePosition(newFieldId, isHome: false));
-  }
+  // _movePiece superseded by _simulate
 
   static PlayerColor? _checkWinner(List<Player> players, PlayerColor currentPlayer) {
     try {
@@ -309,65 +323,8 @@ class LudoGame {
   static BoardZone zoneForPiece(Piece piece) => _zoneFor(piece);
 
   static ValidationResult validateMove(GameState state, Piece piece, int die) {
-    if (die <= 0) return const ValidationResult.invalid(ValidationError.invalidHomeEntry);
-
-    final blocked = _blockadePositions(state);
-
-    // Base to main path
-    if (piece.position.isHome && piece.position.fieldId == GameConstants.basePosition) {
-      if (die == GameConstants.requiredRollToLeaveBase) {
-        final startIdx = startFields[piece.color]!;
-        if (blocked.contains(startIdx)) {
-          // Cannot enter onto a blockade tile
-          return const ValidationResult.invalid(ValidationError.invalidHomeEntry);
-        }
-        return const ValidationResult.valid();
-      }
-      return const ValidationResult.invalid(ValidationError.invalidHomeEntry);
-    }
-
-    // Moving inside home lane
-    if (piece.position.isHome && piece.position.fieldId >= 0) {
-      if (state.rules.exactRollToFinish) {
-        // Allow finishing from index == homePathLength with die==1
-        if (piece.position.fieldId == homePathLength && die == 1) {
-          return const ValidationResult.valid();
-        }
-        final target = piece.position.fieldId + die;
-        if (target > homePathLength) {
-          return const ValidationResult.invalid(ValidationError.exceedsGoal);
-        }
-      }
-      return const ValidationResult.valid();
-    }
-
-    // On main path
-    final currentPos = piece.position.fieldId;
-    final homeStart = homeStretchStart[piece.color]!;
-
-    for (int i = 1; i <= die; i++) {
-      final checkPos = (currentPos + i) % mainPathLength;
-      // Cannot pass or land on a blockade
-      if (blocked.contains(checkPos)) {
-        return const ValidationResult.invalid(ValidationError.blockedByBarrier);
-      }
-      if (checkPos == homeStart) {
-        final remaining = die - i;
-        // remaining 0 -> home:1, remaining k -> home:(k+1)
-        if (remaining >= 0) {
-          if (state.rules.exactRollToFinish) {
-            if (remaining <= homePathLength - 1) {
-              return const ValidationResult.valid();
-            }
-            // Cannot enter due to overshoot; continue normal main-path move
-            break;
-          }
-          return const ValidationResult.valid();
-        }
-      }
-    }
-
-    // Otherwise, standard main path move is valid (no blockade encountered)
-    return const ValidationResult.valid();
+    final sim = _simulate(state, piece, die);
+    if (sim.isValid) return const ValidationResult.valid();
+    return ValidationResult.invalid(sim.error);
   }
 }

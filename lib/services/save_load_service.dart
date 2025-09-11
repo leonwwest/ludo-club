@@ -67,8 +67,8 @@ class SaveLoadService {
       if (decoded is! List) return [];
       
       return decoded
-          .where((item) => item is Map<String, dynamic>)
-          .map((json) => SavedGame.fromJson(json as Map<String, dynamic>))
+          .whereType<Map<String, dynamic>>()
+          .map(SavedGame.fromJson)
           .toList();
     } catch (e) {
       return []; // Return empty list on any parsing error

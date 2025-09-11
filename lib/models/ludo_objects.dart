@@ -39,6 +39,28 @@ class Piece {
   @override
   int get hashCode => Object.hash(color, id, position, isSafe);
 
+  Map<String, dynamic> toJson() => {
+        'color': color.name,
+        'id': id,
+        'position': {
+          'fieldId': position.fieldId,
+          'isHome': position.isHome,
+        },
+        'isSafe': isSafe,
+      };
+
+  static Piece fromJson(Map<String, dynamic> json) {
+    final color = PlayerColor.values.byName(json['color'] as String);
+    final id = json['id'] as int;
+    final pos = json['position'] as Map<String, dynamic>;
+    final position = PiecePosition(
+      pos['fieldId'] as int,
+      isHome: pos['isHome'] as bool? ?? true,
+    );
+    final isSafe = json['isSafe'] as bool? ?? false;
+    return Piece(color, id, position, isSafe: isSafe);
+  }
+
   static Piece fromString(String s) {
     final parts = s.split(',');
     final color = PlayerColor.values.firstWhere((e) => e.toString() == parts[0]);

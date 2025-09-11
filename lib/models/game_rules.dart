@@ -43,7 +43,6 @@ class GameRules {
 
   // Expert rules (more challenging)
   static const GameRules expert = GameRules(
-    exactRollToFinish: true,
     maxConsecutiveSixes: 2,
     multipleOccupancyAllowed: true,
     aiThinkingTimeMultiplier: 0.8,

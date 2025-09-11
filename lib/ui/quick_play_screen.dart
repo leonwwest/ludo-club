@@ -8,6 +8,7 @@ import 'package:ludo_club/models/ludo_objects.dart';
 import 'package:ludo_club/services/ai_service.dart';
 import 'package:ludo_club/ui/game_screen.dart';
 import 'package:ludo_club/constants/game_constants.dart';
+import 'package:ludo_club/models/game_rules.dart';
 
 class QuickPlayScreen extends StatefulWidget {
   const QuickPlayScreen({super.key, this.onStart});
@@ -41,6 +42,7 @@ class _QuickPlayScreenState extends State<QuickPlayScreen> {
   int _selectedColorIndex = 0;
   int _totalPlayers = 3; // 2..4
   AIDifficulty _difficulty = AIDifficulty.intermediate;
+  GameRules _rules = GameRules.standard;
 
   @override
   void dispose() {
@@ -59,8 +61,6 @@ class _QuickPlayScreenState extends State<QuickPlayScreen> {
     final theme = Theme.of(context);
     final headline = _titleStyle.copyWith(fontSize: 24);
     final bgGradient = const LinearGradient(
-      begin: Alignment.centerLeft,
-      end: Alignment.centerRight,
       colors: [Color(0xFF5D4BFF), Color(0xFF2EB9FF)],
     );
 
@@ -95,7 +95,6 @@ class _QuickPlayScreenState extends State<QuickPlayScreen> {
                     _GlassCard(
                       padding: const EdgeInsets.all(24),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           const Icon(Icons.flash_on, color: Color(0xFFFFD700), size: 40),
                           const SizedBox(height: 8),
@@ -106,7 +105,7 @@ class _QuickPlayScreenState extends State<QuickPlayScreen> {
                               )),
                           const SizedBox(height: 8),
                           Text('Jump right into the action against AI opponents!',
-                              style: _bodyStyle.copyWith(color: Colors.white.withOpacity(.85))),
+                              style: _bodyStyle.copyWith(color: Colors.white.withValues(alpha: .85))),
                         ],
                       ),
                     ),
@@ -243,6 +242,49 @@ class _QuickPlayScreenState extends State<QuickPlayScreen> {
                       ),
                     ),
 
+              const SizedBox(height: 16),
+
+                    _SectionCard(
+                      titleIcon: Icons.rule,
+                      title: 'Rules',
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Select rule preset',
+                              style: GoogleFonts.poppins(
+                                color: const Color(0xFF4B5563),
+                                fontWeight: FontWeight.w500,
+                              )),
+                          const SizedBox(height: 10),
+                          DropdownButtonFormField<_RulesPreset>(
+                            initialValue: _RulesPreset.standard,
+                            items: const [
+                              DropdownMenuItem(value: _RulesPreset.standard, child: Text('Standard')),
+                              DropdownMenuItem(value: _RulesPreset.quickPlay, child: Text('Quick Play')),
+                              DropdownMenuItem(value: _RulesPreset.beginner, child: Text('Beginner')),
+                              DropdownMenuItem(value: _RulesPreset.expert, child: Text('Expert')),
+                              DropdownMenuItem(value: _RulesPreset.chaos, child: Text('Chaos')),
+                            ],
+                            borderRadius: BorderRadius.circular(12),
+                            onChanged: (preset) {
+                              if (preset == null) return;
+                              setState(() {
+                                _rules = _mapPreset(preset);
+                              });
+                            },
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _rulesDescription(_rules),
+                            style: GoogleFonts.poppins(
+                              color: const Color(0xFF6B7280),
+                              fontSize: 12.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
                     const Spacer(),
 
                     SizedBox(
@@ -279,12 +321,11 @@ class _QuickPlayScreenState extends State<QuickPlayScreen> {
     players.add(Player(
       id: 'human_player',
       name: humanName,
-      type: PlayerType.human,
       color: selectedPlayerColor,
       pieces: List.generate(
         GameConstants.tokensPerPlayer,
         (j) => Piece(selectedPlayerColor, j,
-            const PiecePosition(GameState.basePosition, isHome: true)),
+            const PiecePosition(GameState.basePosition)),
       ),
     ));
 
@@ -303,18 +344,42 @@ class _QuickPlayScreenState extends State<QuickPlayScreen> {
         aiDifficulty: _difficulty,
         pieces: List.generate(
           GameConstants.tokensPerPlayer,
-          (j) => Piece(c, j, const PiecePosition(GameState.basePosition, isHome: true)),
+          (j) => Piece(c, j, const PiecePosition(GameState.basePosition)),
         ),
       ));
     }
 
     final gameProvider = Provider.of<GameProvider>(context, listen: false);
+    gameProvider.setRules(_rules);
     gameProvider.startNewGame(players);
 
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const GameScreen()),
     );
   }
+}
+
+enum _RulesPreset { standard, quickPlay, beginner, expert, chaos }
+
+GameRules _mapPreset(_RulesPreset preset) {
+  switch (preset) {
+    case _RulesPreset.standard:
+      return GameRules.standard;
+    case _RulesPreset.quickPlay:
+      return GameRules.quickPlay;
+    case _RulesPreset.beginner:
+      return GameRules.beginner;
+    case _RulesPreset.expert:
+      return GameRules.expert;
+    case _RulesPreset.chaos:
+      return GameRules.chaos;
+  }
+}
+
+String _rulesDescription(GameRules rules) {
+  return 'Exact finish: ${rules.exactRollToFinish ? 'On' : 'Off'} · '
+      'Extra turn on 6: ${rules.extraTurnOnSix ? 'On' : 'Off'} · '
+      'Extra turn on capture: ${rules.extraTurnOnCapture ? 'On' : 'Off'}';
 }
 
 class _GlassCard extends StatelessWidget {
@@ -332,7 +397,7 @@ class _GlassCard extends StatelessWidget {
         child: Container(
           padding: padding ?? const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.18),
+            color: Colors.white.withValues(alpha: 0.18),
             borderRadius: BorderRadius.circular(22),
             boxShadow: const [
               BoxShadow(
@@ -653,9 +718,9 @@ class _ElevatedBigButton extends StatelessWidget {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           padding: const EdgeInsets.symmetric(vertical: 16),
         ).copyWith(
-          overlayColor: MaterialStateProperty.resolveWith(
-            (states) => states.contains(MaterialState.pressed)
-                ? const Color(0xFFFF7A1A).withOpacity(.85)
+          overlayColor: WidgetStateProperty.resolveWith(
+            (states) => states.contains(WidgetState.pressed)
+                ? const Color(0xFFFF7A1A).withValues(alpha: .85)
                 : null,
           ),
         ),
@@ -664,5 +729,3 @@ class _ElevatedBigButton extends StatelessWidget {
     );
   }
 }
-
-

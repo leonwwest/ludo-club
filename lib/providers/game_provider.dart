@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:ludo_club/models/game_state.dart';
 import 'package:ludo_club/logic/ludo_game_logic.dart';
 import 'package:ludo_club/models/game_phase.dart';
+import 'package:ludo_club/models/game_rules.dart';
 import 'package:ludo_club/models/ludo_objects.dart';
 import 'package:ludo_club/services/audio_service.dart';
 import 'package:ludo_club/services/ai_service.dart';
@@ -13,6 +14,7 @@ class GameProvider extends ChangeNotifier {
 
   final AudioService _audioService;
   final AIService _aiService;
+  final Random _random;
 
   bool isAnimating = false;
   bool _showReachedHomeEffect = false;
@@ -27,8 +29,10 @@ class GameProvider extends ChangeNotifier {
   GameProvider({
     AudioService? audioService,
     AIService? aiService,
+    Random? random,
   })  : _audioService = audioService ?? AudioService(),
-        _aiService = aiService ?? AIService() {
+        _aiService = aiService ?? AIService(random: random),
+        _random = random ?? Random() {
     _gameState = _createDefaultGameState();
     _initAudio();
   }
@@ -84,7 +88,7 @@ class GameProvider extends ChangeNotifier {
 
     try {
       // Add a small delay to make AI feel more natural
-      await Future.delayed(Duration(milliseconds: 500 + Random().nextInt(1000)));
+      await Future.delayed(Duration(milliseconds: 500 + _random.nextInt(1000)));
       
       // AI rolls dice
       await rollDice();
@@ -116,7 +120,7 @@ class GameProvider extends ChangeNotifier {
       // Start sound quickly to reduce perceived latency
       unawaited(_audioService.playDiceSound());
 
-      final diceValue = Random().nextInt(GameConstants.diceSides) + 1;
+      final diceValue = _random.nextInt(GameConstants.diceSides) + 1;
       _gameState = _gameState.copyWith(lastDiceValue: diceValue, currentRollCount: _gameState.currentRollCount + 1);
       notifyListeners(); // Notify immediately so DiceWidget can show correct value
 
@@ -267,6 +271,14 @@ class GameProvider extends ChangeNotifier {
 
   double get volume => _audioService.volume;
 
+  // Allow changing rules at runtime (e.g., via UI) and clear caches
+  void setRules(GameRules rules) {
+    _gameState = _gameState.copyWith(rules: rules);
+    _cachedMovablePieces = null;
+    _lastDiceForCache = null;
+    notifyListeners();
+  }
+
   PlayerColor get currentPlayerColor => _gameState.currentTurnPlayerId;
   int get currentDiceValue => _gameState.lastDiceValue ?? 0;
   List<Piece> get allBoardPieces =>
@@ -286,14 +298,12 @@ class GameProvider extends ChangeNotifier {
       Player(
         id: 'player1',
         name: 'Player 1',
-        type: PlayerType.human,
         color: PlayerColor.red,
         pieces: List.generate(GameConstants.tokensPerPlayer, (j) => Piece(PlayerColor.red, j, const PiecePosition(GameState.basePosition))),
       ),
       Player(
         id: 'player2', 
         name: 'Player 2',
-        type: PlayerType.human,
         color: PlayerColor.green,
         pieces: List.generate(GameConstants.tokensPerPlayer, (j) => Piece(PlayerColor.green, j, const PiecePosition(GameState.basePosition))),
       ),

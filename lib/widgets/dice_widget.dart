@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:flutter/foundation.dart';
+// Removed SVG/foundation imports to simplify and avoid dead code
 import 'package:ludo_club/constants/game_constants.dart';
 
 class DiceWidget extends StatefulWidget {
@@ -11,12 +10,12 @@ class DiceWidget extends StatefulWidget {
   final int? currentDiceValue; // Add parameter for actual dice value
 
   const DiceWidget({
-    Key? key, 
+    super.key, 
     required this.onRoll,
     this.isEnabled = true,
     this.size = 60,
     this.currentDiceValue, // Optional current dice value from game
-  }) : super(key: key);
+  });
 
   @override
   State<DiceWidget> createState() => _DiceWidgetState();
@@ -172,28 +171,7 @@ class _DiceWidgetState extends State<DiceWidget>
     }
   }
 
-  Widget _buildDiceFace() {
-    // Prefer robust fallback across platforms to avoid SVG hiccups
-    const bool preferSvgDice = false;
-
-    if (!preferSvgDice || kIsWeb) {
-      return _buildFallbackDice();
-    }
-
-    // SVG with placeholder fallback if load/render fails asynchronously
-    return SvgPicture.asset(
-      'assets/dice/dice_$currentValue.svg',
-      width: widget.size * 0.8,
-      height: widget.size * 0.8,
-      placeholderBuilder: (_) => _buildFallbackDice(),
-      colorFilter: widget.isEnabled
-          ? null
-          : ColorFilter.mode(
-              Colors.grey.shade600,
-              BlendMode.srcIn,
-            ),
-    );
-  }
+  Widget _buildDiceFace() => _buildFallbackDice();
 
   Widget _buildFallbackDice() {
     return Container(
@@ -202,10 +180,10 @@ class _DiceWidgetState extends State<DiceWidget>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.black, width: 2),
+        border: Border.all(width: 2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 4,
             offset: const Offset(2, 2),
           ),
@@ -308,10 +286,10 @@ class _DiceWidgetState extends State<DiceWidget>
   @override
   Widget build(BuildContext context) {
     // Build box shadows without collection-if to avoid parser issues
-    List<BoxShadow> _buildShadows() {
+    List<BoxShadow> buildShadows() {
       final shadows = <BoxShadow>[
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withValues(alpha: 0.3),
           blurRadius: isRolling ? 15 : 6,
           spreadRadius: isRolling ? 3 : 1,
           offset: const Offset(0, 3),
@@ -320,7 +298,7 @@ class _DiceWidgetState extends State<DiceWidget>
       if (isRolling) {
         shadows.add(
           BoxShadow(
-            color: Colors.blue.withOpacity(0.4),
+            color: Colors.blue.withValues(alpha: 0.4),
             blurRadius: 20,
             spreadRadius: 3,
             offset: const Offset(0, 0),
@@ -360,7 +338,7 @@ class _DiceWidgetState extends State<DiceWidget>
                     height: widget.size,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
-                      boxShadow: _buildShadows(),
+                      boxShadow: buildShadows(),
                       gradient: widget.isEnabled
                           ? const LinearGradient(
                               begin: Alignment.topLeft,
@@ -395,10 +373,10 @@ class _DiceWidgetState extends State<DiceWidget>
                               gradient: LinearGradient(
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
-                              colors: <Color>[
-                                  Colors.blue.withOpacity(0.15),
-                                  Colors.purple.withOpacity(0.15),
-                                  Colors.cyan.withOpacity(0.10),
+                                colors: <Color>[
+                                  Colors.blue.withValues(alpha: 0.15),
+                                  Colors.purple.withValues(alpha: 0.15),
+                                  Colors.cyan.withValues(alpha: 0.10),
                                 ],
                               ),
                             ),

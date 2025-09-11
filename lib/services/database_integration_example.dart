@@ -250,8 +250,10 @@ class _EnhancedPlayerStatsScreenState extends State<EnhancedPlayerStatsScreen> {
 
     try {
       await _statsService.syncWithCloud();
+      // ignore: use_build_context_synchronously
       Navigator.of(context).pop(); // Close dialog
       
+      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Successfully synced with cloud!')),
       );
@@ -259,8 +261,10 @@ class _EnhancedPlayerStatsScreenState extends State<EnhancedPlayerStatsScreen> {
       // Reload data
       await _loadPlayerData();
     } catch (e) {
+      // ignore: use_build_context_synchronously
       Navigator.of(context).pop(); // Close dialog
       
+      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Sync failed: $e')),
       );
@@ -416,6 +420,7 @@ class _EnhancedSavedGamesScreenState extends State<EnhancedSavedGamesScreen> {
 
     try {
       final gameState = await _saveService.loadGame(game.id);
+      // ignore: use_build_context_synchronously
       Navigator.of(context).pop(); // Close loading dialog
       
       if (gameState != null) {
@@ -426,12 +431,15 @@ class _EnhancedSavedGamesScreenState extends State<EnhancedSavedGamesScreen> {
         //   ),
         // );
       } else {
+        // ignore: use_build_context_synchronously
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Failed to load game')),
         );
       }
     } catch (e) {
+      // ignore: use_build_context_synchronously
       Navigator.of(context).pop(); // Close loading dialog
+      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error loading game: $e')),
       );
@@ -465,10 +473,12 @@ class _EnhancedSavedGamesScreenState extends State<EnhancedSavedGamesScreen> {
           _savedGames.removeWhere((g) => g.id == game.id);
         });
         
+        // ignore: use_build_context_synchronously
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Game deleted')),
         );
       } else {
+        // ignore: use_build_context_synchronously
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Failed to delete game')),
         );

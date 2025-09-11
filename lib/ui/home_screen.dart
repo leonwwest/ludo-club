@@ -9,13 +9,13 @@ import 'package:ludo_club/utils/color_utils.dart';
 import 'package:ludo_club/constants/game_constants.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  const HomeScreen({super.key});
 
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  HomeScreenState createState() => HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class HomeScreenState extends State<HomeScreen> {
   List<TextEditingController> _nameControllers = [];
   int _playerCount = 2;
   
@@ -190,9 +190,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   elevation: 8,
                 ),
-                child: Row(
+                child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
+                  children: [
                     Icon(Icons.flash_on, size: 24),
                     SizedBox(width: 8),
                     Text(
@@ -220,9 +220,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   elevation: 8,
                 ),
-                child: Row(
+                child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
+                  children: [
                     Icon(Icons.settings, size: 24),
                     SizedBox(width: 8),
                     Text(
@@ -269,9 +269,8 @@ class _HomeScreenState extends State<HomeScreen> {
       players.add(Player(
         id: 'player${i + 1}',
         name: playerName.isNotEmpty ? playerName : 'Player ${i + 1}',
-        type: PlayerType.human,
         color: _availableColors[i],
-        pieces: List.generate(GameConstants.tokensPerPlayer, (j) => Piece(_availableColors[i], j, const PiecePosition(GameState.basePosition, isHome: true))),
+        pieces: List.generate(GameConstants.tokensPerPlayer, (j) => Piece(_availableColors[i], j, const PiecePosition(GameState.basePosition))),
       ));
     }
 

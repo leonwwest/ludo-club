@@ -75,8 +75,8 @@ class StatisticsService {
       if (decoded is! List) return [];
       
       return decoded
-          .where((item) => item is Map<String, dynamic>)
-          .map((json) => PlayerStats.fromJson(json as Map<String, dynamic>))
+          .whereType<Map<String, dynamic>>()
+          .map(PlayerStats.fromJson)
           .toList();
     } catch (e) {
       return []; // Return empty list on any parsing error
