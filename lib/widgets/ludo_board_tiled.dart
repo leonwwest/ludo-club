@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:math' as math;
+import 'package:ludo_club/logic/ludo_path.dart';
 
 /// A tiled, grid-based Ludo board background composed of bases and tracks.
 /// Designed to align with a 15x15 logical grid, without margins/padding, so
@@ -30,12 +32,12 @@ class LudoBoardTiled extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   // Tiled background layout
-                  Column(
+                  const Column(
                     children: [
                       Expanded(
                         flex: 6,
                         child: Row(
-                          children: const [
+                          children: [
                             Expanded(flex: 6, child: _Base(color: Color(0xFF22C55E), tokenColor: Color(0xFF16A34A))),
                             Expanded(flex: 3, child: _TrackVertical(color: Color(0xFF3B82F6))),
                             Expanded(flex: 6, child: _Base(color: Color(0xFF3B82F6), tokenColor: Color(0xFF2563EB))),
@@ -45,7 +47,7 @@ class LudoBoardTiled extends StatelessWidget {
                       Expanded(
                         flex: 3,
                         child: Row(
-                          children: const [
+                          children: [
                             Expanded(flex: 6, child: _TrackHorizontal(color: Color(0xFF22C55E))),
                             Expanded(flex: 3, child: _CenterSquare()),
                             Expanded(flex: 6, child: _TrackHorizontal(color: Color(0xFFF59E0B))),
@@ -55,7 +57,7 @@ class LudoBoardTiled extends StatelessWidget {
                       Expanded(
                         flex: 6,
                         child: Row(
-                          children: const [
+                          children: [
                             Expanded(flex: 6, child: _Base(color: Color(0xFFEF4444), tokenColor: Color(0xFFDC2626))),
                             Expanded(flex: 3, child: _TrackVertical(color: Color(0xFFEF4444))),
                             Expanded(flex: 6, child: _Base(color: Color(0xFFF59E0B), tokenColor: Color(0xFFD97706))),
@@ -66,7 +68,7 @@ class LudoBoardTiled extends StatelessWidget {
                   ),
                   // Grid-accurate markers so pins align perfectly with circles
                   CustomPaint(
-                    painter: _MarkersPainter(),
+                    painter: const _MarkersPainter(),
                     size: Size.square(size),
                   ),
                 ],
@@ -86,7 +88,7 @@ class _Base extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final light = Color.alphaBlend(Colors.white.withOpacity(.35), color);
+    final light = Color.alphaBlend(Colors.white.withValues(alpha: .35), color);
     return Container(
       color: color,
       padding: const EdgeInsets.all(8),
@@ -128,7 +130,7 @@ class _TrackVertical extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3),
       itemCount: 18,
-      itemBuilder: (context, index) => _Box(color: index % 3 == 1 ? color.withOpacity(0.25) : null),
+      itemBuilder: (context, index) => _Box(color: index % 3 == 1 ? color.withValues(alpha: 0.25) : null),
     );
   }
 }
@@ -143,14 +145,13 @@ class _TrackHorizontal extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 6),
       itemCount: 18,
-      itemBuilder: (context, index) => _Box(color: index ~/ 6 == 1 ? color.withOpacity(0.25) : null),
+      itemBuilder: (context, index) => _Box(color: index ~/ 6 == 1 ? color.withValues(alpha: 0.25) : null),
     );
   }
 }
 
 class _Box extends StatelessWidget {
-  const _Box({this.child, this.color});
-  final Widget? child;
+  const _Box({this.color});
   final Color? color;
   @override
   Widget build(BuildContext context) {
@@ -159,7 +160,6 @@ class _Box extends StatelessWidget {
         color: color ?? Colors.transparent,
         border: Border.all(color: const Color(0xFFE5E7EB)),
       ),
-      child: child == null ? null : Center(child: child),
     );
   }
 }
@@ -204,6 +204,7 @@ class _CenterPainter extends CustomPainter {
 /// Draw grid-aligned circles at exact centers where pins should be in bases
 /// and subtle home-stretch lanes matching the logic grid (15x15).
 class _MarkersPainter extends CustomPainter {
+  const _MarkersPainter();
   @override
   void paint(Canvas canvas, Size size) {
     final double cell = size.width / 15.0;
@@ -223,7 +224,7 @@ class _MarkersPainter extends CustomPainter {
 
     // Base circles (match BoardWidget starting coords)
     // Red (bottom-left) at (1,11) (3,11) (1,13) (3,13)
-    final redFill = const Color(0xFFEF4444).withOpacity(0.25);
+    final redFill = const Color(0xFFEF4444).withValues(alpha: 0.25);
     for (final p in const [
       (1, 11), (3, 11), (1, 13), (3, 13),
     ]) {
@@ -231,7 +232,7 @@ class _MarkersPainter extends CustomPainter {
     }
 
     // Green (top-left) at (1,1) (3,1) (1,3) (3,3)
-    final greenFill = const Color(0xFF22C55E).withOpacity(0.25);
+    final greenFill = const Color(0xFF22C55E).withValues(alpha: 0.25);
     for (final p in const [
       (1, 1), (3, 1), (1, 3), (3, 3),
     ]) {
@@ -239,7 +240,7 @@ class _MarkersPainter extends CustomPainter {
     }
 
     // Blue (top-right) at (11,1) (13,1) (11,3) (13,3)
-    final blueFill = const Color(0xFF3B82F6).withOpacity(0.25);
+    final blueFill = const Color(0xFF3B82F6).withValues(alpha: 0.25);
     for (final p in const [
       (11, 1), (13, 1), (11, 3), (13, 3),
     ]) {
@@ -247,7 +248,7 @@ class _MarkersPainter extends CustomPainter {
     }
 
     // Yellow (bottom-right) at (11,11) (13,11) (11,13) (13,13)
-    final yellowFill = const Color(0xFFF59E0B).withOpacity(0.25);
+    final yellowFill = const Color(0xFFF59E0B).withValues(alpha: 0.25);
     for (final p in const [
       (11, 11), (13, 11), (11, 13), (13, 13),
     ]) {
@@ -258,19 +259,19 @@ class _MarkersPainter extends CustomPainter {
     final stretchPaint = Paint()..style = PaintingStyle.fill;
 
     // Red vertical from rows 9..13 at column 7
-    stretchPaint.color = const Color(0xFFEF4444).withOpacity(0.18);
+    stretchPaint.color = const Color(0xFFEF4444).withValues(alpha: 0.18);
     canvas.drawRect(Rect.fromLTWH(cell * 7, cell * 9, cell, cell * 5), stretchPaint);
 
     // Green horizontal just above the shifted main path (cols 2..6) at row 7
-    stretchPaint.color = const Color(0xFF22C55E).withOpacity(0.18);
+    stretchPaint.color = const Color(0xFF22C55E).withValues(alpha: 0.18);
     canvas.drawRect(Rect.fromLTWH(cell * 2, cell * 7, cell * 5, cell), stretchPaint);
 
     // Blue vertical goal lane from rows 1..5 at column 7
-    stretchPaint.color = const Color(0xFF3B82F6).withOpacity(0.18);
+    stretchPaint.color = const Color(0xFF3B82F6).withValues(alpha: 0.18);
     canvas.drawRect(Rect.fromLTWH(cell * 7, cell * 1, cell, cell * 5), stretchPaint);
 
     // Yellow horizontal goal lane from cols 9..13 at row 7
-    stretchPaint.color = const Color(0xFFF59E0B).withOpacity(0.18);
+    stretchPaint.color = const Color(0xFFF59E0B).withValues(alpha: 0.18);
     canvas.drawRect(Rect.fromLTWH(cell * 9, cell * 7, cell * 5, cell), stretchPaint);
 
     // Main path neutral cells to visualize the shifted track lightly
@@ -282,10 +283,40 @@ class _MarkersPainter extends CustomPainter {
     canvas.drawRect(Rect.fromLTWH(cell * 8, 0, cell, cell * 7), neutral);
     // Right horizontal segment: (cols 9..14, row 8)
     canvas.drawRect(Rect.fromLTWH(cell * 9, cell * 8, cell * 6, cell), neutral);
+
+    // Draw safe-field stars at canonical indices using path mapping
+    void starAtIndex(int index, {Color color = const Color(0xFF16A34A)}) {
+      if (index < 0 || index >= LudoPath.coords.length) return;
+      final g = LudoPath.coords[index];
+      final center = Offset(cell * (g.dx + 0.5), cell * (g.dy + 0.5));
+      _drawStar(canvas, center, cell * 0.28, Paint()..color = color.withValues(alpha: 0.9));
+  }
+
+    // Safe indices (start tiles + stars): 0,8,13,21,26,34,39,47
+    for (final idx in const [0, 8, 13, 21, 26, 34, 39, 47]) {
+      starAtIndex(idx);
+    }
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+
+  void _drawStar(Canvas canvas, Offset center, double radius, Paint paint) {
+    final path = Path();
+    const double starAngle = math.pi / 5;
+
+    for (int i = 0; i < 10; i++) {
+      final angle = i * starAngle;
+      final r = i.isEven ? radius : radius * 0.5;
+      final x = center.dx + r * math.cos(angle - math.pi / 2);
+      final y = center.dy + r * math.sin(angle - math.pi / 2);
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+    path.close();
+    canvas.drawPath(path, paint);
+  }
 }
-
-

@@ -4,6 +4,8 @@
 
 This document describes the comprehensive database implementation for the Ludo Club project. The system uses a hybrid approach combining local SQLite storage with Firebase Cloud Firestore for synchronization and multiplayer features.
 
+> **Status:** The production code currently ships with Firestore synchronisation disabled. The architecture below remains as future-facing design documentation; only the local SQLite layer is active at runtime until the Firebase integration is restored.
+
 ## Architecture
 
 ### Hybrid Database Design

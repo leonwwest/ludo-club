@@ -1,5 +1,8 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:ludo_club/providers/game_provider.dart';
 import 'package:ludo_club/models/game_state.dart';
 import 'package:ludo_club/models/ludo_objects.dart';
@@ -9,19 +12,19 @@ import 'package:ludo_club/utils/color_utils.dart';
 import 'package:ludo_club/constants/game_constants.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  const HomeScreen({super.key});
 
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  HomeScreenState createState() => HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class HomeScreenState extends State<HomeScreen> {
   List<TextEditingController> _nameControllers = [];
   int _playerCount = 2;
-  
+
   final List<PlayerColor> _availableColors = [
     PlayerColor.red,
-    PlayerColor.green, 
+    PlayerColor.green,
     PlayerColor.blue,
     PlayerColor.yellow,
   ];
@@ -51,9 +54,8 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_playerCount < 4) {
       setState(() {
         _playerCount++;
-        _nameControllers.add(
-          TextEditingController(text: 'Player $_playerCount')
-        );
+        _nameControllers
+            .add(TextEditingController(text: 'Player $_playerCount'));
       });
     }
   }
@@ -70,172 +72,203 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final headline = GoogleFonts.poppins(
+      fontWeight: FontWeight.w700,
+      color: Colors.white,
+      fontSize: 24,
+    );
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Ludo Club'),
-        backgroundColor: Colors.blue.shade700,
-        elevation: 0,
-      ),
+      backgroundColor: Colors.transparent,
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Colors.blue.shade500, Colors.blue.shade900],
+            colors: [Color(0xFF5D4BFF), Color(0xFF2EB9FF)],
           ),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Card(
-                elevation: 8,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Game Settings',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
+        child: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 900),
+              child: SingleChildScrollView(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Column(
+                  children: [
+                    // Top bar with back and title
+                    Row(
+                      children: [
+                        IconButton(
+                          icon:
+                              const Icon(Icons.arrow_back, color: Colors.white),
+                          onPressed: () => Navigator.maybePop(context),
+                          tooltip: 'Back',
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Players:',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w500,
+                        Expanded(
+                          child: Text('Ludo Club',
+                              textAlign: TextAlign.center, style: headline),
                         ),
+                        const SizedBox(width: 48),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Hero card
+                    _GlassCard(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        children: [
+                          const Icon(Icons.settings,
+                              color: Color(0xFFFFD700), size: 40),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Game Settings',
+                            style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 28,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 8),
-                      ...List.generate(_playerCount, (index) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 8.0),
-                          child: Row(
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Players section
+                    _SectionCard(
+                      titleIcon: Icons.group,
+                      title: 'Players',
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ...List.generate(_playerCount, (index) {
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12.0),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 20,
+                                    height: 20,
+                                    margin: const EdgeInsets.only(right: 12),
+                                    decoration: BoxDecoration(
+                                      color: ColorUtils.getPrimaryColor(
+                                          _availableColors[index]),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                          color: Colors.white, width: 2),
+                                      boxShadow: const [
+                                        BoxShadow(
+                                          blurRadius: 6,
+                                          offset: Offset(0, 2),
+                                          color: Color(0x1A000000),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _nameControllers[index],
+                                      style: GoogleFonts.poppins(),
+                                      decoration: InputDecoration(
+                                        hintText:
+                                            'Player ${index + 1} (${_getColorName(_availableColors[index])})',
+                                        filled: true,
+                                        fillColor: Colors.white,
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                                vertical: 14, horizontal: 12),
+                                        border: OutlineInputBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(14),
+                                          borderSide: const BorderSide(
+                                              color: Color(0xFFD1D5DB)),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(14),
+                                          borderSide: const BorderSide(
+                                              color: Color(0xFF3B82F6),
+                                              width: 2),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }),
+                          const SizedBox(height: 6),
+                          Row(
                             children: [
-                              // Color indicator
-                              Container(
-                                width: 20,
-                                height: 20,
-                                margin: const EdgeInsets.only(right: 12),
-                                decoration: BoxDecoration(
-                                  color: ColorUtils.getPrimaryColor(_availableColors[index]),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.white, width: 2),
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed:
+                                      _playerCount > 2 ? _removePlayer : null,
+                                  icon: const Icon(Icons.remove_circle_outline),
+                                  label: const Text('Remove Player'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF9CA3AF),
+                                    foregroundColor: Colors.white,
+                                    elevation: 0,
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 14),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(14)),
+                                  ),
                                 ),
                               ),
-                              // Text field
+                              const SizedBox(width: 12),
                               Expanded(
-                                child: TextField(
-                                  controller: _nameControllers[index],
-                                  decoration: InputDecoration(
-                                    labelText: 'Player ${index + 1} (${_getColorName(_availableColors[index])})',
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
+                                child: ElevatedButton.icon(
+                                  onPressed:
+                                      _playerCount < 4 ? _addPlayer : null,
+                                  icon: const Icon(Icons.add_circle_outline),
+                                  label: const Text('Add Player'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF22C55E),
+                                    foregroundColor: Colors.white,
+                                    elevation: 0,
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 14),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(14)),
                                   ),
                                 ),
                               ),
                             ],
                           ),
-                        );
-                      }),
-                      const SizedBox(height: 16),
-                      // Add/Remove Player buttons
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          ElevatedButton.icon(
-                            onPressed: _playerCount > 2 ? _removePlayer : null,
-                            icon: const Icon(Icons.remove),
-                            label: const Text('Remove Player'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red.shade400,
-                              foregroundColor: Colors.white,
-                            ),
-                          ),
-                          ElevatedButton.icon(
-                            onPressed: _playerCount < 4 ? _addPlayer : null,
-                            icon: const Icon(Icons.add),
-                            label: const Text('Add Player'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green.shade600,
-                              foregroundColor: Colors.white,
-                            ),
-                          ),
                         ],
                       ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              
-              // Quick Play Button
-              ElevatedButton(
-                onPressed: _goToQuickPlay,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange.shade600,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 8,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Icon(Icons.flash_on, size: 24),
-                    SizedBox(width: 8),
-                    Text(
-                      'Quick Play vs AI',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // CTAs
+                    SizedBox(
+                      width: double.infinity,
+                      child: _ElevatedBigButton(
+                        icon: Icons.flash_on,
+                        label: 'Quick Play vs AI',
+                        onPressed: _goToQuickPlay,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      child: _ElevatedBigButton(
+                        icon: Icons.settings,
+                        label: 'Custom Game',
+                        onPressed: _startGame,
                       ),
                     ),
                   ],
                 ),
               ),
-              
-              const SizedBox(height: 12),
-              
-              // Custom Game Button
-              ElevatedButton(
-                onPressed: _startGame,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue.shade600,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 8,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Icon(Icons.settings, size: 24),
-                    SizedBox(width: 8),
-                    Text(
-                      'Custom Game',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -269,9 +302,11 @@ class _HomeScreenState extends State<HomeScreen> {
       players.add(Player(
         id: 'player${i + 1}',
         name: playerName.isNotEmpty ? playerName : 'Player ${i + 1}',
-        type: PlayerType.human,
         color: _availableColors[i],
-        pieces: List.generate(GameConstants.tokensPerPlayer, (j) => Piece(_availableColors[i], j, const PiecePosition(GameState.basePosition, isHome: true))),
+        pieces: List.generate(
+            GameConstants.tokensPerPlayer,
+            (j) => Piece(_availableColors[i], j,
+                const PiecePosition(GameState.basePosition))),
       ));
     }
 
@@ -301,8 +336,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-
-
   String _getColorName(PlayerColor playerColor) {
     switch (playerColor) {
       case PlayerColor.red:
@@ -314,5 +347,150 @@ class _HomeScreenState extends State<HomeScreen> {
       case PlayerColor.yellow:
         return 'Yellow';
     }
+  }
+}
+
+class _GlassCard extends StatelessWidget {
+  const _GlassCard({required this.child, this.padding});
+
+  final Widget child;
+  final EdgeInsetsGeometry? padding;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(22),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        child: Container(
+          padding: padding ?? const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.18),
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: const [
+              BoxShadow(
+                blurRadius: 8,
+                offset: Offset(0, 4),
+                color: Color(0x1A000000),
+              ),
+              BoxShadow(
+                blurRadius: 6,
+                offset: Offset(0, 2),
+                color: Color(0x1A000000),
+              ),
+            ],
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({
+    required this.title,
+    required this.titleIcon,
+    required this.child,
+  });
+
+  final String title;
+  final IconData titleIcon;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: const [
+          BoxShadow(
+            blurRadius: 8,
+            offset: Offset(0, 4),
+            color: Color(0x1A000000),
+          ),
+          BoxShadow(
+            blurRadius: 6,
+            offset: Offset(0, 2),
+            color: Color(0x1A000000),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(titleIcon, color: const Color(0xFF374151)),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF374151),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class _ElevatedBigButton extends StatelessWidget {
+  const _ElevatedBigButton({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedScale(
+      duration: const Duration(milliseconds: 120),
+      scale: 1.0,
+      child: ElevatedButton.icon(
+        icon: Icon(icon),
+        label: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Text(
+            label,
+            style:
+                GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w700),
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: label == 'Quick Play vs AI'
+              ? const Color(0xFFFF7A1A)
+              : const Color(0xFF3B82F6),
+          foregroundColor: Colors.white,
+          shadowColor: const Color(0x33000000),
+          elevation: 6,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          padding: const EdgeInsets.symmetric(vertical: 16),
+        ).copyWith(
+          overlayColor: WidgetStateProperty.resolveWith(
+            (states) => states.contains(WidgetState.pressed)
+                ? (label == 'Quick Play vs AI'
+                        ? const Color(0xFFFF7A1A)
+                        : const Color(0xFF3B82F6))
+                    .withValues(alpha: .85)
+                : null,
+          ),
+        ),
+        onPressed: onPressed,
+      ),
+    );
   }
 }

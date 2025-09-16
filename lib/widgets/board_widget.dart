@@ -4,6 +4,7 @@ import 'package:ludo_club/widgets/ludo_pin.dart';
 import 'package:ludo_club/utils/color_utils.dart';
 import 'package:ludo_club/constants/game_constants.dart';
 import 'package:ludo_club/widgets/ludo_board_tiled.dart';
+import 'package:ludo_club/logic/ludo_path.dart';
 
 class BoardWidget extends StatelessWidget {
   final List<Piece> pieces;
@@ -12,12 +13,12 @@ class BoardWidget extends StatelessWidget {
   final Set<Piece> movablePieces;
 
   const BoardWidget({
-    Key? key,
+    super.key,
     required this.pieces,
     required this.onPieceSelected,
     required this.currentPlayer,
     required this.movablePieces,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -145,73 +146,8 @@ class BoardWidget extends StatelessWidget {
 
   List<Offset> _getMainPathPositions(double boardSize) {
     final cellSize = boardSize / GameConstants.boardGridSize;
-    final positions = <Offset>[];
-    Offset c(int col, int row) => Offset(
-          cellSize * (col + 0.5),
-          cellSize * (row + 0.5),
-        );
-
-    // 52 main-path positions, clockwise, matching logic indices:
-    // Red start (0) at (6,13)
-    positions.addAll([
-      c(6, 13), // 0
-      c(6, 12), // 1
-      c(6, 11), // 2
-      c(6, 10), // 3
-      c(6, 9),  // 4
-      c(6, 8),  // 5
-      c(5, 8),  // 6
-      c(4, 8),  // 7
-      c(3, 8),  // 8
-      c(2, 8),  // 9
-      c(1, 8),  // 10
-      c(0, 8),  // 11
-      c(0, 7),  // 12 (Green home entry)
-      // Move main path above the green lane to row 6 to avoid overlap
-      c(1, 6),  // 13 (Green start visual row 6)
-      c(2, 6),  // 14
-      c(3, 6),  // 15
-      c(4, 6),  // 16
-      c(5, 6),  // 17
-      c(6, 6),  // 18
-      c(6, 5),  // 19
-      c(6, 4),  // 20
-      c(6, 3),  // 21
-      c(6, 2),  // 22
-      c(6, 1),  // 23
-      c(6, 1),  // 24
-      c(6, 0),  // 25 (Blue home entry)
-      // Shift the top vertical main-path from center column 7 to 8 so it's
-      // adjacent to (not overlapping) the blue goal lane.
-      c(8, 0),  // 26 (Blue start visual column 8)
-      c(8, 1),  // 27
-      c(8, 2),  // 28
-      c(8, 3),  // 29
-      c(8, 4),  // 30
-      c(8, 5),  // 31
-      c(8, 6),  // 32
-      c(9, 6),  // 33
-      c(9, 6),  // 34
-      c(10, 6), // 35
-      c(11, 6), // 36
-      c(12, 6), // 37
-      c(13, 6), // 38
-      c(14, 6), // 39 (Yellow start)
-      // Shift the right horizontal main-path below the yellow goal lane
-      c(14, 8), // 40
-      c(13, 8), // 41
-      c(12, 8), // 42
-      c(11, 8), // 43
-      c(10, 8), // 44
-      c(9, 8),  // 45
-      c(8, 8),  // 46
-      c(8, 9),  // 47
-      c(8, 9),  // 48
-      c(8, 10), // 49
-      c(8, 11), // 50
-      c(8, 12), // 51 (Red home entry)
-    ]);
-
-    return positions;
+    return LudoPath.coords
+        .map((g) => Offset(cellSize * (g.dx + 0.5), cellSize * (g.dy + 0.5)))
+        .toList(growable: false);
   }
 }

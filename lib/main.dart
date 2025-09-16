@@ -5,38 +5,59 @@ import 'package:ludo_club/providers/game_provider.dart';
 // Temporarily commented out due to Firebase dependency issues
 // import 'package:ludo_club/services/database_initialization_service.dart';
 import 'package:ludo_club/services/audio_service.dart';
+import 'package:ludo_club/services/ai_service.dart';
 import 'package:ludo_club/ui/landing_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Disable runtime font fetching to avoid network access at runtime.
-  // This prevents google_fonts from trying to download fonts on desktop.
-  GoogleFonts.config.allowRuntimeFetching = false;
-  
+  // Enable runtime font fetching for Google Fonts during development.
+  // If you want to ship offline-only, bundle fonts under assets/fonts and set this to false.
+  GoogleFonts.config.allowRuntimeFetching = true;
+
   // Temporarily disabled database initialization due to Firebase dependency issues
   // This allows the core game to run while Firebase issues are resolved
   // final dbInitService = DatabaseInitializationService();
   // final databaseInitialized = await dbInitService.initializeDatabase();
   // Database initialization temporarily disabled - using in-memory game state only.
-  
-  // Initialize audio service
-  final audioService = AudioService();
+
+  // Initialize shared services
+  final AudioServiceBase audioService = AudioService();
   await audioService.init();
-  
-  runApp(MyApp(audioService: audioService));
+  final AIService aiService = AIService();
+
+  runApp(MyApp(audioService: audioService, aiService: aiService));
 }
 
-class MyApp extends StatelessWidget {
-  final AudioService audioService;
-  
-  const MyApp({super.key, required this.audioService});
+class MyApp extends StatefulWidget {
+  final AudioServiceBase audioService;
+  final AIService aiService;
+
+  const MyApp({super.key, required this.audioService, required this.aiService});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  @override
+  void dispose() {
+    widget.audioService.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => GameProvider()),
-        Provider<AudioService>.value(value: audioService),
+        Provider<AudioServiceBase>.value(value: widget.audioService),
+        Provider<AIService>.value(value: widget.aiService),
+        // Inject the shared AudioService instance directly into GameProvider
+        ChangeNotifierProvider(
+          create: (_) => GameProvider(
+            audioService: widget.audioService,
+            aiService: widget.aiService,
+          ),
+        ),
       ],
       child: MaterialApp(
         title: 'Ludo Club',

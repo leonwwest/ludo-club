@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:ludo_club/services/statistics_service.dart';
 
 class PlayerStatsScreen extends StatefulWidget {
-  const PlayerStatsScreen({Key? key}) : super(key: key);
+  const PlayerStatsScreen({super.key});
 
   @override
   State<PlayerStatsScreen> createState() => _PlayerStatsScreenState();
@@ -180,10 +180,12 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
           _statsLoader = _loadStats();
         });
         
+        // ignore: use_build_context_synchronously
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('All statistics cleared')),
         );
       } catch (e) {
+        // ignore: use_build_context_synchronously
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error clearing statistics: $e')),
         );

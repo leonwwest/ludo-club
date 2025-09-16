@@ -8,7 +8,8 @@ class GameRules {
   final bool multipleOccupancyAllowed; // Multiple pieces on same field
   final int piecesToWin; // Number of pieces needed in finish to win
   final bool exactRollToFinish; // Need exact roll to enter finish position
-  final double aiThinkingTimeMultiplier; // Multiplier for AI thinking time (0.5 = faster, 2.0 = slower)
+  final double
+      aiThinkingTimeMultiplier; // Multiplier for AI thinking time (0.5 = faster, 2.0 = slower)
 
   const GameRules({
     this.mustRollSixToStart = true,
@@ -19,7 +20,7 @@ class GameRules {
     this.captureReturnsToHome = true,
     this.multipleOccupancyAllowed = false,
     this.piecesToWin = 4,
-    this.exactRollToFinish = false,
+    this.exactRollToFinish = true,
     this.aiThinkingTimeMultiplier = 1.0,
   });
 
@@ -43,7 +44,6 @@ class GameRules {
 
   // Expert rules (more challenging)
   static const GameRules expert = GameRules(
-    exactRollToFinish: true,
     maxConsecutiveSixes: 2,
     multipleOccupancyAllowed: true,
     aiThinkingTimeMultiplier: 0.8,
@@ -77,10 +77,12 @@ class GameRules {
       maxConsecutiveSixes: maxConsecutiveSixes ?? this.maxConsecutiveSixes,
       safeFieldsEnabled: safeFieldsEnabled ?? this.safeFieldsEnabled,
       captureReturnsToHome: captureReturnsToHome ?? this.captureReturnsToHome,
-      multipleOccupancyAllowed: multipleOccupancyAllowed ?? this.multipleOccupancyAllowed,
+      multipleOccupancyAllowed:
+          multipleOccupancyAllowed ?? this.multipleOccupancyAllowed,
       piecesToWin: piecesToWin ?? this.piecesToWin,
       exactRollToFinish: exactRollToFinish ?? this.exactRollToFinish,
-      aiThinkingTimeMultiplier: aiThinkingTimeMultiplier ?? this.aiThinkingTimeMultiplier,
+      aiThinkingTimeMultiplier:
+          aiThinkingTimeMultiplier ?? this.aiThinkingTimeMultiplier,
     );
   }
 
@@ -107,10 +109,12 @@ class GameRules {
       maxConsecutiveSixes: json['maxConsecutiveSixes'] as int? ?? 3,
       safeFieldsEnabled: json['safeFieldsEnabled'] as bool? ?? true,
       captureReturnsToHome: json['captureReturnsToHome'] as bool? ?? true,
-      multipleOccupancyAllowed: json['multipleOccupancyAllowed'] as bool? ?? false,
+      multipleOccupancyAllowed:
+          json['multipleOccupancyAllowed'] as bool? ?? false,
       piecesToWin: json['piecesToWin'] as int? ?? 4,
-      exactRollToFinish: json['exactRollToFinish'] as bool? ?? false,
-      aiThinkingTimeMultiplier: json['aiThinkingTimeMultiplier'] as double? ?? 1.0,
+      exactRollToFinish: json['exactRollToFinish'] as bool? ?? true,
+      aiThinkingTimeMultiplier:
+          json['aiThinkingTimeMultiplier'] as double? ?? 1.0,
     );
   }
 
@@ -161,4 +165,4 @@ class GameRules {
         'aiThinkingTimeMultiplier: $aiThinkingTimeMultiplier'
         ')';
   }
-} 
+}

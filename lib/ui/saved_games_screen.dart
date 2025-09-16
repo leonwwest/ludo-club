@@ -7,7 +7,7 @@ import 'package:ludo_club/providers/game_provider.dart';
 class SavedGamesScreen extends StatefulWidget {
   final SaveLoadService? saveLoadService;
   
-  const SavedGamesScreen({Key? key, this.saveLoadService}) : super(key: key);
+  const SavedGamesScreen({super.key, this.saveLoadService});
 
   @override
   State<SavedGamesScreen> createState() => _SavedGamesScreenState();
@@ -108,8 +108,10 @@ class _SavedGamesScreenState extends State<SavedGamesScreen> {
       final gameProvider = Provider.of<GameProvider>(context, listen: false);
       gameProvider.startNewGame(savedGame.gameState.players);
       
+      // ignore: use_build_context_synchronously
       Navigator.of(context).pushReplacementNamed('/game');
     } catch (e) {
+      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error loading game: $e')),
       );
@@ -141,10 +143,12 @@ class _SavedGamesScreenState extends State<SavedGamesScreen> {
         await service.deleteGame(gameId);
         _refreshGames();
         
+        // ignore: use_build_context_synchronously
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Game deleted')),
         );
       } catch (e) {
+        // ignore: use_build_context_synchronously
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error deleting game: $e')),
         );

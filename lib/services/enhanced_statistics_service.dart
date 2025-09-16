@@ -91,8 +91,8 @@ class EnhancedStatisticsService {
     // Calculate final scores (tokens reached home)
     final Map<String, int> finalScores = {};
     for (final player in finalGameState.players) {
-      final tokensHome = player.pieces.where((piece) => 
-          piece.position.fieldId == GameState.finishedPosition).length;
+      // Count tokens that actually reached the goal according to core logic
+      final tokensHome = player.pieces.where((piece) => piece.isSafe).length;
       finalScores[player.id] = tokensHome;
     }
 

@@ -1,36 +1,34 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:flutter/foundation.dart';
+import 'dart:math' as math;
+// Removed SVG/foundation imports to simplify and avoid dead code
 import 'package:ludo_club/constants/game_constants.dart';
 
 class DiceWidget extends StatefulWidget {
-  final Function(int) onRoll;
+  final Future<void> Function()? onRoll;
   final bool isEnabled;
   final double size;
   final int? currentDiceValue; // Add parameter for actual dice value
 
   const DiceWidget({
-    Key? key, 
-    required this.onRoll,
+    super.key,
+    this.onRoll,
     this.isEnabled = true,
     this.size = 60,
     this.currentDiceValue, // Optional current dice value from game
-  }) : super(key: key);
+  });
 
   @override
   State<DiceWidget> createState() => _DiceWidgetState();
 }
 
-class _DiceWidgetState extends State<DiceWidget> 
-    with TickerProviderStateMixin {
+class _DiceWidgetState extends State<DiceWidget> with TickerProviderStateMixin {
   int currentValue = 1;
   bool isRolling = false;
-  
+
   late AnimationController _rotationController;
   late AnimationController _scaleController;
   late AnimationController _shakeController;
-  
+
   late Animation<double> _rotationAnimation;
   late Animation<double> _scaleAnimation;
   late Animation<double> _shakeAnimation;
@@ -38,23 +36,26 @@ class _DiceWidgetState extends State<DiceWidget>
   @override
   void initState() {
     super.initState();
-    
+
     // Set initial dice value
     currentValue = widget.currentDiceValue ?? 1;
-    
+
     _rotationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: GameConstants.diceAnimationDuration),
+      duration:
+          const Duration(milliseconds: GameConstants.diceAnimationDuration),
     );
-    
+
     _scaleController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: GameConstants.bounceAnimationDuration),
+      duration:
+          const Duration(milliseconds: GameConstants.bounceAnimationDuration),
     );
-    
+
     _shakeController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: GameConstants.shakeAnimationDuration),
+      duration:
+          const Duration(milliseconds: GameConstants.shakeAnimationDuration),
     );
 
     _rotationAnimation = Tween<double>(
@@ -85,9 +86,9 @@ class _DiceWidgetState extends State<DiceWidget>
   @override
   void didUpdateWidget(DiceWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    
+
     // Update dice value when it changes from GameProvider
-    if (widget.currentDiceValue != null && 
+    if (widget.currentDiceValue != null &&
         widget.currentDiceValue != oldWidget.currentDiceValue &&
         !isRolling) {
       setState(() {
@@ -116,52 +117,44 @@ class _DiceWidgetState extends State<DiceWidget>
       _rotationController.forward(from: 0);
       _shakeController.forward(from: 0);
       // Keep pulse minimal to avoid jank
-      
+
       // Simulate rolling with a few value changes (fast)
       for (int i = 0; i < GameConstants.diceRollSteps; i++) {
-        await Future.delayed(const Duration(milliseconds: GameConstants.diceRollStepDelay));
+        await Future.delayed(
+            const Duration(milliseconds: GameConstants.diceRollStepDelay));
         if (mounted) {
           setState(() {
-            currentValue = math.Random().nextInt(GameConstants.diceSides) + 1;
+            currentValue = currentValue % GameConstants.diceSides + 1;
           });
         }
       }
 
       // End animation and wait briefly for GameProvider to provide the actual value
       await Future.delayed(const Duration(milliseconds: 60));
-      
-      if (mounted) {
-        setState(() {
-          isRolling = false;
-        });
-        
-        // Animations will complete naturally with their duration
-        
-        // Call the callback to trigger game logic
-        // The GameProvider will set the actual dice value
-        widget.onRoll(0); // Pass 0 as placeholder, GameProvider handles actual dice roll
-        
-        // Wait a bit for the GameProvider to update, then show bounce effect
-        await Future.delayed(const Duration(milliseconds: 50));
-        if (mounted) {
-          // Use the value from GameProvider if available, otherwise keep current
-          if (widget.currentDiceValue != null && widget.currentDiceValue! > 0) {
-            setState(() {
-              currentValue = widget.currentDiceValue!;
-            });
-          }
-          
-          // Quick bounce effect on landing
-          _scaleController.forward().then((_) {
-            if (mounted) {
-              _scaleController.reverse();
-            }
-          });
-          
-          // Simple completion effect (removed complex glow)
-          // The bounce effect is sufficient visual feedback
-        }
+      await widget.onRoll?.call();
+
+      if (!mounted) {
+        return;
       }
+
+      setState(() {
+        isRolling = false;
+        if (widget.currentDiceValue != null && widget.currentDiceValue! > 0) {
+          currentValue = widget.currentDiceValue!;
+        }
+      });
+
+      // Wait a bit for the GameProvider to update, then show bounce effect
+      await Future.delayed(const Duration(milliseconds: 50));
+      if (!mounted) {
+        return;
+      }
+
+      _scaleController.forward().then((_) {
+        if (mounted) {
+          _scaleController.reverse();
+        }
+      });
     } catch (e) {
       // Reset state if something goes wrong
       if (mounted) {
@@ -172,28 +165,7 @@ class _DiceWidgetState extends State<DiceWidget>
     }
   }
 
-  Widget _buildDiceFace() {
-    // Prefer robust fallback across platforms to avoid SVG hiccups
-    const bool preferSvgDice = false;
-
-    if (!preferSvgDice || kIsWeb) {
-      return _buildFallbackDice();
-    }
-
-    // SVG with placeholder fallback if load/render fails asynchronously
-    return SvgPicture.asset(
-      'assets/dice/dice_$currentValue.svg',
-      width: widget.size * 0.8,
-      height: widget.size * 0.8,
-      placeholderBuilder: (_) => _buildFallbackDice(),
-      colorFilter: widget.isEnabled
-          ? null
-          : ColorFilter.mode(
-              Colors.grey.shade600,
-              BlendMode.srcIn,
-            ),
-    );
-  }
+  Widget _buildDiceFace() => _buildFallbackDice();
 
   Widget _buildFallbackDice() {
     return Container(
@@ -202,10 +174,10 @@ class _DiceWidgetState extends State<DiceWidget>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.black, width: 2),
+        border: Border.all(width: 2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 4,
             offset: const Offset(2, 2),
           ),
@@ -220,7 +192,7 @@ class _DiceWidgetState extends State<DiceWidget>
       builder: (context, constraints) {
         final dotSize = constraints.maxWidth * 0.15;
         final spacing = constraints.maxWidth * 0.25;
-        
+
         switch (currentValue) {
           case 1:
             return Center(
@@ -260,31 +232,49 @@ class _DiceWidgetState extends State<DiceWidget>
           case 4:
             return Stack(
               children: [
-                Positioned(left: spacing, top: spacing, child: _buildDot(dotSize)),
-                Positioned(right: spacing, top: spacing, child: _buildDot(dotSize)),
-                Positioned(left: spacing, bottom: spacing, child: _buildDot(dotSize)),
-                Positioned(right: spacing, bottom: spacing, child: _buildDot(dotSize)),
+                Positioned(
+                    left: spacing, top: spacing, child: _buildDot(dotSize)),
+                Positioned(
+                    right: spacing, top: spacing, child: _buildDot(dotSize)),
+                Positioned(
+                    left: spacing, bottom: spacing, child: _buildDot(dotSize)),
+                Positioned(
+                    right: spacing, bottom: spacing, child: _buildDot(dotSize)),
               ],
             );
           case 5:
             return Stack(
               children: [
-                Positioned(left: spacing, top: spacing, child: _buildDot(dotSize)),
-                Positioned(right: spacing, top: spacing, child: _buildDot(dotSize)),
+                Positioned(
+                    left: spacing, top: spacing, child: _buildDot(dotSize)),
+                Positioned(
+                    right: spacing, top: spacing, child: _buildDot(dotSize)),
                 Center(child: _buildDot(dotSize)),
-                Positioned(left: spacing, bottom: spacing, child: _buildDot(dotSize)),
-                Positioned(right: spacing, bottom: spacing, child: _buildDot(dotSize)),
+                Positioned(
+                    left: spacing, bottom: spacing, child: _buildDot(dotSize)),
+                Positioned(
+                    right: spacing, bottom: spacing, child: _buildDot(dotSize)),
               ],
             );
           case 6:
             return Stack(
               children: [
-                Positioned(left: spacing, top: spacing, child: _buildDot(dotSize)),
-                Positioned(right: spacing, top: spacing, child: _buildDot(dotSize)),
-                Positioned(left: spacing, top: constraints.maxHeight / 2 - dotSize / 2, child: _buildDot(dotSize)),
-                Positioned(right: spacing, top: constraints.maxHeight / 2 - dotSize / 2, child: _buildDot(dotSize)),
-                Positioned(left: spacing, bottom: spacing, child: _buildDot(dotSize)),
-                Positioned(right: spacing, bottom: spacing, child: _buildDot(dotSize)),
+                Positioned(
+                    left: spacing, top: spacing, child: _buildDot(dotSize)),
+                Positioned(
+                    right: spacing, top: spacing, child: _buildDot(dotSize)),
+                Positioned(
+                    left: spacing,
+                    top: constraints.maxHeight / 2 - dotSize / 2,
+                    child: _buildDot(dotSize)),
+                Positioned(
+                    right: spacing,
+                    top: constraints.maxHeight / 2 - dotSize / 2,
+                    child: _buildDot(dotSize)),
+                Positioned(
+                    left: spacing, bottom: spacing, child: _buildDot(dotSize)),
+                Positioned(
+                    right: spacing, bottom: spacing, child: _buildDot(dotSize)),
               ],
             );
           default:
@@ -308,10 +298,10 @@ class _DiceWidgetState extends State<DiceWidget>
   @override
   Widget build(BuildContext context) {
     // Build box shadows without collection-if to avoid parser issues
-    List<BoxShadow> _buildShadows() {
+    List<BoxShadow> buildShadows() {
       final shadows = <BoxShadow>[
-          BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.3),
           blurRadius: isRolling ? 15 : 6,
           spreadRadius: isRolling ? 3 : 1,
           offset: const Offset(0, 3),
@@ -320,10 +310,9 @@ class _DiceWidgetState extends State<DiceWidget>
       if (isRolling) {
         shadows.add(
           BoxShadow(
-            color: Colors.blue.withOpacity(0.4),
+            color: Colors.blue.withValues(alpha: 0.4),
             blurRadius: 20,
             spreadRadius: 3,
-            offset: const Offset(0, 0),
           ),
         );
       }
@@ -350,8 +339,10 @@ class _DiceWidgetState extends State<DiceWidget>
               scale: _scaleAnimation.value,
               child: Transform.translate(
                 offset: Offset(
-                  math.sin(_shakeAnimation.value * 6 * math.pi) * shakeIntensity,
-                  math.cos(_shakeAnimation.value * 4 * math.pi) * (shakeIntensity * 0.7),
+                  math.sin(_shakeAnimation.value * 6 * math.pi) *
+                      shakeIntensity,
+                  math.cos(_shakeAnimation.value * 4 * math.pi) *
+                      (shakeIntensity * 0.7),
                 ),
                 child: Transform.rotate(
                   angle: _rotationAnimation.value * 2 * math.pi,
@@ -360,7 +351,7 @@ class _DiceWidgetState extends State<DiceWidget>
                     height: widget.size,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
-                      boxShadow: _buildShadows(),
+                      boxShadow: buildShadows(),
                       gradient: widget.isEnabled
                           ? const LinearGradient(
                               begin: Alignment.topLeft,
@@ -395,10 +386,10 @@ class _DiceWidgetState extends State<DiceWidget>
                               gradient: LinearGradient(
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
-                              colors: <Color>[
-                                  Colors.blue.withOpacity(0.15),
-                                  Colors.purple.withOpacity(0.15),
-                                  Colors.cyan.withOpacity(0.10),
+                                colors: <Color>[
+                                  Colors.blue.withValues(alpha: 0.15),
+                                  Colors.purple.withValues(alpha: 0.15),
+                                  Colors.cyan.withValues(alpha: 0.10),
                                 ],
                               ),
                             ),

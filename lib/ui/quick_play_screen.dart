@@ -8,6 +8,9 @@ import 'package:ludo_club/models/ludo_objects.dart';
 import 'package:ludo_club/services/ai_service.dart';
 import 'package:ludo_club/ui/game_screen.dart';
 import 'package:ludo_club/constants/game_constants.dart';
+import 'package:ludo_club/models/game_rules.dart';
+import 'package:ludo_club/widgets/rule_summary_chips.dart';
+import 'package:ludo_club/services/rule_preset_service.dart';
 
 class QuickPlayScreen extends StatefulWidget {
   const QuickPlayScreen({super.key, this.onStart});
@@ -41,11 +44,20 @@ class _QuickPlayScreenState extends State<QuickPlayScreen> {
   int _selectedColorIndex = 0;
   int _totalPlayers = 3; // 2..4
   AIDifficulty _difficulty = AIDifficulty.intermediate;
+  GameRules _rules = GameRules.standard;
+  List<RulePreset> _customPresets = [];
+  String _selectedPresetId = _PresetOption.standardId;
 
   @override
   void dispose() {
     _nameCtrl.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCustomPresets();
   }
 
   TextStyle get _titleStyle =>
@@ -59,8 +71,6 @@ class _QuickPlayScreenState extends State<QuickPlayScreen> {
     final theme = Theme.of(context);
     final headline = _titleStyle.copyWith(fontSize: 24);
     final bgGradient = const LinearGradient(
-      begin: Alignment.centerLeft,
-      end: Alignment.centerRight,
       colors: [Color(0xFF5D4BFF), Color(0xFF2EB9FF)],
     );
 
@@ -72,14 +82,16 @@ class _QuickPlayScreenState extends State<QuickPlayScreen> {
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 900),
-                child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  child: Column(
-                    children: [
+              child: SingleChildScrollView(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Column(
+                  children: [
                     Row(
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.arrow_back, color: Colors.white),
+                          icon:
+                              const Icon(Icons.arrow_back, color: Colors.white),
                           onPressed: () => Navigator.maybePop(context),
                           tooltip: 'Back',
                         ),
@@ -91,13 +103,12 @@ class _QuickPlayScreenState extends State<QuickPlayScreen> {
                       ],
                     ),
                     const SizedBox(height: 12),
-
                     _GlassCard(
                       padding: const EdgeInsets.all(24),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          const Icon(Icons.flash_on, color: Color(0xFFFFD700), size: 40),
+                          const Icon(Icons.flash_on,
+                              color: Color(0xFFFFD700), size: 40),
                           const SizedBox(height: 8),
                           _UnderlinedAccentTitle('Quick Play',
                               textStyle: _titleStyle.copyWith(
@@ -105,36 +116,39 @@ class _QuickPlayScreenState extends State<QuickPlayScreen> {
                                 letterSpacing: 0.2,
                               )),
                           const SizedBox(height: 8),
-                          Text('Jump right into the action against AI opponents!',
-                              style: _bodyStyle.copyWith(color: Colors.white.withOpacity(.85))),
+                          Text(
+                              'Jump right into the action against AI opponents!',
+                              style: _bodyStyle.copyWith(
+                                  color: Colors.white.withValues(alpha: .85))),
                         ],
                       ),
                     ),
-
-              const SizedBox(height: 16),
-
+                    const SizedBox(height: 16),
                     _SectionCard(
                       titleIcon: Icons.person,
                       title: 'Player Settings',
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      TextField(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          TextField(
                             controller: _nameCtrl,
                             style: GoogleFonts.poppins(),
-                        decoration: InputDecoration(
+                            decoration: InputDecoration(
                               hintText: 'Your Name',
                               prefixIcon: const Icon(Icons.account_circle),
                               filled: true,
                               fillColor: Colors.white,
-                              contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-                          border: OutlineInputBorder(
+                              contentPadding: const EdgeInsets.symmetric(
+                                  vertical: 14, horizontal: 12),
+                              border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(14),
-                                borderSide: const BorderSide(color: Color(0xFFD1D5DB)),
+                                borderSide:
+                                    const BorderSide(color: Color(0xFFD1D5DB)),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(14),
-                                borderSide: BorderSide(color: theme.colorScheme.primary, width: 2),
+                                borderSide: BorderSide(
+                                    color: theme.colorScheme.primary, width: 2),
                               ),
                             ),
                           ),
@@ -155,19 +169,21 @@ class _QuickPlayScreenState extends State<QuickPlayScreen> {
                                   _ColorCircle(
                                     color: _uiColors[i],
                                     selected: selected,
-                                    onTap: () => setState(() => _selectedColorIndex = i),
+                                    onTap: () =>
+                                        setState(() => _selectedColorIndex = i),
                                   ),
                                   if (selected)
                                     Positioned(
                                       right: -6,
                                       top: -6,
-                            child: Container(
+                                      child: Container(
                                         padding: const EdgeInsets.all(3),
-                              decoration: BoxDecoration(
+                                        decoration: BoxDecoration(
                                           color: Colors.white,
-                                          borderRadius: BorderRadius.circular(999),
+                                          borderRadius:
+                                              BorderRadius.circular(999),
                                           boxShadow: const [
-                                                                                 BoxShadow(
+                                            BoxShadow(
                                               blurRadius: 6,
                                               offset: Offset(0, 2),
                                               color: Color(0x1A000000),
@@ -181,18 +197,16 @@ class _QuickPlayScreenState extends State<QuickPlayScreen> {
                                 ],
                               );
                             }),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
-
-              const SizedBox(height: 16),
-
+                    ),
+                    const SizedBox(height: 16),
                     _SectionCard(
                       titleIcon: Icons.smart_toy,
                       title: 'AI Opponents',
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('Total Players: $_totalPlayers',
                               style: GoogleFonts.poppins(
@@ -206,7 +220,8 @@ class _QuickPlayScreenState extends State<QuickPlayScreen> {
                             max: 4,
                             divisions: 2,
                             label: '$_totalPlayers',
-                            onChanged: (v) => setState(() => _totalPlayers = v.round()),
+                            onChanged: (v) =>
+                                setState(() => _totalPlayers = v.round()),
                           ),
                           const SizedBox(height: 6),
                           Text(
@@ -242,9 +257,64 @@ class _QuickPlayScreenState extends State<QuickPlayScreen> {
                         ],
                       ),
                     ),
-
-                    const Spacer(),
-
+                    const SizedBox(height: 16),
+                    _SectionCard(
+                      titleIcon: Icons.rule,
+                      title: 'Rules',
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Select rule preset',
+                              style: GoogleFonts.poppins(
+                                color: const Color(0xFF4B5563),
+                                fontWeight: FontWeight.w500,
+                              )),
+                          const SizedBox(height: 10),
+                          DropdownButtonFormField<String>(
+                            key: ValueKey(_selectedPresetId),
+                            initialValue: _selectedPresetId,
+                            borderRadius: BorderRadius.circular(12),
+                            items: _presetOptions
+                                .map((option) => DropdownMenuItem<String>(
+                                      value: option.id,
+                                      child: Text(option.label),
+                                    ))
+                                .toList(),
+                            onChanged: (value) {
+                              if (value == null) return;
+                              final option = _presetOptions
+                                  .firstWhere((element) => element.id == value);
+                              setState(() {
+                                _selectedPresetId = option.id;
+                                _rules = option.rules;
+                              });
+                            },
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _rulesDescription(_rules),
+                            style: GoogleFonts.poppins(
+                              color: const Color(0xFF6B7280),
+                              fontSize: 12.5,
+                            ),
+                          ),
+                          if (_differenceSummary(_rules).isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Text(
+                                _differenceSummary(_rules),
+                                style: GoogleFonts.poppins(
+                                  color: const Color(0xFF9CA3AF),
+                                  fontSize: 11.5,
+                                ),
+                              ),
+                            ),
+                          const SizedBox(height: 10),
+                          RuleSummaryChips(rules: _rules),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     SizedBox(
                       width: double.infinity,
                       child: _ElevatedBigButton(
@@ -253,6 +323,7 @@ class _QuickPlayScreenState extends State<QuickPlayScreen> {
                         onPressed: _onStartPressed,
                       ),
                     ),
+                    const SizedBox(height: 8),
                   ],
                 ),
               ),
@@ -279,12 +350,11 @@ class _QuickPlayScreenState extends State<QuickPlayScreen> {
     players.add(Player(
       id: 'human_player',
       name: humanName,
-      type: PlayerType.human,
       color: selectedPlayerColor,
       pieces: List.generate(
         GameConstants.tokensPerPlayer,
         (j) => Piece(selectedPlayerColor, j,
-            const PiecePosition(GameState.basePosition, isHome: true)),
+            const PiecePosition(GameState.basePosition)),
       ),
     ));
 
@@ -297,25 +367,169 @@ class _QuickPlayScreenState extends State<QuickPlayScreen> {
       final c = remainingColors[i];
       players.add(Player(
         id: 'ai_player_${i + 1}',
-        name: '${_difficulty.name[0].toUpperCase()}${_difficulty.name.substring(1)} AI ${i + 1}',
+        name:
+            '${_difficulty.name[0].toUpperCase()}${_difficulty.name.substring(1)} AI ${i + 1}',
         type: PlayerType.ai,
         color: c,
         aiDifficulty: _difficulty,
         pieces: List.generate(
           GameConstants.tokensPerPlayer,
-          (j) => Piece(c, j, const PiecePosition(GameState.basePosition, isHome: true)),
+          (j) => Piece(c, j, const PiecePosition(GameState.basePosition)),
         ),
       ));
     }
 
     final gameProvider = Provider.of<GameProvider>(context, listen: false);
+    gameProvider.setRules(_rules);
     gameProvider.startNewGame(players);
 
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const GameScreen()),
     );
   }
+
+  List<_PresetOption> get _presetOptions {
+    final customOptions = _customPresets
+        .map((preset) => _PresetOption(
+              id: 'custom:${preset.id}',
+              label: '${preset.name} (Custom)',
+              rules: preset.rules,
+              isCustom: true,
+            ))
+        .toList();
+    return [..._builtinPresetOptions, ...customOptions];
+  }
+
+  Future<void> _loadCustomPresets() async {
+    final service = await RulePresetService.create();
+    final presets = await service.getPresets();
+    if (!mounted) return;
+    GameRules updatedRules = _rules;
+    String selectedId = _selectedPresetId;
+    if (selectedId.startsWith('custom:')) {
+      final id = selectedId.substring('custom:'.length);
+      RulePreset? match;
+      for (final preset in presets) {
+        if (preset.id == id) {
+          match = preset;
+          break;
+        }
+      }
+      if (match == null) {
+        selectedId = _PresetOption.standardId;
+        updatedRules = GameRules.standard;
+      } else {
+        updatedRules = match.rules;
+      }
+    }
+    setState(() {
+      _customPresets = presets;
+      _selectedPresetId = selectedId;
+      _rules = updatedRules;
+    });
+  }
 }
+
+String _rulesDescription(GameRules rules) {
+  return 'Exact finish: ${rules.exactRollToFinish ? 'On' : 'Off'} · '
+      'Extra turn on 6: ${rules.extraTurnOnSix ? 'On' : 'Off'} · '
+      'Extra turn on capture: ${rules.extraTurnOnCapture ? 'On' : 'Off'}';
+}
+
+String _differenceSummary(GameRules rules) {
+  final standard = GameRules.standard;
+  final differences = <String>[];
+  void add(String label) => differences.add(label);
+
+  if (rules.mustRollSixToStart != standard.mustRollSixToStart) {
+    add(rules.mustRollSixToStart ? 'Requires six to start' : 'Free start');
+  }
+  if (rules.safeFieldsEnabled != standard.safeFieldsEnabled) {
+    add(rules.safeFieldsEnabled ? 'Safe tiles enabled' : 'Safe tiles disabled');
+  }
+  if (rules.extraTurnOnSix != standard.extraTurnOnSix) {
+    add(rules.extraTurnOnSix ? 'Extra turn on six' : 'No extra turn on six');
+  }
+  if (rules.extraTurnOnCapture != standard.extraTurnOnCapture) {
+    add(rules.extraTurnOnCapture
+        ? 'Extra turn on capture'
+        : 'No capture bonus');
+  }
+  if (rules.captureReturnsToHome != standard.captureReturnsToHome) {
+    add(rules.captureReturnsToHome
+        ? 'Captures reset tokens'
+        : 'Captures stay on tile');
+  }
+  if (rules.multipleOccupancyAllowed != standard.multipleOccupancyAllowed) {
+    add(rules.multipleOccupancyAllowed
+        ? 'Stacking allowed'
+        : 'Single occupancy');
+  }
+  if (rules.exactRollToFinish != standard.exactRollToFinish) {
+    add(rules.exactRollToFinish
+        ? 'Exact roll required to finish'
+        : 'Flexible finish');
+  }
+  if (rules.piecesToWin != standard.piecesToWin) {
+    add('Win with ${rules.piecesToWin} pieces');
+  }
+  if (rules.maxConsecutiveSixes != standard.maxConsecutiveSixes) {
+    add('${rules.maxConsecutiveSixes}× six limit');
+  }
+  if (differences.isEmpty) {
+    return '';
+  }
+  return 'Differs from standard: ${differences.join(', ')}';
+}
+
+class _PresetOption {
+  static const String standardId = 'builtin:standard';
+
+  const _PresetOption({
+    required this.id,
+    required this.label,
+    required this.rules,
+    required this.isCustom,
+  });
+
+  final String id;
+  final String label;
+  final GameRules rules;
+  final bool isCustom;
+}
+
+const List<_PresetOption> _builtinPresetOptions = [
+  _PresetOption(
+    id: _PresetOption.standardId,
+    label: 'Standard',
+    rules: GameRules.standard,
+    isCustom: false,
+  ),
+  _PresetOption(
+    id: 'builtin:quick',
+    label: 'Quick Play',
+    rules: GameRules.quickPlay,
+    isCustom: false,
+  ),
+  _PresetOption(
+    id: 'builtin:beginner',
+    label: 'Beginner',
+    rules: GameRules.beginner,
+    isCustom: false,
+  ),
+  _PresetOption(
+    id: 'builtin:expert',
+    label: 'Expert',
+    rules: GameRules.expert,
+    isCustom: false,
+  ),
+  _PresetOption(
+    id: 'builtin:chaos',
+    label: 'Chaos',
+    rules: GameRules.chaos,
+    isCustom: false,
+  ),
+];
 
 class _GlassCard extends StatelessWidget {
   const _GlassCard({required this.child, this.padding});
@@ -332,7 +546,7 @@ class _GlassCard extends StatelessWidget {
         child: Container(
           padding: padding ?? const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.18),
+            color: Colors.white.withValues(alpha: 0.18),
             borderRadius: BorderRadius.circular(22),
             boxShadow: const [
               BoxShadow(
@@ -583,7 +797,9 @@ class _DifficultySegmented extends StatelessWidget {
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
                   decoration: BoxDecoration(
-                    color: value == diff ? const Color(0xFF3B82F6) : Colors.transparent,
+                    color: value == diff
+                        ? const Color(0xFF3B82F6)
+                        : Colors.transparent,
                     borderRadius: BorderRadius.circular(10),
                     boxShadow: value == diff
                         ? const [
@@ -604,7 +820,9 @@ class _DifficultySegmented extends StatelessWidget {
                         child: Text(
                           label,
                           style: GoogleFonts.poppins(
-                            color: value == diff ? Colors.white : const Color(0xFF374151),
+                            color: value == diff
+                                ? Colors.white
+                                : const Color(0xFF374151),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -642,7 +860,8 @@ class _ElevatedBigButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 6),
           child: Text(
             label,
-            style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w700),
+            style:
+                GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w700),
           ),
         ),
         style: ElevatedButton.styleFrom(
@@ -650,12 +869,13 @@ class _ElevatedBigButton extends StatelessWidget {
           foregroundColor: Colors.white,
           shadowColor: const Color(0x33000000),
           elevation: 6,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           padding: const EdgeInsets.symmetric(vertical: 16),
         ).copyWith(
-          overlayColor: MaterialStateProperty.resolveWith(
-            (states) => states.contains(MaterialState.pressed)
-                ? const Color(0xFFFF7A1A).withOpacity(.85)
+          overlayColor: WidgetStateProperty.resolveWith(
+            (states) => states.contains(WidgetState.pressed)
+                ? const Color(0xFFFF7A1A).withValues(alpha: .85)
                 : null,
           ),
         ),
@@ -664,5 +884,3 @@ class _ElevatedBigButton extends StatelessWidget {
     );
   }
 }
-
-
