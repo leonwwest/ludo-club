@@ -11,8 +11,7 @@ import 'package:ludo_club/services/ai_service.dart';
 import 'package:ludo_club/constants/game_constants.dart';
 
 class GameProvider extends ChangeNotifier {
-
-  final AudioService _audioService;
+  final AudioServiceBase _audioService;
   final AIService _aiService;
   final Random _random;
 
@@ -21,13 +20,13 @@ class GameProvider extends ChangeNotifier {
   PlayerColor? _reachedHomePlayerId;
   int? _reachedHomeTokenIndex;
   int _consecutiveSixes = 0; // Track consecutive 6s per active player
-  
+
   bool _showCaptureEffect = false;
   PlayerColor? _capturedPlayerId;
   int? _capturedTokenIndex;
 
   GameProvider({
-    AudioService? audioService,
+    AudioServiceBase? audioService,
     AIService? aiService,
     Random? random,
   })  : _audioService = audioService ?? AudioService(),
@@ -43,8 +42,8 @@ class GameProvider extends ChangeNotifier {
     await _audioService.init();
   }
 
-    late GameState _gameState;
-  
+  late GameState _gameState;
+
   // Performance cache
   List<Piece>? _cachedMovablePieces;
   int? _lastDiceForCache;
@@ -54,7 +53,7 @@ class GameProvider extends ChangeNotifier {
   bool get showReachedHomeEffect => _showReachedHomeEffect;
   PlayerColor? get reachedHomePlayerId => _reachedHomePlayerId;
   int? get reachedHomeTokenIndex => _reachedHomeTokenIndex;
-  
+
   bool get showCaptureEffect => _showCaptureEffect;
   PlayerColor? get capturedPlayerId => _capturedPlayerId;
   int? get capturedTokenIndex => _capturedTokenIndex;
@@ -64,7 +63,7 @@ class GameProvider extends ChangeNotifier {
     _reachedHomePlayerId = null;
     _reachedHomeTokenIndex = null;
   }
-  
+
   void clearCaptureEffect() {
     _showCaptureEffect = false;
     _capturedPlayerId = null;
@@ -88,18 +87,21 @@ class GameProvider extends ChangeNotifier {
 
     try {
       // Add a small delay to make AI feel more natural
-      await Future.delayed(Duration(milliseconds: 500 + _random.nextInt(1000)));
-      
+      final baseDelay = 500 + _random.nextInt(1000);
+      final adjustedDelay =
+          (baseDelay * _gameState.rules.aiThinkingTimeMultiplier).round();
+      if (adjustedDelay > 0) {
+        await Future.delayed(Duration(milliseconds: adjustedDelay));
+      }
+
       // AI rolls dice
       await rollDice();
-      
+
       // If there are movable pieces, AI makes a move
       if (_gameState.phase == GamePhase.waitingForMove) {
-        final aiDecision = await _aiService.makeMove(
-          _gameState, 
-          _gameState.currentPlayer.aiDifficulty ?? AIDifficulty.beginner
-        );
-        
+        final aiDecision = await _aiService.makeMove(_gameState,
+            _gameState.currentPlayer.aiDifficulty ?? AIDifficulty.beginner);
+
         if (aiDecision.selectedPiece != null) {
           await movePiece(aiDecision.selectedPiece!);
         }
@@ -121,7 +123,9 @@ class GameProvider extends ChangeNotifier {
       unawaited(_audioService.playDiceSound());
 
       final diceValue = _random.nextInt(GameConstants.diceSides) + 1;
-      _gameState = _gameState.copyWith(lastDiceValue: diceValue, currentRollCount: _gameState.currentRollCount + 1);
+      _gameState = _gameState.copyWith(
+          lastDiceValue: diceValue,
+          currentRollCount: _gameState.currentRollCount + 1);
       notifyListeners(); // Notify immediately so DiceWidget can show correct value
 
       // Handle 3x6 rule (maxConsecutiveSixes from rules)
@@ -156,8 +160,6 @@ class GameProvider extends ChangeNotifier {
     }
   }
 
-
-
   Future<void> movePiece(Piece pieceToMove) async {
     if (_gameState.phase != GamePhase.waitingForMove) {
       return;
@@ -179,7 +181,7 @@ class GameProvider extends ChangeNotifier {
 
     final moveResult = LudoGame.movePiece(_gameState, pieceToMove);
     _gameState = moveResult.newState;
-    
+
     // Clear performance cache after move
     _cachedMovablePieces = null;
     _lastDiceForCache = null;
@@ -187,11 +189,11 @@ class GameProvider extends ChangeNotifier {
     // Handle captured piece
     if (moveResult.capturedOpponentPiece != null) {
       final captured = moveResult.capturedOpponentPiece!;
-      
+
       _showCaptureEffect = true;
       _capturedPlayerId = captured.color;
       _capturedTokenIndex = captured.id;
-      
+
       await _audioService.playCaptureSound();
     } else if (moveResult.isFinishMove) {
       _showReachedHomeEffect = true;
@@ -213,7 +215,8 @@ class GameProvider extends ChangeNotifier {
     final rules = _gameState.rules;
     final gotSix = _gameState.lastDiceValue == 6;
     final gotCapture = moveResult.capturedOpponentPiece != null;
-    final getExtraTurn = (rules.extraTurnOnSix && gotSix) || (rules.extraTurnOnCapture && gotCapture);
+    final getExtraTurn = (rules.extraTurnOnSix && gotSix) ||
+        (rules.extraTurnOnCapture && gotCapture);
     if (getExtraTurn) {
       nextTurn().catchError((error) {
         // Handle errors gracefully to prevent crashes
@@ -225,7 +228,8 @@ class GameProvider extends ChangeNotifier {
 
   void _advanceToNextPlayer() {
     final playerColors = _gameState.players.map((p) => p.color).toList();
-    final currentPlayerIndex = playerColors.indexOf(_gameState.currentTurnPlayerId);
+    final currentPlayerIndex =
+        playerColors.indexOf(_gameState.currentTurnPlayerId);
     final nextPlayerIndex = (currentPlayerIndex + 1) % playerColors.length;
     _gameState = _gameState.copyWith(
       currentTurnPlayerId: playerColors[nextPlayerIndex],
@@ -233,11 +237,11 @@ class GameProvider extends ChangeNotifier {
       currentRollCount: 0,
     );
     _consecutiveSixes = 0; // reset consecutive 6s on player change
-    
+
     // Clear performance cache on player change
     _cachedMovablePieces = null;
     _lastDiceForCache = null;
-    
+
     nextTurn().catchError((error) {
       // Handle errors gracefully to prevent crashes
     });
@@ -245,15 +249,16 @@ class GameProvider extends ChangeNotifier {
 
   List<Piece> getMovablePieces() {
     // Use cache if dice value hasn't changed
-    if (_cachedMovablePieces != null && _lastDiceForCache == _gameState.lastDiceValue) {
+    if (_cachedMovablePieces != null &&
+        _lastDiceForCache == _gameState.lastDiceValue) {
       return _cachedMovablePieces!;
     }
-    
+
     // Calculate and cache result
     final movablePieces = LudoGame.getMovablePieces(_gameState);
     _cachedMovablePieces = movablePieces;
     _lastDiceForCache = _gameState.lastDiceValue;
-    
+
     return movablePieces;
   }
 
@@ -299,16 +304,22 @@ class GameProvider extends ChangeNotifier {
         id: 'player1',
         name: 'Player 1',
         color: PlayerColor.red,
-        pieces: List.generate(GameConstants.tokensPerPlayer, (j) => Piece(PlayerColor.red, j, const PiecePosition(GameState.basePosition))),
+        pieces: List.generate(
+            GameConstants.tokensPerPlayer,
+            (j) => Piece(PlayerColor.red, j,
+                const PiecePosition(GameState.basePosition))),
       ),
       Player(
-        id: 'player2', 
+        id: 'player2',
         name: 'Player 2',
         color: PlayerColor.green,
-        pieces: List.generate(GameConstants.tokensPerPlayer, (j) => Piece(PlayerColor.green, j, const PiecePosition(GameState.basePosition))),
+        pieces: List.generate(
+            GameConstants.tokensPerPlayer,
+            (j) => Piece(PlayerColor.green, j,
+                const PiecePosition(GameState.basePosition))),
       ),
     ];
-    
+
     return GameState(
       players: defaultPlayers,
       currentTurnPlayerId: PlayerColor.red,
@@ -321,21 +332,22 @@ class GameProvider extends ChangeNotifier {
     if (playersFromUI.isEmpty) {
       return;
     }
-    
+
     if (playersFromUI.length < 2 || playersFromUI.length > 4) {
       return;
     }
-    
+
     // Ensure no duplicate colors
     final colors = playersFromUI.map((p) => p.color).toSet();
     if (colors.length != playersFromUI.length) {
       return;
     }
-    
+
     _gameState = GameState(
       players: playersFromUI,
       currentTurnPlayerId: playersFromUI.first.color,
       startIndices: LudoGame.startFields,
+      rules: _gameState.rules,
     );
     notifyListeners();
     nextTurn().catchError((error) {

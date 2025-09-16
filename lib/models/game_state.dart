@@ -11,7 +11,7 @@ class Player {
   final String name;
   final PlayerType type;
   final PlayerColor color;
-  List<Piece> pieces;
+  final List<Piece> pieces;
   final AIDifficulty? aiDifficulty; // Add AI difficulty level
 
   Player({
@@ -19,9 +19,9 @@ class Player {
     required this.name,
     this.type = PlayerType.human,
     required this.color,
-    required this.pieces,
+    required List<Piece> pieces,
     this.aiDifficulty, // Optional AI difficulty
-  });
+  }) : pieces = List.unmodifiable(pieces);
 
   bool get isAI => type == PlayerType.ai;
 
@@ -50,7 +50,8 @@ class Player {
         return Piece.fromString(p.toString());
       }).toList(),
       aiDifficulty: json['aiDifficulty'] != null
-          ? _parseEnumSafe(json['aiDifficulty'], AIDifficulty.values, AIDifficulty.beginner)
+          ? _parseEnumSafe(
+              json['aiDifficulty'], AIDifficulty.values, AIDifficulty.beginner)
           : null,
     );
   }
@@ -74,19 +75,20 @@ class GameState {
   static const int finishedPosition = GameConstants.finishedPosition;
 
   GameState({
-    required this.players,
+    required List<Player> players,
     required this.currentTurnPlayerId,
     this.lastDiceValue,
     this.currentRollCount = 0,
     this.winnerId,
     this.gameId,
-    required this.startIndices,
+    required Map<PlayerColor, int> startIndices,
     this.phase = GamePhase.waitingForRoll,
     this.rules = GameRules.standard,
-  });
+  })  : players = List.unmodifiable(players),
+        startIndices = Map.unmodifiable(startIndices);
 
   bool isSafeField(int position) {
-    return startIndices.containsValue(position);
+    return GameConstants.safeMainPathFields.contains(position);
   }
 
   Player get currentPlayer {
@@ -143,7 +145,8 @@ class GameState {
       'currentRollCount': currentRollCount,
       'winnerId': winnerId?.name,
       'gameId': gameId,
-      'startIndices': startIndices.map((key, value) => MapEntry(key.name, value)),
+      'startIndices':
+          startIndices.map((key, value) => MapEntry(key.name, value)),
       'phase': phase.name,
       'rules': rules.toJson(),
     };
@@ -155,19 +158,23 @@ class GameState {
           .map((playerJson) =>
               Player.fromJson(playerJson as Map<String, dynamic>))
           .toList(),
-      currentTurnPlayerId: _parseEnumSafe(json['currentTurnPlayerId'], PlayerColor.values, PlayerColor.red),
+      currentTurnPlayerId: _parseEnumSafe(
+          json['currentTurnPlayerId'], PlayerColor.values, PlayerColor.red),
       lastDiceValue: json['lastDiceValue'] as int?,
       currentRollCount: json['currentRollCount'] as int,
       winnerId: json['winnerId'] == null
           ? null
-          : _parseEnumSafe(json['winnerId'], PlayerColor.values, PlayerColor.red),
+          : _parseEnumSafe(
+              json['winnerId'], PlayerColor.values, PlayerColor.red),
       gameId: json['gameId'] as String?,
-      startIndices: (json['startIndices'] as Map<String, dynamic>).map((key, value) {
+      startIndices:
+          (json['startIndices'] as Map<String, dynamic>).map((key, value) {
         final color = _parseEnumSafe(key, PlayerColor.values, PlayerColor.red);
         return MapEntry(color, value as int);
       }),
-      phase: _parseEnumSafe(json['phase'], GamePhase.values, GamePhase.waitingForRoll),
-      rules: json['rules'] != null 
+      phase: _parseEnumSafe(
+          json['phase'], GamePhase.values, GamePhase.waitingForRoll),
+      rules: json['rules'] != null
           ? GameRules.fromJson(json['rules'] as Map<String, dynamic>)
           : GameRules.standard,
     );

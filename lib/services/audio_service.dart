@@ -1,6 +1,20 @@
 import 'package:just_audio/just_audio.dart';
 
-class AudioService {
+abstract class AudioServiceBase {
+  Future<void> init();
+  void setVolume(double volume);
+  void setSoundEnabled(bool enabled);
+  bool get isSoundEnabled;
+  double get volume;
+  Future<void> playDiceSound();
+  Future<void> playMoveSound();
+  Future<void> playCaptureSound();
+  Future<void> playFinishSound();
+  Future<void> playVictorySound();
+  Future<void> dispose();
+}
+
+class AudioService implements AudioServiceBase {
   static final AudioService _instance = AudioService._internal();
 
   factory AudioService() {
@@ -26,9 +40,10 @@ class AudioService {
   double _volume = 1.0;
   bool _isInitialized = false;
 
+  @override
   Future<void> init() async {
     if (_isInitialized) return;
-    
+
     try {
       await Future.wait([
         _dicePlayer.setAsset(_diceSoundPath).catchError((_) => null),
@@ -47,17 +62,21 @@ class AudioService {
     }
   }
 
+  @override
   void setVolume(double volume) {
     _volume = volume.clamp(0.0, 1.0);
     _setVolumeForAllPlayers();
   }
 
+  @override
   void setSoundEnabled(bool enabled) {
     _soundEnabled = enabled;
   }
 
+  @override
   bool get isSoundEnabled => _soundEnabled;
 
+  @override
   double get volume => _volume;
 
   void _setVolumeForAllPlayers() {
@@ -68,6 +87,7 @@ class AudioService {
     _victoryPlayer.setVolume(_volume);
   }
 
+  @override
   Future<void> playDiceSound() async {
     if (!_soundEnabled || !_isInitialized) return;
     try {
@@ -78,6 +98,7 @@ class AudioService {
     }
   }
 
+  @override
   Future<void> playMoveSound() async {
     if (!_soundEnabled || !_isInitialized) return;
     try {
@@ -88,6 +109,7 @@ class AudioService {
     }
   }
 
+  @override
   Future<void> playCaptureSound() async {
     if (!_soundEnabled || !_isInitialized) return;
     try {
@@ -98,6 +120,7 @@ class AudioService {
     }
   }
 
+  @override
   Future<void> playFinishSound() async {
     if (!_soundEnabled || !_isInitialized) return;
     try {
@@ -108,6 +131,7 @@ class AudioService {
     }
   }
 
+  @override
   Future<void> playVictorySound() async {
     if (!_soundEnabled || !_isInitialized) return;
     try {
@@ -118,6 +142,7 @@ class AudioService {
     }
   }
 
+  @override
   Future<void> dispose() async {
     await _dicePlayer.dispose();
     await _movePlayer.dispose();

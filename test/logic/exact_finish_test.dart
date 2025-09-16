@@ -20,7 +20,7 @@ GameState _stateFor(PlayerColor color, List<Piece> pieces, int lastDie, {require
 
 void main() {
   test('Exact roll required: overshoot in home lane is invalid', () {
-    final rules = const GameRules(exactRollToFinish: true);
+    final rules = const GameRules();
     final piece = Piece(PlayerColor.red, 0, const PiecePosition(4)); // home lane index 4
     final state = _stateFor(PlayerColor.red, [piece, for (int i = 1; i < 4; i++) Piece(PlayerColor.red, i, const PiecePosition(-1))], 2, rules: rules);
 
@@ -44,4 +44,3 @@ void main() {
     expect(moved.position.fieldId, LudoGame.homePathLength);
   });
 }
-

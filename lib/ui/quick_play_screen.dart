@@ -72,10 +72,10 @@ class _QuickPlayScreenState extends State<QuickPlayScreen> {
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 900),
-                child: Padding(
+              child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  child: Column(
-                    children: [
+                child: Column(
+                  children: [
                     Row(
                       children: [
                         IconButton(
@@ -285,7 +285,7 @@ class _QuickPlayScreenState extends State<QuickPlayScreen> {
                       ),
                     ),
 
-                    const Spacer(),
+                    const SizedBox(height: 16),
 
                     SizedBox(
                       width: double.infinity,
@@ -295,6 +295,7 @@ class _QuickPlayScreenState extends State<QuickPlayScreen> {
                         onPressed: _onStartPressed,
                       ),
                     ),
+                    const SizedBox(height: 8),
                   ],
                 ),
               ),

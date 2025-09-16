@@ -23,6 +23,7 @@ dev_dependencies:
     sdk: flutter
   # Bump lints to a Dart 3-compatible baseline
   flutter_lints: ^5.0.0
+  fake_async: ^1.3.1
 flutter:
   uses-material-design: true
   

@@ -301,7 +301,6 @@ class _DiceWidgetState extends State<DiceWidget>
             color: Colors.blue.withValues(alpha: 0.4),
             blurRadius: 20,
             spreadRadius: 3,
-            offset: const Offset(0, 0),
           ),
         );
       }
