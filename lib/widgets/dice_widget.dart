@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:math' as math;
 // Removed SVG/foundation imports to simplify and avoid dead code
 import 'package:ludo_club/constants/game_constants.dart';
 
