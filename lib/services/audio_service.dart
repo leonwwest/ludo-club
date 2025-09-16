@@ -23,11 +23,11 @@ class AudioService implements AudioServiceBase {
 
   AudioService._internal();
 
-  final AudioPlayer _dicePlayer = AudioPlayer();
-  final AudioPlayer _movePlayer = AudioPlayer();
-  final AudioPlayer _capturePlayer = AudioPlayer();
-  final AudioPlayer _finishPlayer = AudioPlayer();
-  final AudioPlayer _victoryPlayer = AudioPlayer();
+  AudioPlayer? _dicePlayer;
+  AudioPlayer? _movePlayer;
+  AudioPlayer? _capturePlayer;
+  AudioPlayer? _finishPlayer;
+  AudioPlayer? _victoryPlayer;
 
   static const String _diceSoundPath = 'assets/audio/dice_roll.mp3';
   static const String _moveSoundPath = 'assets/audio/move.mp3';
@@ -45,12 +45,18 @@ class AudioService implements AudioServiceBase {
     if (_isInitialized) return;
 
     try {
+      _dicePlayer ??= AudioPlayer();
+      _movePlayer ??= AudioPlayer();
+      _capturePlayer ??= AudioPlayer();
+      _finishPlayer ??= AudioPlayer();
+      _victoryPlayer ??= AudioPlayer();
+
       await Future.wait([
-        _dicePlayer.setAsset(_diceSoundPath).catchError((_) => null),
-        _movePlayer.setAsset(_moveSoundPath).catchError((_) => null),
-        _capturePlayer.setAsset(_captureSoundPath).catchError((_) => null),
-        _finishPlayer.setAsset(_finishSoundPath).catchError((_) => null),
-        _victoryPlayer.setAsset(_victorySoundPath).catchError((_) => null),
+        _dicePlayer!.setAsset(_diceSoundPath).catchError((_) => null),
+        _movePlayer!.setAsset(_moveSoundPath).catchError((_) => null),
+        _capturePlayer!.setAsset(_captureSoundPath).catchError((_) => null),
+        _finishPlayer!.setAsset(_finishSoundPath).catchError((_) => null),
+        _victoryPlayer!.setAsset(_victorySoundPath).catchError((_) => null),
       ]);
 
       _setVolumeForAllPlayers();
@@ -80,19 +86,20 @@ class AudioService implements AudioServiceBase {
   double get volume => _volume;
 
   void _setVolumeForAllPlayers() {
-    _dicePlayer.setVolume(_volume);
-    _movePlayer.setVolume(_volume);
-    _capturePlayer.setVolume(_volume);
-    _finishPlayer.setVolume(_volume);
-    _victoryPlayer.setVolume(_volume);
+    _dicePlayer?.setVolume(_volume);
+    _movePlayer?.setVolume(_volume);
+    _capturePlayer?.setVolume(_volume);
+    _finishPlayer?.setVolume(_volume);
+    _victoryPlayer?.setVolume(_volume);
   }
 
   @override
   Future<void> playDiceSound() async {
-    if (!_soundEnabled || !_isInitialized) return;
+    final player = _dicePlayer;
+    if (!_soundEnabled || !_isInitialized || player == null) return;
     try {
-      await _dicePlayer.seek(Duration.zero);
-      await _dicePlayer.play();
+      await player.seek(Duration.zero);
+      await player.play();
     } catch (e) {
       // Silently fail - game continues without sound
     }
@@ -100,10 +107,11 @@ class AudioService implements AudioServiceBase {
 
   @override
   Future<void> playMoveSound() async {
-    if (!_soundEnabled || !_isInitialized) return;
+    final player = _movePlayer;
+    if (!_soundEnabled || !_isInitialized || player == null) return;
     try {
-      await _movePlayer.seek(Duration.zero);
-      await _movePlayer.play();
+      await player.seek(Duration.zero);
+      await player.play();
     } catch (e) {
       // Silently fail - game continues without sound
     }
@@ -111,10 +119,11 @@ class AudioService implements AudioServiceBase {
 
   @override
   Future<void> playCaptureSound() async {
-    if (!_soundEnabled || !_isInitialized) return;
+    final player = _capturePlayer;
+    if (!_soundEnabled || !_isInitialized || player == null) return;
     try {
-      await _capturePlayer.seek(Duration.zero);
-      await _capturePlayer.play();
+      await player.seek(Duration.zero);
+      await player.play();
     } catch (e) {
       // Silently fail - game continues without sound
     }
@@ -122,10 +131,11 @@ class AudioService implements AudioServiceBase {
 
   @override
   Future<void> playFinishSound() async {
-    if (!_soundEnabled || !_isInitialized) return;
+    final player = _finishPlayer;
+    if (!_soundEnabled || !_isInitialized || player == null) return;
     try {
-      await _finishPlayer.seek(Duration.zero);
-      await _finishPlayer.play();
+      await player.seek(Duration.zero);
+      await player.play();
     } catch (e) {
       // Silently fail - game continues without sound
     }
@@ -133,10 +143,11 @@ class AudioService implements AudioServiceBase {
 
   @override
   Future<void> playVictorySound() async {
-    if (!_soundEnabled || !_isInitialized) return;
+    final player = _victoryPlayer;
+    if (!_soundEnabled || !_isInitialized || player == null) return;
     try {
-      await _victoryPlayer.seek(Duration.zero);
-      await _victoryPlayer.play();
+      await player.seek(Duration.zero);
+      await player.play();
     } catch (e) {
       // Silently fail - game continues without sound
     }
@@ -144,10 +155,25 @@ class AudioService implements AudioServiceBase {
 
   @override
   Future<void> dispose() async {
-    await _dicePlayer.dispose();
-    await _movePlayer.dispose();
-    await _capturePlayer.dispose();
-    await _finishPlayer.dispose();
-    await _victoryPlayer.dispose();
+    final players = <AudioPlayer?>[
+      _dicePlayer,
+      _movePlayer,
+      _capturePlayer,
+      _finishPlayer,
+      _victoryPlayer,
+    ];
+
+    for (final player in players) {
+      if (player != null) {
+        await player.dispose();
+      }
+    }
+
+    _dicePlayer = null;
+    _movePlayer = null;
+    _capturePlayer = null;
+    _finishPlayer = null;
+    _victoryPlayer = null;
+    _isInitialized = false;
   }
 }

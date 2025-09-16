@@ -105,6 +105,15 @@ class _NoopAudioService implements AudioServiceBase {
   Future<void> dispose() async {}
 }
 
+class _TrackingAudioService extends _NoopAudioService {
+  bool disposed = false;
+
+  @override
+  Future<void> dispose() async {
+    disposed = true;
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -202,5 +211,32 @@ void main() {
       expect(provider.currentPlayerColor, PlayerColor.green);
       expect(provider.phase, GamePhase.waitingForRoll);
     });
+  });
+
+  test('dispose cleans up owned audio service', () {
+    final audio = _TrackingAudioService();
+    final provider = GameProvider(
+      audioService: audio,
+      aiService: _TestAIService(),
+      random: _FixedRandom(const [0]),
+      ownsAudioService: true,
+    );
+
+    provider.dispose();
+
+    expect(audio.disposed, isTrue);
+  });
+
+  test('shared audio service is not disposed by provider', () {
+    final audio = _TrackingAudioService();
+    final provider = GameProvider(
+      audioService: audio,
+      aiService: _TestAIService(),
+      random: _FixedRandom(const [0]),
+    );
+
+    provider.dispose();
+
+    expect(audio.disposed, isFalse);
   });
 }

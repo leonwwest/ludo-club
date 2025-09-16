@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:ludo_club/models/game_state.dart';
 import 'package:ludo_club/logic/ludo_game_logic.dart';
@@ -12,8 +13,9 @@ import 'package:ludo_club/constants/game_constants.dart';
 
 class GameProvider extends ChangeNotifier {
   final AudioServiceBase _audioService;
-  final AIService _aiService;
+  late final AIService _aiService;
   final Random _random;
+  final bool _ownsAudioService;
 
   bool isAnimating = false;
   bool _showReachedHomeEffect = false;
@@ -26,21 +28,18 @@ class GameProvider extends ChangeNotifier {
   int? _capturedTokenIndex;
 
   GameProvider({
-    AudioServiceBase? audioService,
+    required AudioServiceBase audioService,
     AIService? aiService,
     Random? random,
-  })  : _audioService = audioService ?? AudioService(),
-        _aiService = aiService ?? AIService(random: random),
-        _random = random ?? Random() {
+    bool ownsAudioService = false,
+  })  : _audioService = audioService,
+        _random = random ?? Random(),
+        _ownsAudioService = ownsAudioService {
+    _aiService = aiService ?? AIService(random: _random);
     _gameState = _createDefaultGameState();
-    _initAudio();
   }
 
   // Removed unused _createNewGame method
-
-  Future<void> _initAudio() async {
-    await _audioService.init();
-  }
 
   late GameState _gameState;
 
@@ -106,7 +105,8 @@ class GameProvider extends ChangeNotifier {
           await movePiece(aiDecision.selectedPiece!);
         }
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      _logError('AI turn failed', e, stackTrace);
       // If AI turn fails, just skip to next player
       _advanceToNextPlayer();
     }
@@ -153,7 +153,8 @@ class GameProvider extends ChangeNotifier {
         _gameState = _gameState.copyWith(phase: GamePhase.waitingForMove);
         notifyListeners();
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      _logError('Dice roll failed', e, stackTrace);
       // If dice roll fails, reset to waiting for roll
       _gameState = _gameState.copyWith(phase: GamePhase.waitingForRoll);
       notifyListeners();
@@ -242,9 +243,10 @@ class GameProvider extends ChangeNotifier {
     _cachedMovablePieces = null;
     _lastDiceForCache = null;
 
-    nextTurn().catchError((error) {
-      // Handle errors gracefully to prevent crashes
-    });
+    nextTurn().catchError(
+      (error, stackTrace) =>
+          _logError('Failed to advance to next player', error, stackTrace),
+    );
   }
 
   List<Piece> getMovablePieces() {
@@ -350,14 +352,22 @@ class GameProvider extends ChangeNotifier {
       rules: _gameState.rules,
     );
     notifyListeners();
-    nextTurn().catchError((error) {
-      // Handle errors gracefully to prevent crashes
-    });
+    nextTurn().catchError(
+      (error, stackTrace) =>
+          _logError('Failed to start game loop', error, stackTrace),
+    );
+  }
+
+  void _logError(String message, Object error, StackTrace stackTrace) {
+    debugPrint('[GameProvider] $message: $error');
+    debugPrint(stackTrace.toString());
   }
 
   @override
   void dispose() {
-    _audioService.dispose();
+    if (_ownsAudioService) {
+      unawaited(_audioService.dispose());
+    }
     super.dispose();
   }
 }

@@ -6,8 +6,12 @@ import 'package:ludo_club/providers/game_provider.dart';
 import 'package:ludo_club/models/game_state.dart';
 import 'package:ludo_club/models/ludo_objects.dart';
 import 'package:ludo_club/models/game_phase.dart';
+import 'package:ludo_club/models/game_rules.dart';
 import 'package:ludo_club/widgets/board_widget.dart';
 import 'package:ludo_club/widgets/dice_widget.dart';
+import 'package:ludo_club/services/rule_preset_service.dart';
+import 'package:ludo_club/ui/components/game_rules_sheet.dart';
+import 'package:ludo_club/widgets/rule_summary_chips.dart';
 import 'package:ludo_club/utils/color_utils.dart';
 
 class GameScreen extends StatefulWidget {
@@ -19,6 +23,18 @@ class GameScreen extends StatefulWidget {
 
 class GameScreenState extends State<GameScreen> {
   bool _winnerDialogShown = false;
+  RulePresetService? _presetService;
+
+  @override
+  void initState() {
+    super.initState();
+    RulePresetService.create().then((service) {
+      if (!mounted) return;
+      setState(() {
+        _presetService = service;
+      });
+    });
+  }
 
   @override
   void didChangeDependencies() {
@@ -55,14 +71,16 @@ class GameScreenState extends State<GameScreen> {
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 1100),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
                     child: Column(
                       children: [
                         // Top bar
                         Row(
                           children: [
                             IconButton(
-                              icon: const Icon(Icons.arrow_back, color: Colors.white),
+                              icon: const Icon(Icons.arrow_back,
+                                  color: Colors.white),
                               onPressed: () => Navigator.maybePop(context),
                               tooltip: 'Back',
                             ),
@@ -77,26 +95,40 @@ class GameScreenState extends State<GameScreen> {
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 48),
+                            IconButton(
+                              icon: const Icon(Icons.rule, color: Colors.white),
+                              tooltip: 'View & adjust rules',
+                              onPressed: () => showGameRulesSheet(
+                                context: context,
+                                initialRules: gameProvider.gameState.rules,
+                                onRulesChanged: gameProvider.setRules,
+                                messengerContext: context,
+                                presetService: _presetService,
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 12),
 
                         // Current player info (glass card)
                         _GlassCard(
-                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 18, vertical: 14),
                           child: Selector<GameProvider, Map<String, Object>>(
                             selector: (_, gp) => {
-                              'name': gp.getPlayerMeta(gp.currentPlayerColor).name,
+                              'name':
+                                  gp.getPlayerMeta(gp.currentPlayerColor).name,
                               'color': gp.currentPlayerColor,
                               'isAI': gp.gameState.currentPlayer.isAI,
                               'phase': gp.phase,
+                              'rules': gp.gameState.rules,
                             },
                             builder: (context, data, _) {
                               final playerName = data['name'] as String;
                               final playerColor = data['color'] as PlayerColor;
                               final isAI = data['isAI'] as bool;
                               final phase = data['phase'] as GamePhase;
+                              final rules = data['rules'] as GameRules;
                               final status = isAI
                                   ? 'AI is thinking...'
                                   : phase == GamePhase.waitingForRoll
@@ -104,41 +136,50 @@ class GameScreenState extends State<GameScreen> {
                                       : phase == GamePhase.waitingForMove
                                           ? 'Select a highlighted piece'
                                           : 'Please wait...';
-                              return Row(
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Container(
-                                    width: 14,
-                                    height: 14,
-                                    decoration: BoxDecoration(
-                                      color: ColorUtils.getDisplayColor(playerColor),
-                                      shape: BoxShape.circle,
-                                      boxShadow: const [
-                                        BoxShadow(
-                                          blurRadius: 8,
-                                          offset: Offset(0, 4),
-                                          color: Color(0x33000000),
+                                  Row(
+                                    children: [
+                                      Container(
+                                        width: 14,
+                                        height: 14,
+                                        decoration: BoxDecoration(
+                                          color: ColorUtils.getDisplayColor(
+                                              playerColor),
+                                          shape: BoxShape.circle,
+                                          boxShadow: const [
+                                            BoxShadow(
+                                              blurRadius: 8,
+                                              offset: Offset(0, 4),
+                                              color: Color(0x33000000),
+                                            ),
+                                          ],
                                         ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Text(
-                                      playerName,
-                                      style: GoogleFonts.poppins(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 18,
                                       ),
-                                    ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Text(
+                                          playerName,
+                                          style: GoogleFonts.poppins(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 18,
+                                          ),
+                                        ),
+                                      ),
+                                      Text(
+                                        status,
+                                        style: GoogleFonts.poppins(
+                                          color: Colors.white
+                                              .withValues(alpha: .9),
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  Text(
-                                    status,
-                                    style: GoogleFonts.poppins(
-                                      color: Colors.white.withValues(alpha: .9),
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
+                                  const SizedBox(height: 8),
+                                  RuleSummaryChips(rules: rules, compact: true),
                                 ],
                               );
                             },
@@ -149,7 +190,7 @@ class GameScreenState extends State<GameScreen> {
 
                         // Board + dice
                         Expanded(
-                          child: Selector<GameProvider, Map<String, Object>>( 
+                          child: Selector<GameProvider, Map<String, Object>>(
                             selector: (_, gp) => {
                               'players': gp.gameState.players,
                               'currentColor': gp.currentPlayerColor,
@@ -157,9 +198,10 @@ class GameScreenState extends State<GameScreen> {
                               'currentDice': gp.currentDiceValue,
                             },
                             builder: (context, data, _) {
-                              return _buildBoardWithDice(
+                              return _BoardWithDice(
                                 players: data['players'] as List<Player>,
-                                currentPlayerColor: data['currentColor'] as PlayerColor,
+                                currentPlayerColor:
+                                    data['currentColor'] as PlayerColor,
                                 phase: data['phase'] as GamePhase,
                                 currentDice: data['currentDice'] as int,
                               );
@@ -178,150 +220,7 @@ class GameScreenState extends State<GameScreen> {
     );
   }
 
-  Widget _buildBoardWithDice({
-    required List<Player> players,
-    required PlayerColor currentPlayerColor,
-    required GamePhase phase,
-    required int currentDice,
-  }) {
-    return AspectRatio(
-      aspectRatio: 1,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(22),
-          boxShadow: const [
-            BoxShadow(blurRadius: 10, offset: Offset(0, 6), color: Color(0x1A000000)),
-            BoxShadow(blurRadius: 6, offset: Offset(0, 2), color: Color(0x14000000)),
-          ],
-        ),
-        padding: const EdgeInsets.all(10),
-        child: Stack(
-          children: [
-            // Game board (isolated repaint)
-            RepaintBoundary(
-              child: Selector<GameProvider, Map<String, Object>>(
-                selector: (_, gp) => {
-                  'pieces': gp.allBoardPieces,
-                  'movable': gp.getMovablePieces().toSet(),
-                  'current': gp.currentPlayerColor,
-                },
-                builder: (context, data, _) => BoardWidget(
-                  pieces: data['pieces'] as List<Piece>,
-                  onPieceSelected: (piece) {
-                    context.read<GameProvider>().movePiece(piece);
-                  },
-                  currentPlayer: data['current'] as PlayerColor,
-                  movablePieces: data['movable'] as Set<Piece>,
-                ),
-              ),
-            ),
-            // Positioned dice for each player
-            ..._buildPositionedDice(
-              players: players,
-              currentPlayerColor: currentPlayerColor,
-              phase: phase,
-              currentDice: currentDice,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  List<Widget> _buildPositionedDice({
-    required List<Player> players,
-    required PlayerColor currentPlayerColor,
-    required GamePhase phase,
-    required int currentDice,
-  }) {
-    List<Widget> diceWidgets = [];
-    
-    for (final player in players) {
-      final isCurrentPlayer = player.color == currentPlayerColor;
-      final isEnabled = isCurrentPlayer && phase == GamePhase.waitingForRoll && !player.isAI;
-      
-      diceWidgets.add(
-        _buildPlayerDice(
-          player: player,
-          isEnabled: isEnabled,
-          isCurrentPlayer: isCurrentPlayer,
-          currentDice: currentDice,
-        ),
-      );
-    }
-    
-    return diceWidgets;
-  }
-
-  Widget _buildPlayerDice({
-    required Player player,
-    required bool isEnabled,
-    required bool isCurrentPlayer,
-    required int currentDice,
-  }) {
-    // Get position based on player color
-    final position = _getDicePosition(player.color);
-    
-    return Positioned(
-      left: position['left'],
-      top: position['top'],
-      right: position['right'],
-      bottom: position['bottom'],
-      child: RepaintBoundary(
-        child: SizedBox(
-        width: 70,
-        height: 100,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _NameChip(
-              label: player.name.length > 10 ? player.name.substring(0, 10) : player.name,
-              color: ColorUtils.getDisplayColor(player.color),
-              highlighted: isCurrentPlayer,
-            ),
-            const SizedBox(height: 4),
-            // Dice
-            RepaintBoundary(
-              child: DiceWidget(
-              key: ValueKey('dice-${player.color.name}'),
-              size: 50,
-              isEnabled: isEnabled,
-              currentDiceValue: isCurrentPlayer && currentDice > 0 
-                  ? currentDice 
-                  : null,
-              onRoll: (value) {
-                if (isEnabled) {
-                  context.read<GameProvider>().rollDice();
-                }
-              },
-              ),
-            ),
-          ],
-        ),
-      ),
-      ),
-    );
-  }
-
-  Map<String, double?> _getDicePosition(PlayerColor color) {
-    switch (color) {
-      case PlayerColor.red:
-        // Bottom-left
-        return {'left': 10.0, 'top': null, 'right': null, 'bottom': 10.0};
-      case PlayerColor.green:
-        // Top-left
-        return {'left': 10.0, 'top': 10.0, 'right': null, 'bottom': null};
-      case PlayerColor.blue:
-        // Top-right
-        return {'left': null, 'top': 10.0, 'right': 10.0, 'bottom': null};
-      case PlayerColor.yellow:
-        // Bottom-right
-        return {'left': null, 'top': null, 'right': 10.0, 'bottom': 10.0};
-    }
-  }
-
-  // Board construction moved into Selector inside _buildBoardWithDice
+  // Board construction moved into Selector inside _BoardWithDice
 
   void _showWinnerDialog(GameProvider gameProvider, PlayerColor winnerColor) {
     final displayPlayerColor = ColorUtils.getDisplayColor(winnerColor);
@@ -335,7 +234,8 @@ class GameScreenState extends State<GameScreen> {
           title: Text(
             '🎉 Game Over 🎉',
             textAlign: TextAlign.center,
-            style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.w700),
+            style:
+                GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.w700),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -371,11 +271,14 @@ class GameScreenState extends State<GameScreen> {
               Text(
                 '${winnerMeta.name} has won!',
                 textAlign: TextAlign.center,
-                style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w700),
+                style: GoogleFonts.poppins(
+                    fontSize: 18, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 10),
-              Text('Congratulations!', textAlign: TextAlign.center,
-                  style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w500)),
+              Text('Congratulations!',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                      fontSize: 14, fontWeight: FontWeight.w500)),
               const SizedBox(height: 30),
             ],
           ),
@@ -400,8 +303,8 @@ class GameScreenState extends State<GameScreen> {
 
                 final gameProvider =
                     Provider.of<GameProvider>(context, listen: false);
-                gameProvider.startNewGame(
-                    gameProvider.gameState.players.map((p) {
+                gameProvider
+                    .startNewGame(gameProvider.gameState.players.map((p) {
                   return Player(
                       id: p.id,
                       name: p.name,
@@ -428,6 +331,144 @@ class GameScreenState extends State<GameScreen> {
   }
 }
 
+class _BoardWithDice extends StatelessWidget {
+  const _BoardWithDice({
+    required this.players,
+    required this.currentPlayerColor,
+    required this.phase,
+    required this.currentDice,
+  });
+
+  final List<Player> players;
+  final PlayerColor currentPlayerColor;
+  final GamePhase phase;
+  final int currentDice;
+
+  @override
+  Widget build(BuildContext context) {
+    return AspectRatio(
+      aspectRatio: 1,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: const [
+            BoxShadow(
+              blurRadius: 10,
+              offset: Offset(0, 6),
+              color: Color(0x1A000000),
+            ),
+            BoxShadow(
+              blurRadius: 6,
+              offset: Offset(0, 2),
+              color: Color(0x14000000),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.all(10),
+        child: Stack(
+          children: [
+            RepaintBoundary(
+              child: Selector<GameProvider, Map<String, Object>>(
+                selector: (_, gp) => {
+                  'pieces': gp.allBoardPieces,
+                  'movable': gp.getMovablePieces().toSet(),
+                  'current': gp.currentPlayerColor,
+                },
+                builder: (context, data, _) => BoardWidget(
+                  pieces: data['pieces'] as List<Piece>,
+                  onPieceSelected: context.read<GameProvider>().movePiece,
+                  currentPlayer: data['current'] as PlayerColor,
+                  movablePieces: data['movable'] as Set<Piece>,
+                ),
+              ),
+            ),
+            ...players.map((player) {
+              final isCurrent = player.color == currentPlayerColor;
+              final canRoll = isCurrent &&
+                  phase == GamePhase.waitingForRoll &&
+                  !player.isAI;
+              return _PlayerDiceIndicator(
+                player: player,
+                isCurrentPlayer: isCurrent,
+                isEnabled: canRoll,
+                currentDice: currentDice,
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PlayerDiceIndicator extends StatelessWidget {
+  const _PlayerDiceIndicator({
+    required this.player,
+    required this.isCurrentPlayer,
+    required this.isEnabled,
+    required this.currentDice,
+  });
+
+  final Player player;
+  final bool isCurrentPlayer;
+  final bool isEnabled;
+  final int currentDice;
+
+  @override
+  Widget build(BuildContext context) {
+    final position = _dicePositionFor(player.color);
+    return Positioned(
+      left: position['left'],
+      top: position['top'],
+      right: position['right'],
+      bottom: position['bottom'],
+      child: RepaintBoundary(
+        child: SizedBox(
+          width: 70,
+          height: 100,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _NameChip(
+                label: player.name.length > 10
+                    ? player.name.substring(0, 10)
+                    : player.name,
+                color: ColorUtils.getDisplayColor(player.color),
+                highlighted: isCurrentPlayer,
+              ),
+              const SizedBox(height: 4),
+              DiceWidget(
+                key: ValueKey('dice-${player.color.name}'),
+                size: 50,
+                isEnabled: isEnabled,
+                currentDiceValue:
+                    isCurrentPlayer && currentDice > 0 ? currentDice : null,
+                onRoll: isEnabled
+                    ? () => context.read<GameProvider>().rollDice()
+                    : null,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  static Map<String, double?> _dicePositionFor(PlayerColor color) {
+    switch (color) {
+      case PlayerColor.red:
+        return {'left': 10.0, 'top': null, 'right': null, 'bottom': 10.0};
+      case PlayerColor.green:
+        return {'left': 10.0, 'top': 10.0, 'right': null, 'bottom': null};
+      case PlayerColor.blue:
+        return {'left': null, 'top': 10.0, 'right': 10.0, 'bottom': null};
+      case PlayerColor.yellow:
+        return {'left': null, 'top': null, 'right': 10.0, 'bottom': 10.0};
+    }
+  }
+}
+
 class _GlassCard extends StatelessWidget {
   const _GlassCard({required this.child, this.padding});
   final Widget child;
@@ -445,8 +486,14 @@ class _GlassCard extends StatelessWidget {
             color: Colors.white.withValues(alpha: 0.18),
             borderRadius: BorderRadius.circular(22),
             boxShadow: const [
-              BoxShadow(blurRadius: 8, offset: Offset(0, 4), color: Color(0x1A000000)),
-              BoxShadow(blurRadius: 6, offset: Offset(0, 2), color: Color(0x1A000000)),
+              BoxShadow(
+                  blurRadius: 8,
+                  offset: Offset(0, 4),
+                  color: Color(0x1A000000)),
+              BoxShadow(
+                  blurRadius: 6,
+                  offset: Offset(0, 2),
+                  color: Color(0x1A000000)),
             ],
           ),
           child: child,
@@ -457,7 +504,8 @@ class _GlassCard extends StatelessWidget {
 }
 
 class _NameChip extends StatelessWidget {
-  const _NameChip({required this.label, required this.color, this.highlighted = false});
+  const _NameChip(
+      {required this.label, required this.color, this.highlighted = false});
   final String label;
   final Color color;
   final bool highlighted;
@@ -472,7 +520,8 @@ class _NameChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: highlighted ? Border.all(color: Colors.white, width: 2) : null,
         boxShadow: const [
-          BoxShadow(blurRadius: 6, offset: Offset(0, 3), color: Color(0x33000000)),
+          BoxShadow(
+              blurRadius: 6, offset: Offset(0, 3), color: Color(0x33000000)),
         ],
       ),
       child: Text(

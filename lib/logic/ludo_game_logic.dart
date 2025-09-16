@@ -1,395 +1,812 @@
+import 'dart:collection';
+
+import 'package:ludo_club/models/game_phase.dart';
 import 'package:ludo_club/models/game_state.dart';
-import 'package:ludo_club/models/ludo_objects.dart';
-import 'package:ludo_club/constants/game_constants.dart';
-import 'package:ludo_club/models/board_zone.dart';
-import 'package:ludo_club/models/game_rules.dart';
+import 'package:ludo_club/models/pawn.dart';
+import 'package:ludo_club/models/rules_config.dart';
 
-// Internal representation of a simulated move (top-level; Dart disallows class-in-class)
-class _SimResult {
-  final bool isValid;
-  final ValidationError error;
-  final PiecePosition finalPosition;
-  final bool finalIsSafe;
-  final List<int> traversedMainPath;
+class PlayerSetup {
+  final PlayerId id;
+  final PlayerColor color;
+  final int startIndex;
+  final int homeEntryIndex;
+  final int pawnCount;
 
-  const _SimResult.valid(this.finalPosition,
-      {this.finalIsSafe = false, this.traversedMainPath = const []})
-      : isValid = true,
-        error = ValidationError.none;
-
-  const _SimResult.invalid(this.error)
-      : isValid = false,
-        finalPosition = const PiecePosition(GameConstants.basePosition),
-        finalIsSafe = false,
-        traversedMainPath = const [];
+  const PlayerSetup({
+    required this.id,
+    required this.color,
+    required this.startIndex,
+    required this.homeEntryIndex,
+    this.pawnCount = 4,
+  });
 }
 
-// Note: Board geometry is defined in widgets/board_widget.dart; logic operates on indices only.
-
-// No more safe indices
-// const Set<int> safeIndices = {1, 9, 14, 22, 27, 35, 40, 48};
-
-class MoveResult {
-  final GameState newState;
-  final Piece? capturedOpponentPiece;
-  final bool isFinishMove;
-
-  MoveResult(this.newState,
-      {this.capturedOpponentPiece, this.isFinishMove = false});
+enum MoveKind {
+  enterFromBase,
+  advanceOnTrack,
+  enterHomeStretch,
+  advanceHomeStretch,
 }
 
-enum ValidationError {
-  none,
-  invalidHomeEntry,
-  foreignHomeZone,
-  foreignCenterZone,
-  exceedsGoal,
-  blockedByBarrier,
-  occupiedByOpponent,
+class Move {
+  final PawnId pawnId;
+  final MoveKind kind;
+  final PawnState from;
+  final PawnState to;
+  final List<int> traversedTrack;
+  final List<PawnId> captured;
+  final bool finishes;
+
+  const Move({
+    required this.pawnId,
+    required this.kind,
+    required this.from,
+    required this.to,
+    required this.traversedTrack,
+    required this.captured,
+    required this.finishes,
+  });
 }
 
-class ValidationResult {
-  final bool isValid;
-  final ValidationError error;
-  const ValidationResult.valid()
-      : isValid = true,
-        error = ValidationError.none;
-  const ValidationResult.invalid(this.error) : isValid = false;
+class MoveResolution {
+  final GameState state;
+  final Move move;
+  final bool didCapture;
+  final bool createdBlockade;
+  final bool removedBlockade;
+
+  const MoveResolution({
+    required this.state,
+    required this.move,
+    required this.didCapture,
+    required this.createdBlockade,
+    required this.removedBlockade,
+  });
 }
 
 class LudoGame {
-  static const int mainPathLength = GameConstants.totalMainPathFields;
-  static const int homePathLength = GameConstants.homePathLength;
+  const LudoGame._();
 
-  static const Map<PlayerColor, int> startFields = {
-    PlayerColor.red: 0,
-    PlayerColor.green: 13,
-    PlayerColor.blue: 26,
-    PlayerColor.yellow: 39,
-  };
+  static GameState initialize({
+    required List<PlayerSetup> players,
+    required RulesConfig rules,
+  }) {
+    final pawns = <PawnId, Pawn>{};
+    final playerList = <Player>[];
 
-  // Home stretch entry positions - where each color enters their final stretch
-  static const Map<PlayerColor, int> homeStretchStart = {
-    PlayerColor.red: 51, // Red enters home stretch at position 51
-    PlayerColor.green:
-        12, // Green enters home stretch at position 12 (just before their start at 13)
-    PlayerColor.blue: 25, // Blue enters home stretch at position 25
-    PlayerColor.yellow: 38, // Yellow enters home stretch at position 38
-  };
-
-  // Non-playable main path fields (these lie on the colored center triangles).
-  // Pieces must never stop on these tiles; skip them during movement.
-  static const Set<int> nonPlayableMainPathFields = {18, 46};
-
-  // Return the next playable index after 'current' (wraps around), skipping
-  // any indices in nonPlayableMainPathFields.
-  static int _nextPlayableIndex(int current) {
-    int next = (current + 1) % mainPathLength;
-    while (nonPlayableMainPathFields.contains(next)) {
-      next = (next + 1) % mainPathLength;
+    for (final setup in players) {
+      final pawnIds = <PawnId>[];
+      for (var i = 0; i < setup.pawnCount; i++) {
+        final pawnId = '${setup.id}_$i';
+        pawnIds.add(pawnId);
+        pawns[pawnId] =
+            Pawn(id: pawnId, ownerId: setup.id, state: const PawnState.base());
+      }
+      playerList.add(Player(
+        id: setup.id,
+        color: setup.color,
+        startIndex: setup.startIndex,
+        homeEntryIndex: setup.homeEntryIndex,
+        pawnIds: pawnIds,
+      ));
     }
-    return next;
+
+    if (playerList.isEmpty) {
+      throw ArgumentError('At least one player required');
+    }
+
+    return GameState(
+      players: playerList,
+      pawns: pawns,
+      currentPlayer: playerList.first.id,
+      phase: GamePhase.roll,
+      rules: rules,
+    );
   }
 
-  /// Compute positions on the main path that are blocked by a blockade.
-  /// Policy:
-  /// - Blockades form when two or more pieces of the same color occupy a main-path field.
-  /// - Blockades can exist on any main-path field, including safe fields.
-  /// - Home lanes and goal are never considered for blockades.
-  /// - When `rules.multipleOccupancyAllowed` is true, blockades are disabled.
-  static Set<int> _blockadePositions(GameState state) {
-    if (state.rules.multipleOccupancyAllowed) return <int>{};
-    final Map<int, Map<PlayerColor, int>> counts = {};
-    for (final player in state.players) {
-      for (final p in player.pieces) {
-        if (!p.position.isHome) {
-          final idx = p.position.fieldId;
-          counts.putIfAbsent(idx, () => {});
-          final colorCounts = counts[idx]!;
-          colorCounts[p.color] = (colorCounts[p.color] ?? 0) + 1;
+  static GameState roll(GameState state, int dice) {
+    if (state.phase != GamePhase.roll) {
+      throw StateError('Cannot roll dice outside roll phase');
+    }
+
+    final player = state.currentPlayerData;
+    final isSix = dice == 6;
+    final updatedConsecutive = isSix ? player.consecutiveSixes + 1 : 0;
+
+    final updatedPlayers = state.players.map((p) {
+      if (p.id == player.id) {
+        return p.copyWith(consecutiveSixes: updatedConsecutive);
+      }
+      return p;
+    }).toList();
+
+    GameState working = state.copyWith(
+      players: updatedPlayers,
+      dice: dice,
+    );
+
+    if (isSix && updatedConsecutive >= 3 &&
+        working.rules.tripleSixRule != TripleSixRule.none) {
+      working = _applyTripleSixPenalty(working, player, dice);
+      return working;
+    }
+
+    final moves = legalMoves(working);
+    if (moves.isEmpty) {
+      final bool grantExtra = _shouldGrantExtraRoll(
+        rules: working.rules,
+        dice: dice,
+        moved: false,
+        didCapture: false,
+        didFinish: false,
+      );
+
+      return working.copyWith(
+        phase: GamePhase.resolve,
+        extraRollAwarded: grantExtra,
+      );
+    }
+
+    return working.copyWith(phase: GamePhase.move, extraRollAwarded: false);
+  }
+
+  static List<Move> legalMoves(GameState state) {
+    final dice = state.dice;
+    if (dice == null) return const [];
+    final player = state.currentPlayerData;
+
+    final pawnMap = state.pawns;
+    final trackOccupancy = _groupPawnsByTrack(state);
+    final blockades =
+        _computeBlockades(state, excludePawn: null, occupancy: trackOccupancy);
+
+    final moves = <Move>[];
+    for (final pawnId in player.pawnIds) {
+      final pawn = pawnMap[pawnId];
+      if (pawn == null) continue;
+      switch (pawn.state.kind) {
+        case PawnKind.base:
+          final move = _generateBaseMove(
+            state: state,
+            pawn: pawn,
+            trackOccupancy: trackOccupancy,
+            dice: dice,
+          );
+          if (move != null) moves.add(move);
+          break;
+        case PawnKind.track:
+          final move = _generateTrackMove(
+            state: state,
+            pawn: pawn,
+            dice: dice,
+            occupancy: trackOccupancy,
+            blockades: blockades,
+          );
+          if (move != null) moves.add(move);
+          break;
+        case PawnKind.homeStretch:
+          final move = _generateHomeStretchMove(
+            state: state,
+            pawn: pawn,
+            dice: dice,
+          );
+          if (move != null) moves.add(move);
+          break;
+        case PawnKind.finished:
+          break;
+      }
+    }
+    return moves;
+  }
+
+  static MoveResolution applyMove(GameState state, Move move) {
+    if (state.dice == null) {
+      throw StateError('Cannot apply move without a dice value');
+    }
+    final pawn = state.pawns[move.pawnId];
+    if (pawn == null) {
+      throw ArgumentError('Unknown pawn ${move.pawnId}');
+    }
+
+    final updatedPawns = Map<PawnId, Pawn>.from(state.pawns);
+
+    final captureSnapshots = <PawnSnapshot>[];
+    for (final capturedId in move.captured) {
+      final capturedPawn = updatedPawns[capturedId];
+      if (capturedPawn == null) continue;
+      captureSnapshots.add(PawnSnapshot(capturedPawn));
+      updatedPawns[capturedId] =
+          capturedPawn.copyWith(state: const PawnState.base());
+    }
+
+    final movedPawn = pawn.copyWith(state: move.to);
+    updatedPawns[move.pawnId] = movedPawn;
+
+    final bool removedBlockade = state.rules.allowBlockades &&
+        pawn.state.isTrack &&
+        _countColorOnTrack(state, pawn.state.trackIndex, pawn.ownerId) >= 2 &&
+        _countColorOnTrackWithOverrides(
+              updatedPawns, pawn.state.trackIndex, pawn.ownerId) <
+            2;
+
+    final bool createdBlockade = state.rules.allowBlockades &&
+        move.to.isTrack &&
+        _countColorOnTrackWithOverrides(
+              updatedPawns, move.to.trackIndex, pawn.ownerId) >=
+            2 &&
+        _countColorOnTrack(state, move.to.trackIndex, pawn.ownerId) < 2;
+
+    final movedPlayer = state.currentPlayerData;
+    final newFinishedCount = movedPlayer.finishedCount + (move.finishes ? 1 : 0);
+
+    final updatedPlayers = state.players.map((p) {
+      if (p.id == movedPlayer.id) {
+        return p.copyWith(finishedCount: newFinishedCount);
+      }
+      return p;
+    }).toList();
+
+    var ranking = state.ranking;
+    bool rankingUpdated = false;
+    if (move.finishes &&
+        newFinishedCount >= state.rules.requiredFinishedPawns &&
+        !ranking.contains(movedPlayer.id)) {
+      final updatedRanking = List<PlayerId>.from(ranking)..add(movedPlayer.id);
+      rankingUpdated = true;
+      ranking = UnmodifiableListView(updatedRanking);
+    }
+
+    final record = MoveRecord(
+      playerId: movedPlayer.id,
+      pawnId: move.pawnId,
+      from: move.from,
+      to: move.to,
+      captured: captureSnapshots,
+      finished: move.finishes,
+      rankingUpdated: rankingUpdated,
+    );
+
+    final history = List<MoveRecord>.from(state.currentTurnHistory)..add(record);
+
+    final bool didCapture = move.captured.isNotEmpty;
+
+    final bool extraRoll = _shouldGrantExtraRoll(
+      rules: state.rules,
+      dice: state.dice!,
+      moved: true,
+      didCapture: didCapture,
+      didFinish: move.finishes,
+    );
+
+    final nextPhase = ranking.length == state.players.length
+        ? GamePhase.gameOver
+        : GamePhase.resolve;
+
+    final nextState = state.copyWith(
+      pawns: updatedPawns,
+      players: updatedPlayers,
+      ranking: ranking,
+      phase: nextPhase,
+      extraRollAwarded: extraRoll,
+      currentTurnHistory: history,
+    );
+
+    return MoveResolution(
+      state: nextState,
+      move: move,
+      didCapture: didCapture,
+      createdBlockade: createdBlockade,
+      removedBlockade: removedBlockade,
+    );
+  }
+
+  static GameState resolveWithoutMove(GameState state) {
+    if (state.phase != GamePhase.resolve) {
+      throw StateError('Expected resolve phase');
+    }
+    if (state.rules.requiredFinishedPawns <= state.ranking.length &&
+        state.ranking.length == state.players.length) {
+      return state.copyWith(phase: GamePhase.gameOver);
+    }
+    return state;
+  }
+
+  static GameState endTurn(GameState state) {
+    if (state.phase != GamePhase.resolve &&
+        state.phase != GamePhase.endTurn &&
+        state.phase != GamePhase.roll) {
+      throw StateError('Cannot end turn from phase ${state.phase}');
+    }
+
+    final currentPlayer = state.currentPlayerData;
+    final extraRoll = state.extraRollAwarded;
+
+    final updatedPlayers = state.players.map((p) {
+      if (p.id == currentPlayer.id) {
+        final resetSixes = extraRoll ? p.consecutiveSixes : 0;
+        return p.copyWith(consecutiveSixes: resetSixes);
+      }
+      return p;
+    }).toList();
+
+    if (state.phase == GamePhase.gameOver) {
+      return state;
+    }
+
+    if (extraRoll) {
+      return state.copyWith(
+        players: updatedPlayers,
+        dice: null,
+        extraRollAwarded: false,
+        phase: GamePhase.roll,
+      );
+    }
+
+    final nextPlayerId = _nextPlayerId(state);
+    return state.copyWith(
+      players: updatedPlayers,
+      currentPlayer: nextPlayerId,
+      dice: null,
+      extraRollAwarded: false,
+      currentTurnHistory: const [],
+      phase: GamePhase.roll,
+    );
+  }
+
+  static List<Move> _generateBaseMoves(GameState state, Pawn pawn, int dice,
+      Map<int, List<Pawn>> trackOccupancy) {
+    final move = _generateBaseMove(
+      state: state,
+      pawn: pawn,
+      dice: dice,
+      trackOccupancy: trackOccupancy,
+    );
+    return move == null ? const [] : [move];
+  }
+
+  static Move? _generateBaseMove({
+    required GameState state,
+    required Pawn pawn,
+    required int dice,
+    required Map<int, List<Pawn>> trackOccupancy,
+  }) {
+    final player = state.currentPlayerData;
+    if (state.rules.startNeedsSix && dice != 6) {
+      return null;
+    }
+
+    final startIndex = player.startIndex;
+    final occupants = trackOccupancy[startIndex] ?? const <Pawn>[];
+    final ownOnStart =
+        occupants.where((p) => p.ownerId == pawn.ownerId).toList();
+    final opponents =
+        occupants.where((p) => p.ownerId != pawn.ownerId).toList();
+
+    if (ownOnStart.isNotEmpty) {
+      if (state.rules.cannotEnterIfOwnStoneAtStart) {
+        return null;
+      }
+      if (!state.rules.stackOnStartAllowed) {
+        return null;
+      }
+      if (!state.rules.allowBlockades) {
+        return null;
+      }
+    }
+
+    if (opponents.isNotEmpty) {
+      final isSafe = state.rules.safeSquares.contains(startIndex);
+      final captureAllowed = !isSafe ||
+          state.rules.captureOnSafeAllowed ||
+          state.rules.ownStartIsSafe;
+      if (!captureAllowed) {
+        return null;
+      }
+    }
+
+    return Move(
+      pawnId: pawn.id,
+      kind: MoveKind.enterFromBase,
+      from: pawn.state,
+      to: PawnState.track(startIndex),
+      traversedTrack: const [],
+      captured: opponents.map((p) => p.id).toList(),
+      finishes: false,
+    );
+  }
+
+  static Move? _generateTrackMove({
+    required GameState state,
+    required Pawn pawn,
+    required int dice,
+    required Map<int, List<Pawn>> occupancy,
+    required Set<int> blockades,
+  }) {
+    final trackLength = state.rules.trackLength;
+    final player = state.players.firstWhere((p) => p.id == pawn.ownerId);
+
+    final traversed = <int>[];
+    var position = pawn.state.trackIndex;
+    for (var step = 1; step <= dice; step++) {
+      position = (position + 1) % trackLength;
+      traversed.add(position);
+
+      if (_isBlocked(state, blockades, position) && step < dice) {
+        return null;
+      }
+
+      if (position == player.homeEntryIndex) {
+        final remaining = dice - step;
+        if (remaining > 0) {
+          return _handleHomeEntry(
+            state: state,
+            pawn: pawn,
+            traversed: traversed,
+            remaining: remaining,
+          );
         }
       }
     }
+
+    return _evaluateTrackLanding(
+      state: state,
+      pawn: pawn,
+      traversed: traversed,
+      targetIndex: position,
+      occupancy: occupancy,
+      blockades: blockades,
+    );
+  }
+
+  static Move? _handleHomeEntry({
+    required GameState state,
+    required Pawn pawn,
+    required List<int> traversed,
+    required int remaining,
+  }) {
+    final homeLength = state.rules.homeLength;
+    if (state.rules.exactFinish) {
+      if (remaining > homeLength) {
+        return null;
+      }
+      if (remaining == homeLength) {
+        return Move(
+          pawnId: pawn.id,
+          kind: MoveKind.enterHomeStretch,
+          from: pawn.state,
+          to: const PawnState.finished(),
+          traversedTrack: List<int>.from(traversed),
+          captured: const [],
+          finishes: true,
+        );
+      }
+      final steps = remaining - 1;
+      if (steps < 0) {
+        return null;
+      }
+      return Move(
+        pawnId: pawn.id,
+        kind: MoveKind.enterHomeStretch,
+        from: pawn.state,
+        to: PawnState.homeStretch(steps),
+        traversedTrack: List<int>.from(traversed),
+        captured: const [],
+        finishes: false,
+      );
+    }
+
+    if (remaining >= homeLength) {
+      return Move(
+        pawnId: pawn.id,
+        kind: MoveKind.enterHomeStretch,
+        from: pawn.state,
+        to: const PawnState.finished(),
+        traversedTrack: List<int>.from(traversed),
+        captured: const [],
+        finishes: true,
+      );
+    }
+
+    final steps = remaining - 1;
+    if (steps < 0) {
+      return null;
+    }
+    return Move(
+      pawnId: pawn.id,
+      kind: MoveKind.enterHomeStretch,
+      from: pawn.state,
+      to: PawnState.homeStretch(steps),
+      traversedTrack: List<int>.from(traversed),
+      captured: const [],
+      finishes: false,
+    );
+  }
+
+  static Move? _evaluateTrackLanding({
+    required GameState state,
+    required Pawn pawn,
+    required List<int> traversed,
+    required int targetIndex,
+    required Map<int, List<Pawn>> occupancy,
+    required Set<int> blockades,
+  }) {
+    if (_isBlocked(state, blockades, targetIndex)) {
+      final occupants = occupancy[targetIndex] ?? const <Pawn>[];
+      final blockadeOwner = occupants.isEmpty ? null : occupants.first.ownerId;
+      if (blockadeOwner != pawn.ownerId) {
+        return null;
+      }
+    }
+
+    final occupants = occupancy[targetIndex] ?? const <Pawn>[];
+    final ownPieces =
+        occupants.where((p) => p.ownerId == pawn.ownerId).toList();
+    final opponents =
+        occupants.where((p) => p.ownerId != pawn.ownerId).toList();
+
+    if (opponents.length >= 2) {
+      return null;
+    }
+
+    if (ownPieces.isNotEmpty) {
+      if (!state.rules.allowBlockades) {
+        return null;
+      }
+      if (targetIndex ==
+              state.players.firstWhere((p) => p.id == pawn.ownerId).startIndex &&
+          !state.rules.stackOnStartAllowed) {
+        return null;
+      }
+    }
+
+    if (opponents.isNotEmpty) {
+      final isSafe = state.rules.safeSquares.contains(targetIndex);
+      if (isSafe && !state.rules.captureOnSafeAllowed) {
+        return null;
+      }
+    }
+
+    return Move(
+      pawnId: pawn.id,
+      kind: MoveKind.advanceOnTrack,
+      from: pawn.state,
+      to: PawnState.track(targetIndex),
+      traversedTrack: List<int>.from(traversed),
+      captured: opponents.map((p) => p.id).toList(),
+      finishes: false,
+    );
+  }
+
+  static Move? _generateHomeStretchMove({
+    required GameState state,
+    required Pawn pawn,
+    required int dice,
+  }) {
+    final steps = pawn.state.homeSteps;
+    final target = steps + dice;
+    final homeLength = state.rules.homeLength;
+
+    if (state.rules.exactFinish) {
+      if (target > homeLength) {
+        return null;
+      }
+      if (target == homeLength) {
+        return Move(
+          pawnId: pawn.id,
+          kind: MoveKind.advanceHomeStretch,
+          from: pawn.state,
+          to: const PawnState.finished(),
+          traversedTrack: const [],
+          captured: const [],
+          finishes: true,
+        );
+      }
+      return Move(
+        pawnId: pawn.id,
+        kind: MoveKind.advanceHomeStretch,
+        from: pawn.state,
+        to: PawnState.homeStretch(target),
+        traversedTrack: const [],
+        captured: const [],
+        finishes: false,
+      );
+    }
+
+    if (target >= homeLength) {
+      return Move(
+        pawnId: pawn.id,
+        kind: MoveKind.advanceHomeStretch,
+        from: pawn.state,
+        to: const PawnState.finished(),
+        traversedTrack: const [],
+        captured: const [],
+        finishes: true,
+      );
+    }
+
+    return Move(
+      pawnId: pawn.id,
+      kind: MoveKind.advanceHomeStretch,
+      from: pawn.state,
+      to: PawnState.homeStretch(target),
+      traversedTrack: const [],
+      captured: const [],
+      finishes: false,
+    );
+  }
+
+  static Map<int, List<Pawn>> _groupPawnsByTrack(GameState state) {
+    final map = <int, List<Pawn>>{};
+    for (final pawn in state.pawns.values) {
+      if (pawn.state.isTrack) {
+        map.putIfAbsent(pawn.state.trackIndex, () => []).add(pawn);
+      }
+    }
+    return map;
+  }
+
+  static Set<int> _computeBlockades(GameState state,
+      {required Map<int, List<Pawn>> occupancy, PawnId? excludePawn}) {
+    if (!state.rules.allowBlockades || state.rules.blockadePassThrough) {
+      return const <int>{};
+    }
     final blocked = <int>{};
-    counts.forEach((idx, byColor) {
-      for (final entry in byColor.entries) {
-        if (entry.value >= 2) {
-          blocked.add(idx);
-          break;
-        }
+    occupancy.forEach((index, pawns) {
+      final counts = <PlayerId, int>{};
+      for (final pawn in pawns) {
+        if (pawn.id == excludePawn) continue;
+        counts[pawn.ownerId] = (counts[pawn.ownerId] ?? 0) + 1;
+      }
+      if (counts.values.any((count) => count >= 2)) {
+        blocked.add(index);
       }
     });
     return blocked;
   }
 
-  static bool _opponentOccupiesField(
-      GameState state, Piece piece, PiecePosition target) {
-    if (target.isHome) {
-      return false;
-    }
-    for (final player in state.players) {
-      if (player.color == piece.color) continue;
-      for (final other in player.pieces) {
-        if (other.position.isHome) continue;
-        if (other.position.fieldId == target.fieldId) {
-          return true;
-        }
-      }
-    }
-    return false;
+  static bool _isBlocked(GameState state, Set<int> blockades, int index) {
+    if (!state.rules.allowBlockades) return false;
+    if (state.rules.blockadePassThrough) return false;
+    return blockades.contains(index);
   }
 
-  static Map<PlayerColor, List<Piece>> _opponentPiecesGroupedByPlayer(
-    GameState state,
-    Piece piece,
-    PiecePosition target,
-  ) {
-    final Map<PlayerColor, List<Piece>> hits = {};
-    if (target.isHome) return hits;
-    for (final player in state.players) {
-      if (player.color == piece.color) continue;
-      for (final other in player.pieces) {
-        if (other.position.isHome) continue;
-        if (other.position.fieldId == target.fieldId) {
-          hits.putIfAbsent(player.color, () => []).add(other);
-        }
+  static bool _shouldGrantExtraRoll({
+    required RulesConfig rules,
+    required int dice,
+    required bool moved,
+    required bool didCapture,
+    required bool didFinish,
+  }) {
+    var extra = false;
+    if (dice == 6) {
+      switch (rules.extraRollOnSix) {
+        case ExtraRollOnSix.always:
+          extra = true;
+          break;
+        case ExtraRollOnSix.onlyIfMoved:
+          if (moved) extra = true;
+          break;
+        case ExtraRollOnSix.never:
+          break;
       }
     }
-    return hits;
+    if (didCapture && rules.extraRollOnCapture) {
+      extra = true;
+    }
+    if (didFinish && rules.extraRollOnFinish) {
+      extra = true;
+    }
+    return extra;
   }
 
-  // Map remaining steps at home entry to lane index (legacy behavior).
-  static int _mapToHomeLaneIndex(PlayerColor color, int remaining) {
-    if (remaining == 0) {
-      return color == PlayerColor.green ? 0 : 1;
-    }
-    return remaining;
+  static int _countColorOnTrack(GameState state, int trackIndex, PlayerId ownerId) {
+    return state.pawns.values
+        .where((pawn) =>
+            pawn.ownerId == ownerId &&
+            pawn.state.isTrack &&
+            pawn.state.trackIndex == trackIndex)
+        .length;
   }
 
-  // Simulate a move path and outcome using current rules, including blockade checks.
-  static _SimResult _simulate(GameState state, Piece piece, int die) {
-    if (die <= 0) {
-      return const _SimResult.invalid(ValidationError.invalidHomeEntry);
-    }
-    final blocked = _blockadePositions(state);
+  static int _countColorOnTrackWithOverrides(
+      Map<PawnId, Pawn> pawns, int trackIndex, PlayerId ownerId) {
+    return pawns.values
+        .where((pawn) =>
+            pawn.ownerId == ownerId &&
+            pawn.state.isTrack &&
+            pawn.state.trackIndex == trackIndex)
+        .length;
+  }
 
-    // Leaving base
-    if (piece.position.isHome &&
-        piece.position.fieldId == GameConstants.basePosition) {
-      final requiresSix = state.rules.mustRollSixToStart;
-      if (requiresSix && die != GameConstants.requiredRollToLeaveBase) {
-        return const _SimResult.invalid(ValidationError.invalidHomeEntry);
-      }
-      final startIdx = startFields[piece.color]!;
-      if (blocked.contains(startIdx)) {
-        return const _SimResult.invalid(ValidationError.invalidHomeEntry);
-      }
-      return _SimResult.valid(PiecePosition(startIdx, isHome: false));
+  static PlayerId _nextPlayerId(GameState state) {
+    if (state.players.isEmpty) {
+      throw StateError('No players configured');
     }
-
-    // In home lane
-    if (piece.position.isHome && piece.position.fieldId >= 0) {
-      if (state.rules.exactRollToFinish) {
-        if (piece.position.fieldId == homePathLength && die == 1) {
-          return const _SimResult.valid(PiecePosition(homePathLength),
-              finalIsSafe: true);
-        }
-        final target = piece.position.fieldId + die;
-        if (target > homePathLength) {
-          return const _SimResult.invalid(ValidationError.exceedsGoal);
-        }
-        final bool finishingMove = target == homePathLength;
-        return _SimResult.valid(PiecePosition(target),
-            finalIsSafe: finishingMove);
-      } else {
-        final target = piece.position.fieldId + die;
-        if (target >= homePathLength) {
-          return const _SimResult.valid(PiecePosition(homePathLength),
-              finalIsSafe: true);
-        }
-        return _SimResult.valid(PiecePosition(target));
+    var index =
+        state.players.indexWhere((player) => player.id == state.currentPlayer);
+    if (index == -1) index = 0;
+    for (var offset = 1; offset <= state.players.length; offset++) {
+      final candidate = state.players[(index + offset) % state.players.length];
+      if (!state.ranking.contains(candidate.id)) {
+        return candidate.id;
       }
     }
+    return state.currentPlayer;
+  }
 
-    // On main path
-    final traversed = <int>[];
-    int pos = piece.position.fieldId;
-    final homeStart = homeStretchStart[piece.color]!;
-    for (int i = 1; i <= die; i++) {
-      pos = _nextPlayableIndex(pos);
-      if (blocked.contains(pos)) {
-        return const _SimResult.invalid(ValidationError.blockedByBarrier);
-      }
-      traversed.add(pos);
-      if (pos == homeStart) {
-        final remaining = die - i;
-        final laneIndex = _mapToHomeLaneIndex(piece.color, remaining);
-        if (remaining >= 0) {
-          if (state.rules.exactRollToFinish) {
-            if (laneIndex == homePathLength) {
-              return const _SimResult.valid(PiecePosition(homePathLength),
-                  finalIsSafe: true);
-            }
-            if (laneIndex <= homePathLength - 1) {
-              return _SimResult.valid(PiecePosition(laneIndex),
-                  traversedMainPath: traversed);
-            }
-            // overshoot -> continue on main path
-          } else {
-            if (laneIndex >= homePathLength) {
-              return const _SimResult.valid(PiecePosition(homePathLength),
-                  finalIsSafe: true);
-            }
-            return _SimResult.valid(PiecePosition(laneIndex),
-                traversedMainPath: traversed);
+  static GameState _applyTripleSixPenalty(
+      GameState state, Player player, int dice) {
+    final rule = state.rules.tripleSixRule;
+    switch (rule) {
+      case TripleSixRule.loseTurn:
+        final updatedPlayers = state.players.map((p) {
+          if (p.id == player.id) {
+            return p.copyWith(consecutiveSixes: 0);
           }
-        }
-      }
-    }
-    // Standard main-path landing (pos already incremented die times via _nextPlayableIndex)
-    return _SimResult.valid(PiecePosition(pos, isHome: false),
-        traversedMainPath: traversed);
-  }
-
-  static List<Piece> getMovablePieces(GameState state) {
-    if (state.lastDiceValue == null || state.lastDiceValue == 0) return [];
-    return state.currentPlayer.pieces
-        .where((p) => validateMove(state, p, state.lastDiceValue!).isValid)
-        .toList();
-  }
-
-  // _canMovePiece is superseded by validateMove + _simulate
-
-  static MoveResult movePiece(GameState state, Piece piece) {
-    final sim = _simulate(state, piece, state.lastDiceValue ?? 0);
-    if (!sim.isValid) {
-      return MoveResult(state);
-    }
-
-    final movedPiece = Piece(piece.color, piece.id, sim.finalPosition,
-        isSafe: sim.finalIsSafe);
-
-    // Check for captures (only on main path, not in home areas)
-    Piece? capturedPiece;
-    List<Player> updatedPlayers = state.players.map((p) => p).toList();
-
-    final bool captureEnabled = state.rules.captureReturnsToHome;
-    final bool isSafeTile = isSafeField(movedPiece.position.fieldId);
-    final bool canCaptureHere = captureEnabled &&
-        !movedPiece.position.isHome &&
-        (!state.rules.safeFieldsEnabled || !isSafeTile);
-
-    final bool opponentOccupiesTarget =
-        _opponentOccupiesField(state, piece, movedPiece.position);
-
-    if (!captureEnabled &&
-        opponentOccupiesTarget &&
-        !state.rules.multipleOccupancyAllowed) {
-      // Move is illegal when captures are disabled and sharing is not allowed
-      return MoveResult(state);
-    }
-
-    if (canCaptureHere && opponentOccupiesTarget) {
-      final opponentsByColor =
-          _opponentPiecesGroupedByPlayer(state, piece, movedPiece.position);
-      opponentsByColor.forEach((color, opponentPieces) {
-        final playerIndex = updatedPlayers.indexWhere((p) => p.color == color);
-        if (playerIndex == -1) return;
-        final player = updatedPlayers[playerIndex];
-        final updatedPieces = player.pieces.map((candidate) {
-          final wasCaptured = opponentPieces.any((o) => o.id == candidate.id);
-          if (!wasCaptured) return candidate;
-          return Piece(candidate.color, candidate.id,
-              const PiecePosition(GameConstants.basePosition));
+          return p;
         }).toList();
-        updatedPlayers[playerIndex] = Player(
-          id: player.id,
-          name: player.name,
-          type: player.type,
-          color: player.color,
-          pieces: updatedPieces,
+        return state.copyWith(
+          players: updatedPlayers,
+          dice: dice,
+          extraRollAwarded: false,
+          phase: GamePhase.endTurn,
         );
-        capturedPiece ??= opponentPieces.first;
-      });
-    }
-
-    // Now update the current player's piece
-    final newPlayers = updatedPlayers.map((p) {
-      if (p.color != state.currentTurnPlayerId) {
-        return p;
-      }
-      return Player(
-        id: p.id,
-        name: p.name,
-        type: p.type,
-        color: p.color,
-        pieces: p.pieces.map((p) {
-          if (p.id != piece.id) {
+      case TripleSixRule.invalidateLast:
+        if (state.currentTurnHistory.isEmpty) {
+          final updatedPlayers = state.players.map((p) {
+            if (p.id == player.id) {
+              return p.copyWith(consecutiveSixes: 0);
+            }
             return p;
+          }).toList();
+          return state.copyWith(
+            players: updatedPlayers,
+            dice: dice,
+            extraRollAwarded: false,
+            phase: GamePhase.endTurn,
+          );
+        }
+        final history = List<MoveRecord>.from(state.currentTurnHistory);
+        final last = history.removeLast();
+
+        final pawns = Map<PawnId, Pawn>.from(state.pawns);
+        final movedPawn = pawns[last.pawnId];
+        if (movedPawn != null) {
+          pawns[last.pawnId] = movedPawn.copyWith(state: last.from);
+        }
+        for (final snapshot in last.captured) {
+          pawns[snapshot.pawn.id] = snapshot.pawn;
+        }
+
+        final updatedPlayers = state.players.map((p) {
+          if (p.id == player.id) {
+            final newFinished =
+                p.finishedCount - (last.finished ? 1 : 0);
+            return p.copyWith(
+              finishedCount: newFinished.clamp(0, p.finishedCount),
+              consecutiveSixes: 0,
+            );
           }
-          return movedPiece;
-        }).toList(),
-      );
-    }).toList();
+          return p;
+        }).toList();
 
-    final newState = state.copyWith(
-      players: newPlayers,
-      winnerId:
-          _checkWinner(newPlayers, state.currentTurnPlayerId, state.rules),
-    );
+        var ranking = state.ranking;
+        if (last.rankingUpdated && ranking.contains(player.id)) {
+          final updated = List<PlayerId>.from(ranking)..remove(player.id);
+          ranking = UnmodifiableListView(updated);
+        }
 
-    return MoveResult(
-      newState,
-      capturedOpponentPiece: capturedPiece,
-      isFinishMove: movedPiece.isSafe,
-    );
-  }
-
-  // _movePiece superseded by _simulate
-
-  static PlayerColor? _checkWinner(
-      List<Player> players, PlayerColor currentPlayer, GameRules rules) {
-    try {
-      final player = players.firstWhere((p) => p.color == currentPlayer);
-      final finishedCount = player.pieces.where((p) => p.isSafe).length;
-      if (finishedCount >= rules.piecesToWin) {
-        return currentPlayer;
-      }
-    } catch (e) {
-      // Player not found, no winner
+        return state.copyWith(
+          players: updatedPlayers,
+          pawns: pawns,
+          ranking: ranking,
+          dice: dice,
+          extraRollAwarded: false,
+          currentTurnHistory: history,
+          phase: GamePhase.endTurn,
+        );
+      case TripleSixRule.none:
+        return state;
     }
-    return null;
-  }
-
-  // Map a piece position to a zone for rule checks
-  static BoardZone _zoneFor(Piece piece) {
-    if (!piece.position.isHome) {
-      return const BoardZone(ZoneType.main);
-    }
-    if (piece.isSafe || piece.position.fieldId == homePathLength) {
-      return BoardZone(ZoneType.goal, color: piece.color);
-    }
-    return BoardZone(ZoneType.home, color: piece.color);
-  }
-
-  // Public helper for tests/UI to map a piece to its logical zone
-  static BoardZone zoneForPiece(Piece piece) => _zoneFor(piece);
-
-  static bool isSafeField(int fieldIndex) =>
-      GameConstants.safeMainPathFields.contains(fieldIndex);
-
-  static ValidationResult validateMove(GameState state, Piece piece, int die) {
-    final sim = _simulate(state, piece, die);
-    if (!sim.isValid) {
-      return ValidationResult.invalid(sim.error);
-    }
-    final bool opponentOccupiesTarget =
-        _opponentOccupiesField(state, piece, sim.finalPosition);
-    if (opponentOccupiesTarget &&
-        !state.rules.captureReturnsToHome &&
-        !state.rules.multipleOccupancyAllowed) {
-      return const ValidationResult.invalid(ValidationError.occupiedByOpponent);
-    }
-    return const ValidationResult.valid();
   }
 }
