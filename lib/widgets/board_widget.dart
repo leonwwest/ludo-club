@@ -71,7 +71,9 @@ class BoardWidget extends StatelessWidget {
   Widget _buildPiece(Piece piece, double boardSize) {
     final position = _calculatePiecePosition(piece, boardSize);
     final isMovable = movablePieces.contains(piece);
-    final pieceSize = boardSize * GameConstants.pinSizeRatio;
+    final inset = GameConstants.boardContentInsetRatio;
+    final innerSide = boardSize * (1 - 2 * inset);
+    final pieceSize = innerSide * GameConstants.pinSizeRatio;
 
     return AnimatedPositioned(
       duration: const Duration(milliseconds: GameConstants.pieceMoveDuration),
@@ -92,7 +94,20 @@ class BoardWidget extends StatelessWidget {
   }
 
   Offset _calculatePiecePosition(Piece piece, double boardSize) {
-    final cellSize = boardSize / GameConstants.boardGridSize;
+    final cellSize = (boardSize * (1 - 2 * GameConstants.boardContentInsetRatio)) /
+        GameConstants.boardGridSize;
+    
+    // Helper to map logical grid units (0..15) to pixel coordinates inside
+    // the inner playable area of the image (accounts for image margins).
+    Offset toPx(double unitX, double unitY) {
+      final inset = GameConstants.boardContentInsetRatio;
+      final side = boardSize * (1 - 2 * inset);
+      final base = boardSize * inset;
+      return Offset(
+        base + side * (unitX / GameConstants.boardGridSize),
+        base + side * (unitY / GameConstants.boardGridSize),
+      );
+    }
     
     // Starting home positions (fieldId = -1)
     if (piece.position.isHome && piece.position.fieldId == -1) {
@@ -100,31 +115,19 @@ class BoardWidget extends StatelessWidget {
         case PlayerColor.red:
           final row = piece.id ~/ 2;
           final col = piece.id % 2;
-          return Offset(
-            cellSize * (1.5 + col * 2),
-            cellSize * (11.5 + row * 2),
-          );
+          return toPx(1.5 + col * 2, 11.5 + row * 2);
         case PlayerColor.green:
           final row = piece.id ~/ 2;
           final col = piece.id % 2;
-          return Offset(
-            cellSize * (1.5 + col * 2),
-            cellSize * (1.5 + row * 2),
-          );
+          return toPx(1.5 + col * 2, 1.5 + row * 2);
         case PlayerColor.blue:
           final row = piece.id ~/ 2;
           final col = piece.id % 2;
-          return Offset(
-            cellSize * (11.5 + col * 2),
-            cellSize * (1.5 + row * 2),
-          );
+          return toPx(11.5 + col * 2, 1.5 + row * 2);
         case PlayerColor.yellow:
           final row = piece.id ~/ 2;
           final col = piece.id % 2;
-          return Offset(
-            cellSize * (11.5 + col * 2),
-            cellSize * (11.5 + row * 2),
-          );
+          return toPx(11.5 + col * 2, 11.5 + row * 2);
       }
     }
     
@@ -146,24 +149,46 @@ class BoardWidget extends StatelessWidget {
   Offset _getHomeStretchPosition(Piece piece, double cellSize) {
     final position = piece.position.fieldId;
     
+    Offset toPx(double unitX, double unitY) {
+      final inset = GameConstants.boardContentInsetRatio;
+      final side = cellSize * GameConstants.boardGridSize;
+      final base = side * inset / (1 - 2 * inset);
+      // The above converts from inner cellSize back to absolute board space
+      // and applies the same inset mapping as in _calculatePiecePosition.
+      final boardSize = side / (1 - 2 * inset);
+      final px = Offset(
+        boardSize * inset + (boardSize * (1 - 2 * inset)) * (unitX / GameConstants.boardGridSize),
+        boardSize * inset + (boardSize * (1 - 2 * inset)) * (unitY / GameConstants.boardGridSize),
+      );
+      return px;
+    }
+
     switch (piece.color) {
       case PlayerColor.red:
         // Red goal lane should be bottom -> center (vertical at column 7)
-        return Offset(cellSize * 7.5, cellSize * (12.5 - position));
+        return toPx(7.5, 12.5 - position);
       case PlayerColor.green:
-        return Offset(cellSize * (1.5 + position), cellSize * 7.5);
+        return toPx(1.5 + position, 7.5);
       case PlayerColor.blue:
         // Blue goal lane should be top -> center (vertical at column 7)
-        return Offset(cellSize * 7.5, cellSize * (1.5 + position));
+        return toPx(7.5, 1.5 + position);
       case PlayerColor.yellow:
-        return Offset(cellSize * (13.5 - position), cellSize * 7.5);
+        return toPx(13.5 - position, 7.5);
     }
   }
 
   List<Offset> _getMainPathPositions(double boardSize) {
-    final cellSize = boardSize / GameConstants.boardGridSize;
+    Offset toPx(double unitX, double unitY) {
+      final inset = GameConstants.boardContentInsetRatio;
+      final side = boardSize * (1 - 2 * inset);
+      final base = boardSize * inset;
+      return Offset(
+        base + side * (unitX / GameConstants.boardGridSize),
+        base + side * (unitY / GameConstants.boardGridSize),
+      );
+    }
     return LudoPath.coords
-        .map((g) => Offset(cellSize * (g.dx + 0.5), cellSize * (g.dy + 0.5)))
+        .map((g) => toPx(g.dx + 0.5, g.dy + 0.5))
         .toList(growable: false);
   }
 }
