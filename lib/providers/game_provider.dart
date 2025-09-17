@@ -188,8 +188,8 @@ class GameProvider extends ChangeNotifier {
     _lastDiceForCache = null;
 
     // Handle captured piece
-    if (moveResult.capturedOpponentPiece != null) {
-      final captured = moveResult.capturedOpponentPiece!;
+    if (moveResult.didCapture) {
+      final captured = moveResult.capturedOpponents.first;
 
       _showCaptureEffect = true;
       _capturedPlayerId = captured.color;
@@ -213,12 +213,7 @@ class GameProvider extends ChangeNotifier {
     }
 
     // Check for 6 or capture: get another turn
-    final rules = _gameState.rules;
-    final gotSix = _gameState.lastDiceValue == 6;
-    final gotCapture = moveResult.capturedOpponentPiece != null;
-    final getExtraTurn = (rules.extraTurnOnSix && gotSix) ||
-        (rules.extraTurnOnCapture && gotCapture);
-    if (getExtraTurn) {
+    if (moveResult.grantsExtraRoll) {
       nextTurn().catchError((error) {
         // Handle errors gracefully to prevent crashes
       });

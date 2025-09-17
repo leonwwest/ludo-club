@@ -2,6 +2,7 @@ class GameRules {
   final bool mustRollSixToStart; // Must roll 6 to get out of home
   final bool extraTurnOnSix; // Get extra turn when rolling 6
   final bool extraTurnOnCapture; // Get extra turn when capturing opponent
+  final bool extraTurnOnFinish; // Get extra turn when finishing a token
   final int maxConsecutiveSixes; // Maximum consecutive 6s before losing turn
   final bool safeFieldsEnabled; // Safe fields prevent capture
   final bool captureReturnsToHome; // Captured pieces return to home base
@@ -15,6 +16,7 @@ class GameRules {
     this.mustRollSixToStart = true,
     this.extraTurnOnSix = true,
     this.extraTurnOnCapture = true,
+    this.extraTurnOnFinish = false,
     this.maxConsecutiveSixes = 3,
     this.safeFieldsEnabled = true,
     this.captureReturnsToHome = true,
@@ -62,6 +64,7 @@ class GameRules {
     bool? mustRollSixToStart,
     bool? extraTurnOnSix,
     bool? extraTurnOnCapture,
+    bool? extraTurnOnFinish,
     int? maxConsecutiveSixes,
     bool? safeFieldsEnabled,
     bool? captureReturnsToHome,
@@ -74,6 +77,7 @@ class GameRules {
       mustRollSixToStart: mustRollSixToStart ?? this.mustRollSixToStart,
       extraTurnOnSix: extraTurnOnSix ?? this.extraTurnOnSix,
       extraTurnOnCapture: extraTurnOnCapture ?? this.extraTurnOnCapture,
+      extraTurnOnFinish: extraTurnOnFinish ?? this.extraTurnOnFinish,
       maxConsecutiveSixes: maxConsecutiveSixes ?? this.maxConsecutiveSixes,
       safeFieldsEnabled: safeFieldsEnabled ?? this.safeFieldsEnabled,
       captureReturnsToHome: captureReturnsToHome ?? this.captureReturnsToHome,
@@ -91,6 +95,7 @@ class GameRules {
       'mustRollSixToStart': mustRollSixToStart,
       'extraTurnOnSix': extraTurnOnSix,
       'extraTurnOnCapture': extraTurnOnCapture,
+      'extraTurnOnFinish': extraTurnOnFinish,
       'maxConsecutiveSixes': maxConsecutiveSixes,
       'safeFieldsEnabled': safeFieldsEnabled,
       'captureReturnsToHome': captureReturnsToHome,
@@ -106,6 +111,7 @@ class GameRules {
       mustRollSixToStart: json['mustRollSixToStart'] as bool? ?? true,
       extraTurnOnSix: json['extraTurnOnSix'] as bool? ?? true,
       extraTurnOnCapture: json['extraTurnOnCapture'] as bool? ?? true,
+      extraTurnOnFinish: json['extraTurnOnFinish'] as bool? ?? false,
       maxConsecutiveSixes: json['maxConsecutiveSixes'] as int? ?? 3,
       safeFieldsEnabled: json['safeFieldsEnabled'] as bool? ?? true,
       captureReturnsToHome: json['captureReturnsToHome'] as bool? ?? true,
@@ -125,6 +131,7 @@ class GameRules {
         other.mustRollSixToStart == mustRollSixToStart &&
         other.extraTurnOnSix == extraTurnOnSix &&
         other.extraTurnOnCapture == extraTurnOnCapture &&
+        other.extraTurnOnFinish == extraTurnOnFinish &&
         other.maxConsecutiveSixes == maxConsecutiveSixes &&
         other.safeFieldsEnabled == safeFieldsEnabled &&
         other.captureReturnsToHome == captureReturnsToHome &&
@@ -140,6 +147,7 @@ class GameRules {
       mustRollSixToStart,
       extraTurnOnSix,
       extraTurnOnCapture,
+      extraTurnOnFinish,
       maxConsecutiveSixes,
       safeFieldsEnabled,
       captureReturnsToHome,
@@ -156,6 +164,7 @@ class GameRules {
         'mustRollSixToStart: $mustRollSixToStart, '
         'extraTurnOnSix: $extraTurnOnSix, '
         'extraTurnOnCapture: $extraTurnOnCapture, '
+        'extraTurnOnFinish: $extraTurnOnFinish, '
         'maxConsecutiveSixes: $maxConsecutiveSixes, '
         'safeFieldsEnabled: $safeFieldsEnabled, '
         'captureReturnsToHome: $captureReturnsToHome, '

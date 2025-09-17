@@ -194,17 +194,17 @@ class AIService {
       reasons.insert(0, 'Finishes a token');
     }
 
-    if (moveResult.capturedOpponentPiece != null) {
+    if (moveResult.didCapture) {
       final captureBonus = rules.captureReturnsToHome ? 35 : 10;
       score += captureBonus;
-      reasons.insert(0, 'Captures opponent');
+      reasons.insert(
+          0,
+          moveResult.capturedOpponents.length > 1
+              ? 'Captures opponents'
+              : 'Captures opponent');
     }
 
-    final bool grantsTurnOnSix =
-        rules.extraTurnOnSix && state.lastDiceValue == GameConstants.diceSides;
-    final bool grantsTurnOnCapture =
-        rules.extraTurnOnCapture && moveResult.capturedOpponentPiece != null;
-    if (grantsTurnOnSix || grantsTurnOnCapture) {
+    if (moveResult.grantsExtraRoll) {
       score += 15;
       reasons.add('Keeps the turn');
     }

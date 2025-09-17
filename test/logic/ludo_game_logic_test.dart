@@ -375,7 +375,7 @@ void main() {
 
     test('Overshoot at home entry continues on main path', () {
       // Red entry at 51; from 40 with roll 20 -> remaining after entry would be 9 (>6)
-      // Should NOT enter home; continue along the main path (skipping non-playable 46), landing on 9
+      // Should NOT enter home; continues along the main path landing on 8
       final redPieces = [
         Piece(PlayerColor.red, 0, const PiecePosition(40, isHome: false)),
         ...List.generate(
@@ -403,7 +403,7 @@ void main() {
           result.newState.players.firstWhere((p) => p.color == PlayerColor.red);
       final moved = redAfter.pieces.firstWhere((p) => p.id == 0);
       expect(moved.position.isHome, isFalse);
-      expect(moved.position.fieldId, 9);
+      expect(moved.position.fieldId, 8);
     });
   });
 }

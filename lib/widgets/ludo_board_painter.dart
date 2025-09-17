@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'package:ludo_club/models/ludo_objects.dart';
 import 'package:ludo_club/utils/color_utils.dart';
+import 'package:ludo_club/logic/ludo_path.dart';
 
 class LudoBoardPainter extends CustomPainter {
   // Reusable Paint objects for better performance
@@ -250,19 +251,15 @@ class LudoBoardPainter extends CustomPainter {
     final safePaint = Paint()
       ..color = Colors.green.shade400
       ..style = PaintingStyle.fill;
-    
-    final safePositions = [
-      Offset(cellSize * 0.5, cellSize * 13.5),  // Red start (position 0)
-      Offset(cellSize * 2.5, cellSize * 8.5),   // Safe field 1 (position 8)
-      Offset(cellSize * 1.5, cellSize * 0.5),   // Green start (position 13)
-      Offset(cellSize * 8.5, cellSize * 2.5),   // Safe field 2 (position 21)
-      Offset(cellSize * 13.5, cellSize * 1.5),  // Blue start (position 26)
-      Offset(cellSize * 12.5, cellSize * 8.5),  // Safe field 3 (position 34)
-      Offset(cellSize * 13.5, cellSize * 13.5), // Yellow start (position 39)
-      Offset(cellSize * 6.5, cellSize * 12.5),  // Safe field 4 (position 47)
-    ];
-    
-    for (final pos in safePositions) {
+
+    // Safe fields follow canonical path indices: starts and +8 from each start
+    // Indices: 0, 8, 13, 21, 26, 34, 39, 47
+    final indices = const [0, 8, 13, 21, 26, 34, 39, 47];
+
+    for (final i in indices) {
+      if (i < 0 || i >= LudoPath.coords.length) continue;
+      final g = LudoPath.coords[i];
+      final pos = Offset(cellSize * (g.dx + 0.5), cellSize * (g.dy + 0.5));
       // Draw star shape for safe fields
       _drawStar(canvas, pos, cellSize * 0.3, safePaint);
     }

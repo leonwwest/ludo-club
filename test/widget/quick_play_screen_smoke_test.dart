@@ -53,7 +53,7 @@ class _DeterministicAIService extends AIService {
 }
 
 class _FixedRandom implements Random {
-  const _FixedRandom(this._values);
+  _FixedRandom(this._values);
 
   final List<int> _values;
   int _index = 0;
@@ -104,12 +104,14 @@ void main() {
     expect(find.text('Player Settings'), findsOneWidget);
     expect(find.text('AI Difficulty'), findsOneWidget);
     expect(find.byType(TextField), findsWidgets);
-    expect(find.textContaining('Save preset'), findsOneWidget);
+    expect(find.text('Select rule preset'), findsOneWidget);
 
     // Ensure default state builds minimal player list when toggling preset list
-    final dropdownFinder = find.byType(DropdownButton<int>).first;
+    final dropdownFinder = find.byType(DropdownButtonFormField<String>).first;
+    await tester.ensureVisible(dropdownFinder);
+    await tester.pumpAndSettle();
     await tester.tap(dropdownFinder);
     await tester.pumpAndSettle();
-    expect(find.text('4 tokens'), findsWidgets);
+    expect(find.text('Chaos'), findsWidgets);
   });
 }

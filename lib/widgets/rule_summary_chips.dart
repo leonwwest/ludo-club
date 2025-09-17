@@ -57,6 +57,11 @@ class RuleSummaryChips extends StatelessWidget {
         active: rules.extraTurnOnCapture,
       ),
       _RuleChipSpec(
+        label:
+            rules.extraTurnOnFinish ? 'Finish extra turn' : 'No finish bonus',
+        active: rules.extraTurnOnFinish,
+      ),
+      _RuleChipSpec(
         label: rules.exactRollToFinish ? 'Exact finish' : 'Flexible finish',
         active: rules.exactRollToFinish,
       ),
