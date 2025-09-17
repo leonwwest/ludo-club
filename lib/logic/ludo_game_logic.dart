@@ -205,7 +205,7 @@ class LudoGame {
     final evaluation = _evaluateMove(state, piece, die, config, trackOccupants);
 
     if (!evaluation.isValid || evaluation.move == null) {
-      return MoveResult(newState: state, pieceMoved: false);
+      return MoveResult(newState: state);
     }
 
     final move = evaluation.move!;
@@ -364,8 +364,6 @@ class LudoGame {
       targetPosition: target,
       capturedPieces: List<Piece>.from(
           config.captureReturnsToHome ? opponents : const <Piece>[]),
-      didFinish: false,
-      didMove: true,
       kind: _MoveKind.enterFromBase,
     );
     return _MoveEvaluation.valid(move);
@@ -399,9 +397,7 @@ class LudoGame {
         final move = _MoveCandidate(
           piece: piece,
           targetPosition: target,
-          capturedPieces: const [],
           didFinish: homeIndex >= config.homeLength,
-          didMove: true,
           kind: _MoveKind.enterHome,
         );
         return _MoveEvaluation.valid(move);
@@ -453,8 +449,6 @@ class LudoGame {
       piece: piece,
       targetPosition: PiecePosition(targetIndex, isHome: false),
       capturedPieces: captured,
-      didFinish: false,
-      didMove: true,
       kind: _MoveKind.advanceOnTrack,
     );
     return _MoveEvaluation.valid(move);
@@ -479,7 +473,6 @@ class LudoGame {
     final move = _MoveCandidate(
       piece: piece,
       targetPosition: PiecePosition(target),
-      capturedPieces: const [],
       didFinish: target >= config.homeLength,
       didMove: target != current,
       kind: _MoveKind.advanceHome,
@@ -544,7 +537,6 @@ class LudoGame {
       victim.color,
       victim.id,
       const PiecePosition(GameState.basePosition),
-      isSafe: false,
     );
     players[playerIndex] = Player(
       id: player.id,

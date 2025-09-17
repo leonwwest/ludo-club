@@ -47,9 +47,14 @@ Future<void> showGameRulesSheet({
                   if (service == null) {
                     return;
                   }
+                  final messenger =
+                      ScaffoldMessenger.maybeOf(messengerContext);
+                  if (messenger == null) {
+                    return;
+                  }
                   final name = nameController.text.trim();
                   if (name.isEmpty) {
-                    ScaffoldMessenger.of(messengerContext).showSnackBar(
+                    messenger.showSnackBar(
                       const SnackBar(
                           content: Text('Enter a preset name before saving.')),
                     );
@@ -59,11 +64,14 @@ Future<void> showGameRulesSheet({
                     savingPreset = true;
                   });
                   final saved = await service.saveNamedPreset(name, current);
+                  if (!ctx.mounted) {
+                    return;
+                  }
                   setModalState(() {
                     savingPreset = false;
                     nameController.clear();
                   });
-                  ScaffoldMessenger.of(messengerContext).showSnackBar(
+                  messenger.showSnackBar(
                     SnackBar(
                         content: Text(
                             'Preset "${saved.name}" saved. Available in Quick Play.')),

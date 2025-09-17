@@ -3,7 +3,6 @@ import 'package:ludo_club/models/ludo_objects.dart';
 import 'package:ludo_club/widgets/ludo_pin.dart';
 import 'package:ludo_club/utils/color_utils.dart';
 import 'package:ludo_club/constants/game_constants.dart';
-import 'package:ludo_club/widgets/ludo_board_tiled.dart';
 import 'package:ludo_club/logic/ludo_path.dart';
 
 class BoardWidget extends StatelessWidget {
@@ -49,7 +48,24 @@ class BoardWidget extends StatelessWidget {
   }
 
   Widget _buildBoardBackground(double size) {
-    return SizedBox(width: size, height: size, child: const LudoBoardTiled());
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(GameConstants.boardCornerRadius),
+          boxShadow: const [
+            BoxShadow(blurRadius: 16, offset: Offset(0, 8), color: Color(0x33000000)),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Image.asset(
+          'assets/board/ludo_board_actual.png',
+          fit: BoxFit.cover,
+          filterQuality: FilterQuality.high,
+        ),
+      ),
+    );
   }
 
   Widget _buildPiece(Piece piece, double boardSize) {
