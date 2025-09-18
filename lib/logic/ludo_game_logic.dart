@@ -330,12 +330,19 @@ class LudoGame {
     }
 
     final startIndex = _startIndexFor(state, piece.color);
-    final occupants = List<Piece>.from(trackOccupants[startIndex] ?? const []);
-    final ownPieces =
-        occupants.where((candidate) => candidate.color == piece.color).toList();
-    final opponents =
-        occupants.where((candidate) => candidate.color != piece.color).toList();
+    // Rule: entering from base skips the colored start tile and places the
+    // piece on the first neutral (white) tile after start.
+    final entryIndex = (startIndex + 1) % config.trackLength;
 
+    final occupants = List<Piece>.from(trackOccupants[entryIndex] ?? const []);
+    final ownPieces = occupants
+        .where((candidate) => candidate.color == piece.color)
+        .toList();
+    final opponents = occupants
+        .where((candidate) => candidate.color != piece.color)
+        .toList();
+
+    // If own pieces already occupy the entry tile, respect stacking/blockade rules
     if (ownPieces.isNotEmpty) {
       if (config.cannotEnterIfOwnStoneAtStart ||
           (!config.stackOnStartAllowed) ||
@@ -344,26 +351,26 @@ class LudoGame {
       }
     }
 
+    // If opponents occupy the entry tile, check blockade and capture permissions
     if (opponents.isNotEmpty) {
       if (_isBlockade(opponents, config)) {
         return const _MoveEvaluation.invalid(ValidationError.blockedByBarrier);
       }
-      final isSafeStart =
-          config.safeSquares.contains(startIndex) || config.ownStartIsSafe;
+      final isSafeTarget = config.safeSquares.contains(entryIndex);
       final canCapture = config.captureReturnsToHome &&
-          (!isSafeStart || config.captureOnSafeAllowed);
+          (!isSafeTarget || config.captureOnSafeAllowed);
       if (!canCapture) {
         return const _MoveEvaluation.invalid(
             ValidationError.occupiedByOpponent);
       }
     }
 
-    final target = PiecePosition(startIndex, isHome: false);
+    final target = PiecePosition(entryIndex, isHome: false);
     final move = _MoveCandidate(
       piece: piece,
       targetPosition: target,
       capturedPieces: List<Piece>.from(
-          config.captureReturnsToHome ? opponents : const <Piece>[]),
+          (config.captureReturnsToHome && opponents.isNotEmpty) ? opponents : const <Piece>[]),
       kind: _MoveKind.enterFromBase,
     );
     return _MoveEvaluation.valid(move);
