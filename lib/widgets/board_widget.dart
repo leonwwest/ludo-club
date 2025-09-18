@@ -120,11 +120,11 @@ class BoardWidget extends StatelessWidget {
           final row = piece.id ~/ 2;
           final col = piece.id % 2;
           return toPx(1.5 + col * 2, 1.5 + row * 2);
-        case PlayerColor.blue:
+        case PlayerColor.yellow:
           final row = piece.id ~/ 2;
           final col = piece.id % 2;
           return toPx(11.5 + col * 2, 1.5 + row * 2);
-        case PlayerColor.yellow:
+        case PlayerColor.blue:
           final row = piece.id ~/ 2;
           final col = piece.id % 2;
           return toPx(11.5 + col * 2, 11.5 + row * 2);
@@ -151,16 +151,13 @@ class BoardWidget extends StatelessWidget {
     
     Offset toPx(double unitX, double unitY) {
       final inset = GameConstants.boardContentInsetRatio;
-      final side = cellSize * GameConstants.boardGridSize;
-      final base = side * inset / (1 - 2 * inset);
-      // The above converts from inner cellSize back to absolute board space
-      // and applies the same inset mapping as in _calculatePiecePosition.
-      final boardSize = side / (1 - 2 * inset);
-      final px = Offset(
-        boardSize * inset + (boardSize * (1 - 2 * inset)) * (unitX / GameConstants.boardGridSize),
-        boardSize * inset + (boardSize * (1 - 2 * inset)) * (unitY / GameConstants.boardGridSize),
+      final boardSize =
+          cellSize * GameConstants.boardGridSize / (1 - 2 * inset);
+      final innerSide = boardSize * (1 - 2 * inset);
+      return Offset(
+        boardSize * inset + innerSide * (unitX / GameConstants.boardGridSize),
+        boardSize * inset + innerSide * (unitY / GameConstants.boardGridSize),
       );
-      return px;
     }
 
     switch (piece.color) {
@@ -169,10 +166,10 @@ class BoardWidget extends StatelessWidget {
         return toPx(7.5, 12.5 - position);
       case PlayerColor.green:
         return toPx(1.5 + position, 7.5);
-      case PlayerColor.blue:
-        // Blue goal lane should be top -> center (vertical at column 7)
-        return toPx(7.5, 1.5 + position);
       case PlayerColor.yellow:
+        // Yellow goal lane should be top -> center (vertical at column 7)
+        return toPx(7.5, 1.5 + position);
+      case PlayerColor.blue:
         return toPx(13.5 - position, 7.5);
     }
   }

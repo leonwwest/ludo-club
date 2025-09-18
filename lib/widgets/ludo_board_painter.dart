@@ -84,8 +84,8 @@ class LudoBoardPainter extends CustomPainter {
       _homePaint,
     );
     
-    // Blue home (top-right)
-    _homePaint.color = ColorUtils.getHomeAreaColor(PlayerColor.blue);
+    // Yellow home (top-right)
+    _homePaint.color = ColorUtils.getHomeAreaColor(PlayerColor.yellow);
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromLTWH(cellSize * 9, 0, cellSize * 6, cellSize * 6),
@@ -94,8 +94,8 @@ class LudoBoardPainter extends CustomPainter {
       _homePaint,
     );
     
-    // Yellow home (bottom-right)
-    _homePaint.color = ColorUtils.getHomeAreaColor(PlayerColor.yellow);
+    // Blue home (bottom-right)
+    _homePaint.color = ColorUtils.getHomeAreaColor(PlayerColor.blue);
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromLTWH(cellSize * 9, cellSize * 9, cellSize * 6, cellSize * 6),
@@ -194,8 +194,8 @@ class LudoBoardPainter extends CustomPainter {
       );
     }
     
-    // Blue home stretch (vertical, top to center)
-    stretchPaint.color = ColorUtils.getPrimaryColor(PlayerColor.blue).withValues(alpha: 0.25);
+    // Yellow home stretch (vertical, top to center)
+    stretchPaint.color = ColorUtils.getPrimaryColor(PlayerColor.yellow).withValues(alpha: 0.25);
     for (int i = 1; i <= 5; i++) {
       canvas.drawRRect(
         RRect.fromRectAndRadius(
@@ -206,8 +206,8 @@ class LudoBoardPainter extends CustomPainter {
       );
     }
     
-    // Yellow home stretch (horizontal, right to center)
-    stretchPaint.color = ColorUtils.getPrimaryColor(PlayerColor.yellow).withValues(alpha: 0.25);
+    // Blue home stretch (horizontal, right to center)
+    stretchPaint.color = ColorUtils.getPrimaryColor(PlayerColor.blue).withValues(alpha: 0.25);
     for (int i = 1; i <= 5; i++) {
       canvas.drawRRect(
         RRect.fromRectAndRadius(
@@ -300,8 +300,8 @@ class LudoBoardPainter extends CustomPainter {
       borderPaint,
     );
     
-    // Blue start
-    startPaint.color = ColorUtils.getPrimaryColor(PlayerColor.blue);
+    // Yellow start
+    startPaint.color = ColorUtils.getPrimaryColor(PlayerColor.yellow);
     canvas.drawCircle(
       Offset(cellSize * 13.5, cellSize * 1.5),
       cellSize * 0.4,
@@ -313,8 +313,8 @@ class LudoBoardPainter extends CustomPainter {
       borderPaint,
     );
     
-    // Yellow start
-    startPaint.color = ColorUtils.getPrimaryColor(PlayerColor.yellow);
+    // Blue start
+    startPaint.color = ColorUtils.getPrimaryColor(PlayerColor.blue);
     canvas.drawCircle(
       Offset(cellSize * 13.5, cellSize * 13.5),
       cellSize * 0.4,
