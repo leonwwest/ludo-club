@@ -23,8 +23,7 @@ class LudoPin extends StatefulWidget {
   State<LudoPin> createState() => _LudoPinState();
 }
 
-class _LudoPinState extends State<LudoPin>
-    with SingleTickerProviderStateMixin {
+class _LudoPinState extends State<LudoPin> with SingleTickerProviderStateMixin {
   late AnimationController _bounceController;
   late Animation<double> _bounceAnimation;
   bool _isHovered = false;
@@ -75,7 +74,8 @@ class _LudoPinState extends State<LudoPin>
             boxShadow: widget.isHighlighted
                 ? [
                     BoxShadow(
-                      color: _getColorForString(widget.color).withValues(alpha: 0.6),
+                      color: _getColorForString(widget.color)
+                          .withValues(alpha: 0.6),
                       blurRadius: 10,
                       spreadRadius: 2,
                     )
@@ -104,20 +104,22 @@ class _LudoPinState extends State<LudoPin>
                       shape: BoxShape.circle,
                       gradient: RadialGradient(
                         colors: [
-                          _getColorForString(widget.color).withValues(alpha: 0.3),
+                          _getColorForString(widget.color)
+                              .withValues(alpha: 0.3),
                           Colors.transparent,
                         ],
                       ),
                     ),
                   ),
-                
+
                 // Main pin SVG
                 SvgPicture.asset(
                   'assets/pins/pin_${widget.color}.svg',
                   width: widget.size,
-                  height: widget.size * 1.2, // Slightly taller for teardrop shape
+                  height:
+                      widget.size * 1.2, // Slightly taller for teardrop shape
                 ),
-                
+
                 // ID number overlay - simplified
                 Positioned(
                   bottom: widget.size * 0.15,
@@ -159,4 +161,4 @@ class _LudoPinState extends State<LudoPin>
         return Colors.grey;
     }
   }
-} 
+}

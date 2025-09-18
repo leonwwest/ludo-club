@@ -47,8 +47,7 @@ Future<void> showGameRulesSheet({
                   if (service == null) {
                     return;
                   }
-                  final messenger =
-                      ScaffoldMessenger.maybeOf(messengerContext);
+                  final messenger = ScaffoldMessenger.maybeOf(messengerContext);
                   if (messenger == null) {
                     return;
                   }

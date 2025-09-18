@@ -26,7 +26,7 @@ class BoardWidget extends StatelessWidget {
         final size = constraints.maxWidth < constraints.maxHeight
             ? constraints.maxWidth
             : constraints.maxHeight;
-        
+
         return SizedBox(
           width: size,
           height: size,
@@ -55,7 +55,8 @@ class BoardWidget extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(GameConstants.boardCornerRadius),
           boxShadow: const [
-            BoxShadow(blurRadius: 16, offset: Offset(0, 8), color: Color(0x33000000)),
+            BoxShadow(
+                blurRadius: 16, offset: Offset(0, 8), color: Color(0x33000000)),
           ],
         ),
         clipBehavior: Clip.antiAlias,
@@ -81,7 +82,9 @@ class BoardWidget extends StatelessWidget {
       left: position.dx - pieceSize / 2,
       // Align the bottom tip of the SVG (inside a padded container)
       // to the logical grid center by subtracting the padding in pixels.
-      top: position.dy - (pieceSize * GameConstants.pinHeightRatio) - GameConstants.pinPaddingPx,
+      top: position.dy -
+          (pieceSize * GameConstants.pinHeightRatio) -
+          GameConstants.pinPaddingPx,
       child: LudoPin(
         key: ValueKey('pin-${piece.color.name}-${piece.id}'),
         color: ColorUtils.getColorString(piece.color),
@@ -95,9 +98,10 @@ class BoardWidget extends StatelessWidget {
   }
 
   Offset _calculatePiecePosition(Piece piece, double boardSize) {
-    final cellSize = (boardSize * (1 - 2 * GameConstants.boardContentInsetRatio)) /
-        GameConstants.boardGridSize;
-    
+    final cellSize =
+        (boardSize * (1 - 2 * GameConstants.boardContentInsetRatio)) /
+            GameConstants.boardGridSize;
+
     // Helper to map logical grid units (0..15) to pixel coordinates inside
     // the inner playable area of the image (accounts for image margins).
     Offset toPx(double unitX, double unitY) {
@@ -109,7 +113,7 @@ class BoardWidget extends StatelessWidget {
         base + side * (unitY / GameConstants.boardGridSize),
       );
     }
-    
+
     // Starting home positions (fieldId = -1)
     if (piece.position.isHome && piece.position.fieldId == -1) {
       switch (piece.color) {
@@ -131,25 +135,26 @@ class BoardWidget extends StatelessWidget {
           return toPx(11.5 + col * 2, 11.5 + row * 2);
       }
     }
-    
+
     // Home stretch positions (fieldId >= 0, isHome = true)
     if (piece.position.isHome && piece.position.fieldId >= 0) {
       return _getHomeStretchPosition(piece, cellSize);
     }
-    
+
     // Main path positions
     final pathPositions = _getMainPathPositions(boardSize);
-    if (piece.position.fieldId >= 0 && piece.position.fieldId < pathPositions.length) {
+    if (piece.position.fieldId >= 0 &&
+        piece.position.fieldId < pathPositions.length) {
       return pathPositions[piece.position.fieldId];
     }
-    
+
     // Default center position
     return Offset(boardSize / 2, boardSize / 2);
   }
 
   Offset _getHomeStretchPosition(Piece piece, double cellSize) {
     final position = piece.position.fieldId;
-    
+
     Offset toPx(double unitX, double unitY) {
       final inset = GameConstants.boardContentInsetRatio;
       final boardSize =
@@ -185,6 +190,7 @@ class BoardWidget extends StatelessWidget {
         base + side * (unitY / GameConstants.boardGridSize),
       );
     }
+
     return LudoPath.coords
         .map((g) => toPx(g.dx + 0.5, g.dy + 0.5))
         .toList(growable: false);

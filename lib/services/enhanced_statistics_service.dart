@@ -102,8 +102,8 @@ class EnhancedStatisticsService {
     for (final playerId in playerRolls.keys) {
       final rolls = playerRolls[playerId]!;
       rollsPerPlayer[playerId] = rolls.length;
-      averageRollPerPlayer[playerId] = rolls.isNotEmpty ? 
-          rolls.reduce((a, b) => a + b) / rolls.length : 0.0;
+      averageRollPerPlayer[playerId] =
+          rolls.isNotEmpty ? rolls.reduce((a, b) => a + b) / rolls.length : 0.0;
     }
 
     // Create game history record
@@ -121,7 +121,8 @@ class EnhancedStatisticsService {
       capturesPerPlayer: captures,
       rollsPerPlayer: rollsPerPlayer,
       averageRollPerPlayer: averageRollPerPlayer,
-      totalTurns: playerRolls.values.fold(0, (sum, rolls) => sum + rolls.length),
+      totalTurns:
+          playerRolls.values.fold(0, (sum, rolls) => sum + rolls.length),
       wasOnline: isOnlineGame,
     );
 
@@ -137,25 +138,21 @@ class EnhancedStatisticsService {
     // Check for achievements for each player
     for (final player in finalGameState.players) {
       if (player.type == PlayerType.human) {
-        await _checkAndUnlockAchievements(player.id, finalGameState, gameHistory);
+        await _checkAndUnlockAchievements(
+            player.id, finalGameState, gameHistory);
       }
     }
   }
 
   // Check and unlock achievements for a player
   Future<void> _checkAndUnlockAchievements(
-    String playerId, 
-    GameState gameState, 
-    GameHistory gameHistory
-  ) async {
+      String playerId, GameState gameState, GameHistory gameHistory) async {
     final stats = await _db.getPlayerStats(playerId);
     if (stats == null) return;
 
     final currentAchievements = await _db.getUserAchievements(playerId);
-    final unlockedAchievementIds = currentAchievements
-        .where((a) => a.isUnlocked)
-        .map((a) => a.id)
-        .toSet();
+    final unlockedAchievementIds =
+        currentAchievements.where((a) => a.isUnlocked).map((a) => a.id).toSet();
 
     for (final achievement in _predefinedAchievements) {
       if (unlockedAchievementIds.contains(achievement.id)) continue;
@@ -184,9 +181,8 @@ class EnhancedStatisticsService {
         case 'ai_slayer':
           // Check if player beat AI on expert difficulty
           final wasWinner = gameHistory.winnerId == playerId;
-          final playedAgainstExpertAI = gameState.players.any((p) => 
-              p.type == PlayerType.ai && 
-              p.aiDifficulty == AIDifficulty.expert);
+          final playedAgainstExpertAI = gameState.players.any((p) =>
+              p.type == PlayerType.ai && p.aiDifficulty == AIDifficulty.expert);
           shouldUnlock = wasWinner && playedAgainstExpertAI;
           break;
       }
@@ -241,8 +237,9 @@ class EnhancedStatisticsService {
         break;
     }
 
-    final leaderboard = await _db.getLeaderboard(sortBy: sortColumn, limit: limit);
-    
+    final leaderboard =
+        await _db.getLeaderboard(sortBy: sortColumn, limit: limit);
+
     // If sorting by win rate, sort the results properly
     if (type == LeaderboardType.winRate) {
       leaderboard.sort((a, b) => b.winRate.compareTo(a.winRate));
@@ -272,7 +269,7 @@ class EnhancedStatisticsService {
   // Get dashboard data for a player
   Future<PlayerDashboardData> getDashboardData(String playerId) async {
     final dashboardData = await _db.getDashboardData(playerId);
-    
+
     return PlayerDashboardData(
       stats: dashboardData['stats'] as EnhancedPlayerStats?,
       recentGames: dashboardData['recentGames'] as List<GameHistory>,
@@ -286,46 +283,56 @@ class EnhancedStatisticsService {
   Future<AdvancedStats> getAdvancedStats(String playerId) async {
     final stats = await getPlayerStats(playerId);
     final gameHistory = await getGameHistory(playerId: playerId);
-    
+
     if (stats == null) {
       return AdvancedStats.empty();
     }
 
     // Calculate advanced metrics
     final bestWinStreak = stats.longestWinStreak;
-    final averageGameDuration = gameHistory.isNotEmpty ? 
-        gameHistory.map((g) => g.gameDuration.inMinutes).reduce((a, b) => a + b) / gameHistory.length : 0.0;
-    
+    final averageGameDuration = gameHistory.isNotEmpty
+        ? gameHistory
+                .map((g) => g.gameDuration.inMinutes)
+                .reduce((a, b) => a + b) /
+            gameHistory.length
+        : 0.0;
+
     final gameTypeStats = <String, int>{};
     for (final game in gameHistory) {
       gameTypeStats[game.gameType] = (gameTypeStats[game.gameType] ?? 0) + 1;
     }
 
-    final favoriteGameType = gameTypeStats.isNotEmpty ? 
-        gameTypeStats.entries.reduce((a, b) => a.value > b.value ? a : b).key : '';
+    final favoriteGameType = gameTypeStats.isNotEmpty
+        ? gameTypeStats.entries.reduce((a, b) => a.value > b.value ? a : b).key
+        : '';
 
     final monthlyGames = <String, int>{};
     final now = DateTime.now();
     for (int i = 0; i < 12; i++) {
       final month = DateTime(now.year, now.month - i);
-      final monthKey = '${month.year}-${month.month.toString().padLeft(2, '0')}';
-      monthlyGames[monthKey] = gameHistory.where((game) => 
-          game.startTime.year == month.year && 
-          game.startTime.month == month.month).length;
+      final monthKey =
+          '${month.year}-${month.month.toString().padLeft(2, '0')}';
+      monthlyGames[monthKey] = gameHistory
+          .where((game) =>
+              game.startTime.year == month.year &&
+              game.startTime.month == month.month)
+          .length;
     }
 
     return AdvancedStats(
       winRate: stats.winRate,
-      averageTokensPerGame: stats.gamesPlayed > 0 ? 
-          stats.tokensReachedHome / stats.gamesPlayed : 0.0,
+      averageTokensPerGame: stats.gamesPlayed > 0
+          ? stats.tokensReachedHome / stats.gamesPlayed
+          : 0.0,
       captureRatio: stats.captureRatio,
       averageRollValue: stats.averageRollValue,
       bestWinStreak: bestWinStreak,
       averageGameDuration: averageGameDuration,
       favoriteGameType: favoriteGameType,
       gamesPerMonth: monthlyGames,
-      sixesPercentage: stats.totalRolls > 0 ? 
-          (stats.sixesRolled / stats.totalRolls) * 100 : 0.0,
+      sixesPercentage: stats.totalRolls > 0
+          ? (stats.sixesRolled / stats.totalRolls) * 100
+          : 0.0,
     );
   }
 
@@ -406,4 +413,4 @@ class AdvancedStats {
       sixesPercentage: 0.0,
     );
   }
-} 
+}

@@ -21,7 +21,7 @@ class EnhancedSaveLoadService {
     String? lobbyId,
   }) async {
     final gameId = _uuid.v4();
-    
+
     final savedGame = EnhancedSavedGame(
       id: gameId,
       userId: userId,
@@ -51,8 +51,8 @@ class EnhancedSaveLoadService {
     // Capture screenshot
     final image = await boundary.toImage(pixelRatio: 0.5);
     final byteData = await image.toByteData(format: ImageByteFormat.png);
-    final thumbnail = byteData != null ? 
-        base64Encode(byteData.buffer.asUint8List()) : '';
+    final thumbnail =
+        byteData != null ? base64Encode(byteData.buffer.asUint8List()) : '';
 
     return await saveGame(
       gameState: gameState,
@@ -68,13 +68,15 @@ class EnhancedSaveLoadService {
   // Load a specific game
   Future<GameState?> loadGame(String gameId) async {
     try {
-      final savedGames = await _db.getSavedGames(''); // This should be filtered by user
+      final savedGames =
+          await _db.getSavedGames(''); // This should be filtered by user
       final savedGame = savedGames.firstWhere(
         (game) => game.id == gameId,
         orElse: () => throw Exception('Game not found'),
       );
 
-      final gameStateJson = json.decode(savedGame.gameStateJson) as Map<String, dynamic>;
+      final gameStateJson =
+          json.decode(savedGame.gameStateJson) as Map<String, dynamic>;
       return GameState.fromJson(gameStateJson);
     } catch (e) {
       return null;
@@ -85,7 +87,9 @@ class EnhancedSaveLoadService {
   Future<List<SavedGameInfo>> getSavedGames(String userId) async {
     try {
       final savedGames = await _db.getSavedGames(userId);
-      return savedGames.map((game) => SavedGameInfo.fromEnhancedSavedGame(game)).toList();
+      return savedGames
+          .map((game) => SavedGameInfo.fromEnhancedSavedGame(game))
+          .toList();
     } catch (e) {
       return [];
     }
@@ -170,8 +174,9 @@ class EnhancedSaveLoadService {
     String? existingAutoSaveId,
   }) async {
     try {
-      final autoSaveName = 'Auto-save ${DateTime.now().toString().substring(0, 16)}';
-      
+      final autoSaveName =
+          'Auto-save ${DateTime.now().toString().substring(0, 16)}';
+
       if (existingAutoSaveId != null) {
         // Update existing auto-save
         await deleteSavedGame(existingAutoSaveId);
@@ -212,10 +217,11 @@ class EnhancedSaveLoadService {
     try {
       final data = json.decode(importData) as Map<String, dynamic>;
       final savedGamesData = data['savedGames'] as List<dynamic>;
-      
+
       for (final gameData in savedGamesData) {
-        final gameInfo = SavedGameInfo.fromJson(gameData as Map<String, dynamic>);
-        
+        final gameInfo =
+            SavedGameInfo.fromJson(gameData as Map<String, dynamic>);
+
         // Create new EnhancedSavedGame from imported data
         final savedGame = EnhancedSavedGame(
           id: _uuid.v4(), // Generate new ID to avoid conflicts
@@ -227,10 +233,10 @@ class EnhancedSaveLoadService {
           metadata: gameInfo.metadata,
           isOnlineGame: gameInfo.isOnlineGame,
         );
-        
+
         await _db.saveGame(savedGame);
       }
-      
+
       return true;
     } catch (e) {
       return false;
@@ -241,34 +247,40 @@ class EnhancedSaveLoadService {
   Future<StorageStats> getStorageStats(String userId) async {
     try {
       final savedGames = await getSavedGames(userId);
-      
+
       int totalGames = savedGames.length;
       int totalSize = 0;
       int autoSaves = 0;
       int onlineGames = 0;
-      
+
       for (final game in savedGames) {
         totalSize += game.gameStateJson.length;
         totalSize += game.thumbnail.length;
-        
+
         if (game.metadata['isAutoSave'] == true) {
           autoSaves++;
         }
-        
+
         if (game.isOnlineGame) {
           onlineGames++;
         }
       }
-      
+
       return StorageStats(
         totalSavedGames: totalGames,
         totalStorageSize: totalSize,
         autoSaveCount: autoSaves,
         onlineGameCount: onlineGames,
-        oldestSave: savedGames.isNotEmpty ? 
-            savedGames.map((g) => g.timestamp).reduce((a, b) => a.isBefore(b) ? a : b) : null,
-        newestSave: savedGames.isNotEmpty ? 
-            savedGames.map((g) => g.timestamp).reduce((a, b) => a.isAfter(b) ? a : b) : null,
+        oldestSave: savedGames.isNotEmpty
+            ? savedGames
+                .map((g) => g.timestamp)
+                .reduce((a, b) => a.isBefore(b) ? a : b)
+            : null,
+        newestSave: savedGames.isNotEmpty
+            ? savedGames
+                .map((g) => g.timestamp)
+                .reduce((a, b) => a.isAfter(b) ? a : b)
+            : null,
       );
     } catch (e) {
       return StorageStats.empty();
@@ -282,14 +294,15 @@ class EnhancedSaveLoadService {
       final autoSaves = allGames
           .where((game) => game.metadata['isAutoSave'] == true)
           .toList();
-      
+
       autoSaves.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-      
+
       if (autoSaves.length <= keepCount) {
         return 0; // Nothing to clean up
       }
-      
-      final toDelete = autoSaves.skip(keepCount).map((game) => game.id).toList();
+
+      final toDelete =
+          autoSaves.skip(keepCount).map((game) => game.id).toList();
       return await deleteSavedGames(toDelete);
     } catch (e) {
       return 0;
@@ -301,18 +314,22 @@ class EnhancedSaveLoadService {
     final playerNames = gameState.players.map((p) => p.name).toList();
     final aiPlayers = gameState.players.where((p) => p.isAI).length;
     final humanPlayers = gameState.players.length - aiPlayers;
-    
+
     // Calculate game progress (percentage of tokens reached home)
     int totalTokensHome = 0;
-    int maxPossibleTokens = gameState.players.length * GameState.tokensPerPlayer;
-    
+    int maxPossibleTokens =
+        gameState.players.length * GameState.tokensPerPlayer;
+
     for (final player in gameState.players) {
-      totalTokensHome += player.pieces.where((piece) => 
-          piece.position.fieldId == GameState.finishedPosition).length;
+      totalTokensHome += player.pieces
+          .where(
+              (piece) => piece.position.fieldId == GameState.finishedPosition)
+          .length;
     }
-    
-    final gameProgress = maxPossibleTokens > 0 ? 
-        (totalTokensHome / maxPossibleTokens * 100).round() : 0;
+
+    final gameProgress = maxPossibleTokens > 0
+        ? (totalTokensHome / maxPossibleTokens * 100).round()
+        : 0;
 
     return {
       'playerNames': playerNames,
@@ -339,9 +356,9 @@ class SavedGameInfo {
   final String gameStateJson;
   final Map<String, dynamic> metadata;
   final bool isOnlineGame;
-  
+
   // Computed properties from metadata
-  List<String> get playerNames => 
+  List<String> get playerNames =>
       List<String>.from(metadata['playerNames'] ?? []);
   int get playerCount => metadata['playerCount'] ?? 0;
   String get currentPlayer => metadata['currentPlayer'] ?? '';
@@ -405,6 +422,7 @@ class GameSaveFilter {
 }
 
 enum FilterType { gameType, playerCount, isOnline, dateRange }
+
 enum GameSaveSort { newest, oldest, name, progress }
 
 class StorageStats {
@@ -435,7 +453,8 @@ class StorageStats {
 
   String get formattedSize {
     if (totalStorageSize < 1024) return '$totalStorageSize B';
-    if (totalStorageSize < 1024 * 1024) return '${(totalStorageSize / 1024).toStringAsFixed(1)} KB';
+    if (totalStorageSize < 1024 * 1024)
+      return '${(totalStorageSize / 1024).toStringAsFixed(1)} KB';
     return '${(totalStorageSize / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
-} 
+}

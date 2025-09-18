@@ -335,12 +335,10 @@ class LudoGame {
     final entryIndex = (startIndex + 1) % config.trackLength;
 
     final occupants = List<Piece>.from(trackOccupants[entryIndex] ?? const []);
-    final ownPieces = occupants
-        .where((candidate) => candidate.color == piece.color)
-        .toList();
-    final opponents = occupants
-        .where((candidate) => candidate.color != piece.color)
-        .toList();
+    final ownPieces =
+        occupants.where((candidate) => candidate.color == piece.color).toList();
+    final opponents =
+        occupants.where((candidate) => candidate.color != piece.color).toList();
 
     // If own pieces already occupy the entry tile, respect stacking/blockade rules
     if (ownPieces.isNotEmpty) {
@@ -370,7 +368,9 @@ class LudoGame {
       piece: piece,
       targetPosition: target,
       capturedPieces: List<Piece>.from(
-          (config.captureReturnsToHome && opponents.isNotEmpty) ? opponents : const <Piece>[]),
+          (config.captureReturnsToHome && opponents.isNotEmpty)
+              ? opponents
+              : const <Piece>[]),
       kind: _MoveKind.enterFromBase,
     );
     return _MoveEvaluation.valid(move);

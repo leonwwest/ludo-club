@@ -53,7 +53,7 @@ class SaveLoadService {
       gameState: gameState,
       name: name,
     );
-    
+
     savedGames.add(newSavedGame);
     await _saveToDisk(savedGames);
   }
@@ -62,10 +62,10 @@ class SaveLoadService {
     try {
       final jsonString = _prefs.getString(_savedGamesKey);
       if (jsonString == null) return [];
-      
+
       final decoded = json.decode(jsonString);
       if (decoded is! List) return [];
-      
+
       return decoded
           .whereType<Map<String, dynamic>>()
           .map(SavedGame.fromJson)
@@ -98,4 +98,4 @@ class SaveLoadService {
     final jsonList = savedGames.map((game) => game.toJson()).toList();
     await _prefs.setString(_savedGamesKey, json.encode(jsonList));
   }
-} 
+}

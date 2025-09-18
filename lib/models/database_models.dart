@@ -65,8 +65,9 @@ class UserProfile {
       avatarUrl: map['avatar_url'] as String?,
       createdAt: DateTime.parse(map['created_at'] as String),
       lastActive: DateTime.parse(map['last_active'] as String),
-      preferences: map['preferences'] != null ? 
-          Map<String, dynamic>.from(map['preferences']) : null,
+      preferences: map['preferences'] != null
+          ? Map<String, dynamic>.from(map['preferences'])
+          : null,
     );
   }
 }
@@ -116,8 +117,9 @@ class EnhancedPlayerStats {
   });
 
   double get winRate => gamesPlayed > 0 ? gamesWon / gamesPlayed : 0.0;
-  double get captureRatio => timesGotCaptured > 0 ? 
-      opponentsCaptured / timesGotCaptured : opponentsCaptured.toDouble();
+  double get captureRatio => timesGotCaptured > 0
+      ? opponentsCaptured / timesGotCaptured
+      : opponentsCaptured.toDouble();
 
   PlayerColor get favoritePlayerColor => PlayerColor.values[favoriteColor];
 
@@ -162,8 +164,9 @@ class EnhancedPlayerStats {
       longestWinStreak: map['longest_win_streak'] as int,
       currentWinStreak: map['current_win_streak'] as int,
       totalPlayTime: Duration(seconds: map['total_play_time'] as int),
-      lastPlayed: map['last_played'] != null ? 
-          DateTime.parse(map['last_played'] as String) : null,
+      lastPlayed: map['last_played'] != null
+          ? DateTime.parse(map['last_played'] as String)
+          : null,
       favoriteColor: map['favorite_color'] as int,
       // Note: In a real implementation, you'd properly parse these JSON strings
       // Defaults for maps are handled by the constructor
@@ -291,8 +294,9 @@ class Achievement {
       type: AchievementType.values[map['type'] as int],
       criteria: const {}, // Would parse JSON string in real implementation
       points: map['points'] as int,
-      unlockedAt: map['unlocked_at'] != null ? 
-          DateTime.parse(map['unlocked_at'] as String) : null,
+      unlockedAt: map['unlocked_at'] != null
+          ? DateTime.parse(map['unlocked_at'] as String)
+          : null,
     );
   }
 }
@@ -356,4 +360,4 @@ class EnhancedSavedGame {
       lobbyId: map['lobby_id'] as String?,
     );
   }
-} 
+}

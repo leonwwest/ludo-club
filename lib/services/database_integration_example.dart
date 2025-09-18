@@ -11,11 +11,12 @@ import 'package:ludo_club/models/game_state.dart';
 // Example: Enhanced Player Stats Screen
 class EnhancedPlayerStatsScreen extends StatefulWidget {
   final String playerId;
-  
+
   const EnhancedPlayerStatsScreen({super.key, required this.playerId});
 
   @override
-  State<EnhancedPlayerStatsScreen> createState() => _EnhancedPlayerStatsScreenState();
+  State<EnhancedPlayerStatsScreen> createState() =>
+      _EnhancedPlayerStatsScreenState();
 }
 
 class _EnhancedPlayerStatsScreenState extends State<EnhancedPlayerStatsScreen> {
@@ -32,9 +33,11 @@ class _EnhancedPlayerStatsScreenState extends State<EnhancedPlayerStatsScreen> {
 
   Future<void> _loadPlayerData() async {
     try {
-      final dashboardData = await _statsService.getDashboardData(widget.playerId);
-      final advancedStats = await _statsService.getAdvancedStats(widget.playerId);
-      
+      final dashboardData =
+          await _statsService.getDashboardData(widget.playerId);
+      final advancedStats =
+          await _statsService.getAdvancedStats(widget.playerId);
+
       setState(() {
         _dashboardData = dashboardData;
         _advancedStats = advancedStats;
@@ -77,15 +80,15 @@ class _EnhancedPlayerStatsScreenState extends State<EnhancedPlayerStatsScreen> {
             // Basic Stats Card
             _buildBasicStatsCard(stats),
             const SizedBox(height: 16),
-            
+
             // Advanced Stats Card
             _buildAdvancedStatsCard(advanced),
             const SizedBox(height: 16),
-            
+
             // Achievements Card
             _buildAchievementsCard(_dashboardData?.achievements ?? []),
             const SizedBox(height: 16),
-            
+
             // Recent Games
             _buildRecentGamesCard(_dashboardData?.recentGames ?? []),
           ],
@@ -103,19 +106,22 @@ class _EnhancedPlayerStatsScreenState extends State<EnhancedPlayerStatsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Basic Statistics', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text('Basic Statistics',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
             Row(
               children: [
                 _buildStatItem('Games Played', stats.gamesPlayed.toString()),
                 _buildStatItem('Games Won', stats.gamesWon.toString()),
-                _buildStatItem('Win Rate', '${(stats.winRate * 100).toStringAsFixed(1)}%'),
+                _buildStatItem(
+                    'Win Rate', '${(stats.winRate * 100).toStringAsFixed(1)}%'),
               ],
             ),
             const SizedBox(height: 8),
             Row(
               children: [
-                _buildStatItem('Tokens Home', stats.tokensReachedHome.toString()),
+                _buildStatItem(
+                    'Tokens Home', stats.tokensReachedHome.toString()),
                 _buildStatItem('Captures', stats.opponentsCaptured.toString()),
                 _buildStatItem('Win Streak', stats.currentWinStreak.toString()),
               ],
@@ -135,20 +141,26 @@ class _EnhancedPlayerStatsScreenState extends State<EnhancedPlayerStatsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Advanced Statistics', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text('Advanced Statistics',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
             Row(
               children: [
-                _buildStatItem('Avg Roll', advanced.averageRollValue.toStringAsFixed(2)),
-                _buildStatItem('Sixes %', '${advanced.sixesPercentage.toStringAsFixed(1)}%'),
-                _buildStatItem('Best Streak', advanced.bestWinStreak.toString()),
+                _buildStatItem(
+                    'Avg Roll', advanced.averageRollValue.toStringAsFixed(2)),
+                _buildStatItem('Sixes %',
+                    '${advanced.sixesPercentage.toStringAsFixed(1)}%'),
+                _buildStatItem(
+                    'Best Streak', advanced.bestWinStreak.toString()),
               ],
             ),
             const SizedBox(height: 8),
             Row(
               children: [
-                _buildStatItem('Avg Game', '${advanced.averageGameDuration.toStringAsFixed(1)}m'),
-                _buildStatItem('Capture Ratio', advanced.captureRatio.toStringAsFixed(2)),
+                _buildStatItem('Avg Game',
+                    '${advanced.averageGameDuration.toStringAsFixed(1)}m'),
+                _buildStatItem(
+                    'Capture Ratio', advanced.captureRatio.toStringAsFixed(2)),
                 _buildStatItem('Favorite Mode', advanced.favoriteGameType),
               ],
             ),
@@ -159,16 +171,19 @@ class _EnhancedPlayerStatsScreenState extends State<EnhancedPlayerStatsScreen> {
   }
 
   Widget _buildAchievementsCard(List<Achievement> achievements) {
-    final unlockedAchievements = achievements.where((a) => a.isUnlocked).toList();
-    
+    final unlockedAchievements =
+        achievements.where((a) => a.isUnlocked).toList();
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Achievements (${unlockedAchievements.length}/${achievements.length})', 
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(
+                'Achievements (${unlockedAchievements.length}/${achievements.length})',
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
             if (unlockedAchievements.isEmpty)
               const Text('No achievements unlocked yet!')
@@ -176,12 +191,12 @@ class _EnhancedPlayerStatsScreenState extends State<EnhancedPlayerStatsScreen> {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: unlockedAchievements.map((achievement) => 
-                  Chip(
-                    label: Text(achievement.title),
-                    avatar: const Icon(Icons.star, size: 16),
-                  )
-                ).toList(),
+                children: unlockedAchievements
+                    .map((achievement) => Chip(
+                          label: Text(achievement.title),
+                          avatar: const Icon(Icons.star, size: 16),
+                        ))
+                    .toList(),
               ),
           ],
         ),
@@ -196,25 +211,37 @@ class _EnhancedPlayerStatsScreenState extends State<EnhancedPlayerStatsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Recent Games', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text('Recent Games',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
             if (recentGames.isEmpty)
               const Text('No recent games')
             else
               Column(
-                children: recentGames.take(5).map((game) => 
-                  ListTile(
-                    leading: Icon(
-                      game.winnerId == widget.playerId ? Icons.emoji_events : Icons.games,
-                      color: game.winnerId == widget.playerId ? Colors.amber : Colors.grey,
-                    ),
-                    title: Text('${game.gameType} - ${game.playerNames.join(', ')}'),
-                    subtitle: Text('${game.gameDuration.inMinutes}m - ${game.endTime.toString().substring(0, 16)}'),
-                    trailing: game.winnerId == widget.playerId ? 
-                        const Text('Won', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)) :
-                        const Text('Lost', style: TextStyle(color: Colors.red)),
-                  )
-                ).toList(),
+                children: recentGames
+                    .take(5)
+                    .map((game) => ListTile(
+                          leading: Icon(
+                            game.winnerId == widget.playerId
+                                ? Icons.emoji_events
+                                : Icons.games,
+                            color: game.winnerId == widget.playerId
+                                ? Colors.amber
+                                : Colors.grey,
+                          ),
+                          title: Text(
+                              '${game.gameType} - ${game.playerNames.join(', ')}'),
+                          subtitle: Text(
+                              '${game.gameDuration.inMinutes}m - ${game.endTime.toString().substring(0, 16)}'),
+                          trailing: game.winnerId == widget.playerId
+                              ? const Text('Won',
+                                  style: TextStyle(
+                                      color: Colors.green,
+                                      fontWeight: FontWeight.bold))
+                              : const Text('Lost',
+                                  style: TextStyle(color: Colors.red)),
+                        ))
+                    .toList(),
               ),
           ],
         ),
@@ -226,7 +253,9 @@ class _EnhancedPlayerStatsScreenState extends State<EnhancedPlayerStatsScreen> {
     return Expanded(
       child: Column(
         children: [
-          Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          Text(value,
+              style:
+                  const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
         ],
       ),
@@ -252,18 +281,18 @@ class _EnhancedPlayerStatsScreenState extends State<EnhancedPlayerStatsScreen> {
       await _statsService.syncWithCloud();
       // ignore: use_build_context_synchronously
       Navigator.of(context).pop(); // Close dialog
-      
+
       // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Successfully synced with cloud!')),
       );
-      
+
       // Reload data
       await _loadPlayerData();
     } catch (e) {
       // ignore: use_build_context_synchronously
       Navigator.of(context).pop(); // Close dialog
-      
+
       // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Sync failed: $e')),
@@ -275,11 +304,12 @@ class _EnhancedPlayerStatsScreenState extends State<EnhancedPlayerStatsScreen> {
 // Example: Enhanced Saved Games Screen
 class EnhancedSavedGamesScreen extends StatefulWidget {
   final String userId;
-  
+
   const EnhancedSavedGamesScreen({super.key, required this.userId});
 
   @override
-  State<EnhancedSavedGamesScreen> createState() => _EnhancedSavedGamesScreenState();
+  State<EnhancedSavedGamesScreen> createState() =>
+      _EnhancedSavedGamesScreenState();
 }
 
 class _EnhancedSavedGamesScreenState extends State<EnhancedSavedGamesScreen> {
@@ -296,13 +326,13 @@ class _EnhancedSavedGamesScreenState extends State<EnhancedSavedGamesScreen> {
 
   Future<void> _loadSavedGames() async {
     setState(() => _isLoading = true);
-    
+
     try {
       final games = await _saveService.getSavedGamesFiltered(
         userId: widget.userId,
         sort: _currentSort,
       );
-      
+
       setState(() {
         _savedGames = games;
         _isLoading = false;
@@ -326,10 +356,14 @@ class _EnhancedSavedGamesScreenState extends State<EnhancedSavedGamesScreen> {
               _loadSavedGames();
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(value: GameSaveSort.newest, child: Text('Newest First')),
-              const PopupMenuItem(value: GameSaveSort.oldest, child: Text('Oldest First')),
-              const PopupMenuItem(value: GameSaveSort.name, child: Text('Name')),
-              const PopupMenuItem(value: GameSaveSort.progress, child: Text('Progress')),
+              const PopupMenuItem(
+                  value: GameSaveSort.newest, child: Text('Newest First')),
+              const PopupMenuItem(
+                  value: GameSaveSort.oldest, child: Text('Oldest First')),
+              const PopupMenuItem(
+                  value: GameSaveSort.name, child: Text('Name')),
+              const PopupMenuItem(
+                  value: GameSaveSort.progress, child: Text('Progress')),
             ],
           ),
         ],
@@ -378,7 +412,8 @@ class _EnhancedSavedGamesScreenState extends State<EnhancedSavedGamesScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Players: ${game.playerNames.join(', ')}'),
-            Text('Progress: ${game.gameProgress}% • ${game.timestamp.toString().substring(0, 16)}'),
+            Text(
+                'Progress: ${game.gameProgress}% • ${game.timestamp.toString().substring(0, 16)}'),
           ],
         ),
         trailing: PopupMenuButton(
@@ -422,7 +457,7 @@ class _EnhancedSavedGamesScreenState extends State<EnhancedSavedGamesScreen> {
       final gameState = await _saveService.loadGame(game.id);
       // ignore: use_build_context_synchronously
       Navigator.of(context).pop(); // Close loading dialog
-      
+
       if (gameState != null) {
         // Navigate to game screen with loaded state
         // Navigator.of(context).pushReplacement(
@@ -467,12 +502,12 @@ class _EnhancedSavedGamesScreenState extends State<EnhancedSavedGamesScreen> {
 
     if (confirmed == true) {
       final success = await _saveService.deleteSavedGame(game.id);
-      
+
       if (success) {
         setState(() {
           _savedGames.removeWhere((g) => g.id == game.id);
         });
-        
+
         // ignore: use_build_context_synchronously
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Game deleted')),
@@ -514,7 +549,7 @@ class GameProviderDatabaseIntegration {
 
   // Auto-save during game
   String? _currentAutoSaveId;
-  
+
   Future<void> performAutoSave(GameState gameState, String userId) async {
     try {
       _currentAutoSaveId = await _saveService.autoSave(
@@ -531,7 +566,7 @@ class GameProviderDatabaseIntegration {
 // Helper function to show leaderboard
 Future<void> showLeaderboard(BuildContext context) async {
   final statsService = EnhancedStatisticsService();
-  
+
   showDialog(
     context: context,
     builder: (context) => FutureBuilder<List<EnhancedPlayerStats>>(
@@ -545,7 +580,7 @@ Future<void> showLeaderboard(BuildContext context) async {
             ),
           );
         }
-        
+
         if (snapshot.hasError || !snapshot.hasData) {
           return AlertDialog(
             title: const Text('Leaderboard'),
@@ -558,9 +593,9 @@ Future<void> showLeaderboard(BuildContext context) async {
             ],
           );
         }
-        
+
         final players = snapshot.data!;
-        
+
         return AlertDialog(
           title: const Text('Leaderboard - Most Wins'),
           content: SizedBox(
@@ -573,7 +608,8 @@ Future<void> showLeaderboard(BuildContext context) async {
                 return ListTile(
                   leading: CircleAvatar(child: Text('${index + 1}')),
                   title: Text(player.playerName),
-                  subtitle: Text('Win Rate: ${(player.winRate * 100).toStringAsFixed(1)}%'),
+                  subtitle: Text(
+                      'Win Rate: ${(player.winRate * 100).toStringAsFixed(1)}%'),
                   trailing: Text('${player.gamesWon} wins'),
                 );
               },
@@ -589,4 +625,4 @@ Future<void> showLeaderboard(BuildContext context) async {
       },
     ),
   );
-} 
+}

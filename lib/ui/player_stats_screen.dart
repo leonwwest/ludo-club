@@ -43,15 +43,15 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          
+
           if (snapshot.hasError) {
             return Center(
               child: Text('Error: ${snapshot.error}'),
             );
           }
-          
+
           final stats = snapshot.data ?? [];
-          
+
           if (stats.isEmpty) {
             return const Center(
               child: Text(
@@ -60,10 +60,10 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
               ),
             );
           }
-          
+
           // Sort by win rate
           stats.sort((a, b) => b.winRate.compareTo(a.winRate));
-          
+
           return ListView.builder(
             itemCount: stats.length,
             itemBuilder: (context, index) {
@@ -105,10 +105,14 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      _buildStatRow('Games Played', playerStats.gamesPlayed.toString()),
-                      _buildStatRow('Games Won', playerStats.gamesWon.toString()),
-                      _buildStatRow('Tokens Reached Home', playerStats.tokensReachedHome.toString()),
-                      _buildStatRow('Opponents Captured', playerStats.opponentsCaptured.toString()),
+                      _buildStatRow(
+                          'Games Played', playerStats.gamesPlayed.toString()),
+                      _buildStatRow(
+                          'Games Won', playerStats.gamesWon.toString()),
+                      _buildStatRow('Tokens Reached Home',
+                          playerStats.tokensReachedHome.toString()),
+                      _buildStatRow('Opponents Captured',
+                          playerStats.opponentsCaptured.toString()),
                     ],
                   ),
                 ),
@@ -157,7 +161,8 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Clear All Statistics'),
-        content: const Text('Are you sure you want to clear all player statistics? This cannot be undone.'),
+        content: const Text(
+            'Are you sure you want to clear all player statistics? This cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -171,7 +176,7 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
         ],
       ),
     );
-    
+
     if (confirmed ?? false) {
       try {
         final service = await _serviceLoader;
@@ -179,7 +184,7 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
         setState(() {
           _statsLoader = _loadStats();
         });
-        
+
         // ignore: use_build_context_synchronously
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('All statistics cleared')),
@@ -192,4 +197,4 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
       }
     }
   }
-} 
+}
