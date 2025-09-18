@@ -23,6 +23,9 @@ class GameConstants {
   static const double pinSizeRatio =
       1.0 / 15.0; // Pin size relative to board size
   static const double pinHeightRatio = 1.2; // Teardrop height multiplier
+  // Visual padding used inside LudoPin (AnimatedContainer padding)
+  // Used to correct placement so the SVG tip aligns to board centers
+  static const double pinPaddingPx = 4.0;
   static const double boardCornerRadius = 8.0;
   // When using an image background that contains margins around the 15x15 grid,
   // use this inset ratio to map logical grid coordinates into the inner area.

@@ -79,8 +79,9 @@ class BoardWidget extends StatelessWidget {
       duration: const Duration(milliseconds: GameConstants.pieceMoveDuration),
       curve: Curves.easeOut,
       left: position.dx - pieceSize / 2,
-      // Anchor the bottom tip of the teardrop to the board circle center
-      top: position.dy - (pieceSize * GameConstants.pinHeightRatio),
+      // Align the bottom tip of the SVG (inside a padded container)
+      // to the logical grid center by subtracting the padding in pixels.
+      top: position.dy - (pieceSize * GameConstants.pinHeightRatio) - GameConstants.pinPaddingPx,
       child: LudoPin(
         key: ValueKey('pin-${piece.color.name}-${piece.id}'),
         color: ColorUtils.getColorString(piece.color),
