@@ -11,7 +11,7 @@ import 'dart:convert';
 class DatabaseInitializationService {
   static const String _migrationVersionKey = 'db_migration_version';
   static const int _currentMigrationVersion = 1;
-  
+
   final DatabaseService _db = DatabaseService.instance;
   final Uuid _uuid = const Uuid();
 
@@ -20,22 +20,22 @@ class DatabaseInitializationService {
     try {
       // Initialize Firebase - temporarily disabled due to dependency issues
       // await Firebase.initializeApp();
-      
+
       // Initialize local database
       await _db.initialize();
-      
+
       // Check if migration is needed
       final prefs = await SharedPreferences.getInstance();
       final migrationVersion = prefs.getInt(_migrationVersionKey) ?? 0;
-      
+
       if (migrationVersion < _currentMigrationVersion) {
         await _performMigration(migrationVersion);
         await prefs.setInt(_migrationVersionKey, _currentMigrationVersion);
       }
-      
+
       // Create default user profile if none exists
       await _createDefaultUserProfile();
-      
+
       return true;
     } catch (e) {
       return false;
@@ -45,12 +45,12 @@ class DatabaseInitializationService {
   // Perform migration from old SharedPreferences system
   Future<void> _performMigration(int fromVersion) async {
     // Performing database migration from a previous version
-    
+
     if (fromVersion == 0) {
       // Initial migration from SharedPreferences
       await _migrateFromSharedPreferences();
     }
-    
+
     // Add more migration steps here for future versions
   }
 
@@ -58,13 +58,13 @@ class DatabaseInitializationService {
   Future<void> _migrateFromSharedPreferences() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      
+
       // Migrate old player statistics
       await _migratePlayerStatistics(prefs);
-      
+
       // Migrate old saved games
       await _migrateSavedGames(prefs);
-      
+
       // Migration succeeded
     } catch (e) {
       // Migration failed; continue running without aborting
@@ -78,14 +78,14 @@ class DatabaseInitializationService {
       // Get old statistics using the old service method
       final jsonString = prefs.getString('player_stats_list');
       if (jsonString == null) return;
-      
+
       final decoded = json.decode(jsonString);
       if (decoded is! List) return;
-      
+
       for (final item in decoded) {
         if (item is Map<String, dynamic>) {
           final oldStats = PlayerStats.fromJson(item);
-          
+
           // Convert to new enhanced format
           final enhancedStats = EnhancedPlayerStats(
             playerId: _uuid.v4(), // Generate new ID
@@ -99,13 +99,14 @@ class DatabaseInitializationService {
             averageRollValue: 3.5, // Default dice average
             totalRolls: oldStats.gamesPlayed * 20, // Estimate
             sixesRolled: (oldStats.gamesPlayed * 20 / 6).round(), // Estimate
-            lastPlayed: DateTime.now().subtract(const Duration(days: 30)), // Estimate
+            lastPlayed:
+                DateTime.now().subtract(const Duration(days: 30)), // Estimate
           );
-          
+
           await _db.savePlayerStats(enhancedStats);
         }
       }
-      
+
       // Migration count logged internally if needed
     } catch (e) {
       // Ignore migration errors
@@ -117,17 +118,17 @@ class DatabaseInitializationService {
     try {
       final jsonString = prefs.getString('saved_games');
       if (jsonString == null) return;
-      
+
       final decoded = json.decode(jsonString);
       if (decoded is! List) return;
-      
+
       final defaultUserId = await _getOrCreateDefaultUserId();
-      
+
       for (final item in decoded) {
         if (item is Map<String, dynamic>) {
           // Parse old saved game format
           final oldSavedGame = SavedGame.fromJson(item);
-          
+
           // Convert to new enhanced format
           final enhancedSavedGame = EnhancedSavedGame(
             id: oldSavedGame.id,
@@ -139,11 +140,11 @@ class DatabaseInitializationService {
             metadata: _generateLegacyMetadata(oldSavedGame.gameState),
             // isOnlineGame defaults to false
           );
-          
+
           await _db.saveGame(enhancedSavedGame);
         }
       }
-      
+
       // Saved games migrated
     } catch (e) {
       // Ignore migration errors
@@ -153,7 +154,7 @@ class DatabaseInitializationService {
   // Create or get default user profile
   Future<void> _createDefaultUserProfile() async {
     const defaultUserId = 'default_user';
-    
+
     final existingProfile = await _db.getUserProfile(defaultUserId);
     if (existingProfile == null) {
       final defaultProfile = UserProfile(
@@ -168,7 +169,7 @@ class DatabaseInitializationService {
           'theme': 'default',
         },
       );
-      
+
       await _db.saveUserProfile(defaultProfile);
     }
   }
@@ -203,30 +204,30 @@ class DatabaseInitializationService {
   // Verify database integrity
   Future<DatabaseHealthCheck> verifyDatabaseIntegrity() async {
     final health = DatabaseHealthCheck();
-    
+
     try {
       // Check if we can read from all tables
       await _db.getUserProfile('test');
       health.userProfilesAccessible = true;
-      
+
       final playerStats = await _db.getAllPlayerStats();
       health.playerStatsAccessible = true;
       health.playerStatsCount = playerStats.length;
-      
+
       final gameHistory = await _db.getGameHistory(limit: 1);
       health.gameHistoryAccessible = true;
       health.gameHistoryCount = gameHistory.length;
-      
+
       final savedGames = await _db.getSavedGames('default_user');
       health.savedGamesAccessible = true;
       health.savedGamesCount = savedGames.length;
-      
+
       health.isHealthy = true;
     } catch (e) {
       health.isHealthy = false;
       health.errorMessage = e.toString();
     }
-    
+
     return health;
   }
 
@@ -237,10 +238,10 @@ class DatabaseInitializationService {
       // For now, we can clear SharedPreferences as a fallback
       final prefs = await SharedPreferences.getInstance();
       await prefs.clear();
-      
+
       // Re-initialize
       await initializeDatabase();
-      
+
       return true;
     } catch (e) {
       return false;
@@ -252,21 +253,21 @@ class DatabaseInitializationService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final timestamp = DateTime.now().toIso8601String();
-      
+
       // Backup player stats
       final playerStats = await _db.getAllPlayerStats();
       await prefs.setString(
         'backup_player_stats_$timestamp',
         json.encode(playerStats.map((s) => s.toMap()).toList()),
       );
-      
+
       // Backup saved games
       final savedGames = await _db.getSavedGames('default_user');
       await prefs.setString(
         'backup_saved_games_$timestamp',
         json.encode(savedGames.map((g) => g.toMap()).toList()),
       );
-      
+
       await prefs.setString('last_backup', timestamp);
       return true;
     } catch (e) {
@@ -278,11 +279,11 @@ class DatabaseInitializationService {
   Future<void> cleanupOldData() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      
+
       // Remove old SharedPreferences keys after successful migration
       await prefs.remove('player_stats_list');
       await prefs.remove('saved_games');
-      
+
       // Cleaned up
     } catch (e) {
       // Ignore cleanup errors
@@ -301,7 +302,7 @@ class DatabaseHealthCheck {
   int gameHistoryCount = 0;
   int savedGamesCount = 0;
   String? errorMessage;
-  
+
   Map<String, dynamic> toMap() {
     return {
       'isHealthy': isHealthy,
@@ -316,4 +317,4 @@ class DatabaseHealthCheck {
       'checkTime': DateTime.now().toIso8601String(),
     };
   }
-} 
+}

@@ -14,4 +14,3 @@ class BoardZone {
   @override
   String toString() => 'BoardZone(type: $type, color: $color)';
 }
-

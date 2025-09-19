@@ -10,8 +10,7 @@ import 'package:ludo_club/ui/landing_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Enable runtime font fetching for Google Fonts during development.
-  // If you want to ship offline-only, bundle fonts under assets/fonts and set this to false.
+  // Allow runtime font fetching; macOS entitlements enable outbound network access.
   GoogleFonts.config.allowRuntimeFetching = true;
 
   // Temporarily disabled database initialization due to Firebase dependency issues

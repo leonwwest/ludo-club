@@ -3,7 +3,6 @@ import 'package:ludo_club/models/ludo_objects.dart';
 import 'package:ludo_club/widgets/ludo_pin.dart';
 import 'package:ludo_club/utils/color_utils.dart';
 import 'package:ludo_club/constants/game_constants.dart';
-import 'package:ludo_club/widgets/ludo_board_tiled.dart';
 import 'package:ludo_club/logic/ludo_path.dart';
 
 class BoardWidget extends StatelessWidget {
@@ -27,7 +26,7 @@ class BoardWidget extends StatelessWidget {
         final size = constraints.maxWidth < constraints.maxHeight
             ? constraints.maxWidth
             : constraints.maxHeight;
-        
+
         return SizedBox(
           width: size,
           height: size,
@@ -45,24 +44,44 @@ class BoardWidget extends StatelessWidget {
   }
 
   List<Widget> _buildAllPieces(double boardSize) {
-    return pieces.map((piece) => _buildPiece(piece, boardSize)).toList();
+    final metrics = _BoardGeometry(boardSize);
+    final pathPositions = _getMainPathPositions(metrics);
+    return pieces
+        .map((piece) => _buildPiece(piece, boardSize, metrics, pathPositions))
+        .toList();
   }
 
   Widget _buildBoardBackground(double size) {
-    return SizedBox(width: size, height: size, child: const LudoBoardTiled());
+    return Positioned.fill(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(GameConstants.boardCornerRadius),
+        child: Image.asset(
+          'assets/board/board.png',
+          fit: BoxFit.cover,
+          filterQuality: FilterQuality.high,
+        ),
+      ),
+    );
   }
 
-  Widget _buildPiece(Piece piece, double boardSize) {
-    final position = _calculatePiecePosition(piece, boardSize);
+  Widget _buildPiece(
+    Piece piece,
+    double boardSize,
+    _BoardGeometry metrics,
+    List<Offset> pathPositions,
+  ) {
+    final position =
+        _calculatePiecePosition(piece, boardSize, metrics, pathPositions);
     final isMovable = movablePieces.contains(piece);
-    final pieceSize = boardSize * GameConstants.pinSizeRatio;
+    final pieceSize = metrics.innerSide * GameConstants.pinSizeRatio;
 
     return AnimatedPositioned(
       duration: const Duration(milliseconds: GameConstants.pieceMoveDuration),
       curve: Curves.easeOut,
       left: position.dx - pieceSize / 2,
-      // Anchor the bottom tip of the teardrop to the board circle center
-      top: position.dy - (pieceSize * GameConstants.pinHeightRatio),
+      top: position.dy -
+          (pieceSize * GameConstants.pinHeightRatio) -
+          GameConstants.pinPaddingPx,
       child: LudoPin(
         key: ValueKey('pin-${piece.color.name}-${piece.id}'),
         color: ColorUtils.getColorString(piece.color),
@@ -75,79 +94,133 @@ class BoardWidget extends StatelessWidget {
     );
   }
 
-  Offset _calculatePiecePosition(Piece piece, double boardSize) {
-    final cellSize = boardSize / GameConstants.boardGridSize;
-    
-    // Starting home positions (fieldId = -1)
+  Offset _calculatePiecePosition(
+    Piece piece,
+    double boardSize,
+    _BoardGeometry metrics,
+    List<Offset> pathPositions,
+  ) {
+    Offset toPx(double unitX, double unitY) => metrics.toPx(unitX, unitY);
+
     if (piece.position.isHome && piece.position.fieldId == -1) {
       switch (piece.color) {
         case PlayerColor.red:
           final row = piece.id ~/ 2;
           final col = piece.id % 2;
-          return Offset(
-            cellSize * (1.5 + col * 2),
-            cellSize * (11.5 + row * 2),
-          );
+          return toPx(1.5 + col * 2, 11.5 + row * 2);
         case PlayerColor.green:
           final row = piece.id ~/ 2;
           final col = piece.id % 2;
-          return Offset(
-            cellSize * (1.5 + col * 2),
-            cellSize * (1.5 + row * 2),
-          );
-        case PlayerColor.blue:
-          final row = piece.id ~/ 2;
-          final col = piece.id % 2;
-          return Offset(
-            cellSize * (11.5 + col * 2),
-            cellSize * (1.5 + row * 2),
-          );
+          return toPx(1.5 + col * 2, 1.5 + row * 2);
         case PlayerColor.yellow:
           final row = piece.id ~/ 2;
           final col = piece.id % 2;
-          return Offset(
-            cellSize * (11.5 + col * 2),
-            cellSize * (11.5 + row * 2),
-          );
+          return toPx(11.5 + col * 2, 1.5 + row * 2);
+        case PlayerColor.blue:
+          final row = piece.id ~/ 2;
+          final col = piece.id % 2;
+          return toPx(11.5 + col * 2, 11.5 + row * 2);
       }
     }
-    
-    // Home stretch positions (fieldId >= 0, isHome = true)
+
     if (piece.position.isHome && piece.position.fieldId >= 0) {
-      return _getHomeStretchPosition(piece, cellSize);
+      return _getHomeStretchPosition(piece, metrics);
     }
-    
-    // Main path positions
-    final pathPositions = _getMainPathPositions(boardSize);
-    if (piece.position.fieldId >= 0 && piece.position.fieldId < pathPositions.length) {
+
+    if (piece.position.fieldId >= 0 &&
+        piece.position.fieldId < pathPositions.length) {
       return pathPositions[piece.position.fieldId];
     }
-    
-    // Default center position
+
     return Offset(boardSize / 2, boardSize / 2);
   }
 
-  Offset _getHomeStretchPosition(Piece piece, double cellSize) {
+  Offset _getHomeStretchPosition(Piece piece, _BoardGeometry metrics) {
     final position = piece.position.fieldId;
-    
+    Offset toPx(double unitX, double unitY) => metrics.toPx(unitX, unitY);
+
+    final steps = GameConstants.homePathLength.toDouble();
+    final clamped = position.clamp(0, GameConstants.homePathLength).toDouble();
+
     switch (piece.color) {
       case PlayerColor.red:
-        // Red goal lane should be bottom -> center (vertical at column 7)
-        return Offset(cellSize * 7.5, cellSize * (12.5 - position));
+        if (clamped >= steps) {
+          return toPx(7.5, 7.5);
+        }
+        return toPx(7.5, 12.5 - clamped);
       case PlayerColor.green:
-        return Offset(cellSize * (1.5 + position), cellSize * 7.5);
-      case PlayerColor.blue:
-        // Blue goal lane should be top -> center (vertical at column 7)
-        return Offset(cellSize * 7.5, cellSize * (1.5 + position));
+        if (clamped >= steps) {
+          return toPx(7.5, 7.5);
+        }
+        return toPx(1.5 + clamped, 7.5);
       case PlayerColor.yellow:
-        return Offset(cellSize * (13.5 - position), cellSize * 7.5);
+        if (clamped >= steps) {
+          return toPx(7.5, 7.5);
+        }
+        return toPx(7.5, 1.5 + clamped);
+      case PlayerColor.blue:
+        if (clamped >= steps) {
+          return toPx(7.5, 7.5);
+        }
+        return toPx(13.5 - clamped, 7.5);
     }
   }
 
-  List<Offset> _getMainPathPositions(double boardSize) {
-    final cellSize = boardSize / GameConstants.boardGridSize;
+  List<Offset> _getMainPathPositions(_BoardGeometry metrics) {
     return LudoPath.coords
-        .map((g) => Offset(cellSize * (g.dx + 0.5), cellSize * (g.dy + 0.5)))
+        .map((g) => metrics.toPx(g.dx + 0.5, g.dy + 0.5))
         .toList(growable: false);
+  }
+}
+
+class _BoardGeometry {
+  const _BoardGeometry._({
+    required this.left,
+    required this.top,
+    required this.right,
+    required this.bottom,
+    required this.innerWidth,
+    required this.innerHeight,
+    required this.cellWidth,
+    required this.cellHeight,
+  });
+
+  factory _BoardGeometry(double boardSize) {
+    final left = boardSize * GameConstants.boardInsetLeftRatio;
+    final right = boardSize * GameConstants.boardInsetRightRatio;
+    final top = boardSize * GameConstants.boardInsetTopRatio;
+    final bottom = boardSize * GameConstants.boardInsetBottomRatio;
+    final innerWidth = boardSize - left - right;
+    final innerHeight = boardSize - top - bottom;
+    final cellWidth = innerWidth / GameConstants.boardGridSize;
+    final cellHeight = innerHeight / GameConstants.boardGridSize;
+    return _BoardGeometry._(
+      left: left,
+      top: top,
+      right: right,
+      bottom: bottom,
+      innerWidth: innerWidth,
+      innerHeight: innerHeight,
+      cellWidth: cellWidth,
+      cellHeight: cellHeight,
+    );
+  }
+
+  final double left;
+  final double top;
+  final double right;
+  final double bottom;
+  final double innerWidth;
+  final double innerHeight;
+  final double cellWidth;
+  final double cellHeight;
+
+  double get innerSide => innerWidth < innerHeight ? innerWidth : innerHeight;
+
+  Offset toPx(double unitX, double unitY) {
+    return Offset(
+      left + cellWidth * unitX,
+      top + cellHeight * unitY,
+    );
   }
 }

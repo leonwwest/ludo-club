@@ -41,7 +41,8 @@ class _LudoClubLandingPageState extends State<LudoClubLandingPage>
             children: [
               // HEADER / HERO
               Container(
-                padding: const EdgeInsets.symmetric(vertical: 64, horizontal: 16),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 64, horizontal: 16),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
@@ -185,7 +186,7 @@ class _PillButton extends StatelessWidget {
         foregroundColor: foreground,
         padding: const EdgeInsets.symmetric(horizontal: 22),
         shape: const StadiumBorder(),
-  shadowColor: Colors.black.withValues(alpha: 0.25),
+        shadowColor: Colors.black.withValues(alpha: 0.25),
       ),
     );
   }

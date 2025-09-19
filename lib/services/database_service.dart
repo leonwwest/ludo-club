@@ -137,15 +137,21 @@ class DatabaseService {
     ''');
 
     // Create indexes for better performance
-    await db.execute('CREATE INDEX idx_player_stats_name ON player_stats(player_name)');
-    await db.execute('CREATE INDEX idx_game_history_type ON game_history(game_type)');
-    await db.execute('CREATE INDEX idx_game_history_time ON game_history(start_time)');
-    await db.execute('CREATE INDEX idx_achievements_user ON achievements(user_id)');
-    await db.execute('CREATE INDEX idx_saved_games_user ON saved_games(user_id)');
+    await db.execute(
+        'CREATE INDEX idx_player_stats_name ON player_stats(player_name)');
+    await db.execute(
+        'CREATE INDEX idx_game_history_type ON game_history(game_type)');
+    await db.execute(
+        'CREATE INDEX idx_game_history_time ON game_history(start_time)');
+    await db
+        .execute('CREATE INDEX idx_achievements_user ON achievements(user_id)');
+    await db
+        .execute('CREATE INDEX idx_saved_games_user ON saved_games(user_id)');
   }
 
   // Handle database upgrades
-  Future<void> _upgradeDatabase(Database db, int oldVersion, int newVersion) async {
+  Future<void> _upgradeDatabase(
+      Database db, int oldVersion, int newVersion) async {
     // Handle database schema migrations here
     if (oldVersion < newVersion) {
       // Add migration logic as needed
@@ -210,7 +216,7 @@ class DatabaseService {
     final db = _database!;
     final statsMap = stats.toMap();
     statsMap['updated_at'] = DateTime.now().toIso8601String();
-    
+
     await db.insert(
       'player_stats',
       statsMap,
@@ -232,39 +238,48 @@ class DatabaseService {
     required Map<String, List<int>> playerRolls,
   }) async {
     for (final playerId in gameHistory.playerIds) {
-      final currentStats = await getPlayerStats(playerId) ?? 
+      final currentStats = await getPlayerStats(playerId) ??
           EnhancedPlayerStats(playerId: playerId, playerName: playerId);
 
       final rolls = playerRolls[playerId] ?? [];
       final rollSum = rolls.fold<int>(0, (total, roll) => total + roll);
       final rollCount = rolls.length;
-      final sixCount = rolls.where((roll) => roll == GameConstants.requiredRollToLeaveBase).length;
+      final sixCount = rolls
+          .where((roll) => roll == GameConstants.requiredRollToLeaveBase)
+          .length;
 
       final updatedStats = EnhancedPlayerStats(
         playerId: currentStats.playerId,
         playerName: currentStats.playerName,
         gamesPlayed: currentStats.gamesPlayed + 1,
-        gamesWon: gameHistory.winnerId == playerId ? 
-            currentStats.gamesWon + 1 : currentStats.gamesWon,
-        gamesLost: gameHistory.winnerId != null && gameHistory.winnerId != playerId ? 
-            currentStats.gamesLost + 1 : currentStats.gamesLost,
-        tokensReachedHome: currentStats.tokensReachedHome + 
+        gamesWon: gameHistory.winnerId == playerId
+            ? currentStats.gamesWon + 1
+            : currentStats.gamesWon,
+        gamesLost:
+            gameHistory.winnerId != null && gameHistory.winnerId != playerId
+                ? currentStats.gamesLost + 1
+                : currentStats.gamesLost,
+        tokensReachedHome: currentStats.tokensReachedHome +
             (gameHistory.finalScores[playerId] ?? 0),
-        opponentsCaptured: currentStats.opponentsCaptured + 
+        opponentsCaptured: currentStats.opponentsCaptured +
             (gameHistory.capturesPerPlayer[playerId] ?? 0),
         totalRolls: currentStats.totalRolls + rollCount,
         sixesRolled: currentStats.sixesRolled + sixCount,
-        averageRollValue: rollCount > 0 ? 
-            (currentStats.averageRollValue * currentStats.totalRolls + rollSum) / 
-            (currentStats.totalRolls + rollCount) : currentStats.averageRollValue,
+        averageRollValue: rollCount > 0
+            ? (currentStats.averageRollValue * currentStats.totalRolls +
+                    rollSum) /
+                (currentStats.totalRolls + rollCount)
+            : currentStats.averageRollValue,
         totalPlayTime: currentStats.totalPlayTime + gameHistory.gameDuration,
         lastPlayed: gameHistory.endTime,
-        currentWinStreak: gameHistory.winnerId == playerId ? 
-            currentStats.currentWinStreak + 1 : 0,
-        longestWinStreak: gameHistory.winnerId == playerId ? 
-            (currentStats.currentWinStreak + 1 > currentStats.longestWinStreak ? 
-                currentStats.currentWinStreak + 1 : currentStats.longestWinStreak) : 
-            currentStats.longestWinStreak,
+        currentWinStreak: gameHistory.winnerId == playerId
+            ? currentStats.currentWinStreak + 1
+            : 0,
+        longestWinStreak: gameHistory.winnerId == playerId
+            ? (currentStats.currentWinStreak + 1 > currentStats.longestWinStreak
+                ? currentStats.currentWinStreak + 1
+                : currentStats.longestWinStreak)
+            : currentStats.longestWinStreak,
       );
 
       await savePlayerStats(updatedStats);
@@ -388,7 +403,7 @@ class DatabaseService {
     final db = _database!;
     final achievementMap = achievement.toMap();
     achievementMap['unlocked_at'] = DateTime.now().toIso8601String();
-    
+
     await db.insert(
       'achievements',
       achievementMap,
@@ -409,7 +424,7 @@ class DatabaseService {
   Future<void> syncWithFirebase() async {
     // Firebase sync temporarily disabled
     return;
-    
+
     // Original Firebase sync code commented out:
     // if (_auth?.currentUser == null) return;
     // try {
@@ -431,22 +446,22 @@ class DatabaseService {
   Future<void> syncFromFirebase() async {
     // Firebase sync temporarily disabled
     return;
-    
-         // Original Firebase sync code commented out:
-     // if (_auth?.currentUser == null) return;
-     // try {
-     //   final userId = _auth!.currentUser!.uid;
-     //   final statsSnapshot = await _firestore?.collection('player_stats').get();
-     //   if (statsSnapshot?.docs != null) {
-     //     for (final doc in statsSnapshot!.docs) {
-     //       final stats = EnhancedPlayerStats.fromMap(doc.data());
-     //       await savePlayerStats(stats);
-     //     }
-     //   }
-     //   print('Sync from Firebase completed successfully');
-     // } catch (e) {
-     //   print('Failed to sync from Firebase: $e');
-     // }
+
+    // Original Firebase sync code commented out:
+    // if (_auth?.currentUser == null) return;
+    // try {
+    //   final userId = _auth!.currentUser!.uid;
+    //   final statsSnapshot = await _firestore?.collection('player_stats').get();
+    //   if (statsSnapshot?.docs != null) {
+    //     for (final doc in statsSnapshot!.docs) {
+    //       final stats = EnhancedPlayerStats.fromMap(doc.data());
+    //       await savePlayerStats(stats);
+    //     }
+    //   }
+    //   print('Sync from Firebase completed successfully');
+    // } catch (e) {
+    //   print('Failed to sync from Firebase: $e');
+    // }
   }
 
   // UTILITY METHODS
@@ -483,4 +498,4 @@ class DatabaseService {
   Future<void> dispose() async {
     await _database?.close();
   }
-} 
+}

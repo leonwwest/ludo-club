@@ -7,7 +7,8 @@ import 'package:ludo_club/constants/game_constants.dart';
 void main() {
   group('Board zone mapping', () {
     test('Main path piece maps to ZoneType.main', () {
-      final piece = Piece(PlayerColor.green, 0, const PiecePosition(10, isHome: false));
+      final piece =
+          Piece(PlayerColor.green, 0, const PiecePosition(10, isHome: false));
       final zone = LudoGame.zoneForPiece(piece);
       expect(zone.type, ZoneType.main);
       expect(zone.color, isNull);
@@ -22,7 +23,9 @@ void main() {
     });
 
     test('Goal piece maps to ZoneType.goal with color', () {
-      final piece = Piece(PlayerColor.blue, 2, const PiecePosition(GameConstants.homePathLength), isSafe: true);
+      final piece = Piece(PlayerColor.blue, 2,
+          const PiecePosition(GameConstants.homePathLength),
+          isSafe: true);
       final zone = LudoGame.zoneForPiece(piece);
       expect(zone.type, ZoneType.goal);
       expect(zone.color, PlayerColor.blue);
@@ -30,4 +33,3 @@ void main() {
     });
   });
 }
-

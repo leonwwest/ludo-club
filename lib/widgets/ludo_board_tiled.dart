@@ -18,7 +18,8 @@ class LudoBoardTiled extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(8),
           boxShadow: const [
-            BoxShadow(blurRadius: 16, offset: Offset(0, 8), color: Color(0x33000000)),
+            BoxShadow(
+                blurRadius: 16, offset: Offset(0, 8), color: Color(0x33000000)),
           ],
         ),
         clipBehavior: Clip.antiAlias,
@@ -38,9 +39,20 @@ class LudoBoardTiled extends StatelessWidget {
                         flex: 6,
                         child: Row(
                           children: [
-                            Expanded(flex: 6, child: _Base(color: Color(0xFF22C55E), tokenColor: Color(0xFF16A34A))),
-                            Expanded(flex: 3, child: _TrackVertical(color: Color(0xFF3B82F6))),
-                            Expanded(flex: 6, child: _Base(color: Color(0xFF3B82F6), tokenColor: Color(0xFF2563EB))),
+                            Expanded(
+                                flex: 6,
+                                child: _Base(
+                                    color: Color(0xFF22C55E),
+                                    tokenColor: Color(0xFF16A34A))),
+                            Expanded(
+                                flex: 3,
+                                child:
+                                    _TrackVertical(color: Color(0xFF3B82F6))),
+                            Expanded(
+                                flex: 6,
+                                child: _Base(
+                                    color: Color(0xFF3B82F6),
+                                    tokenColor: Color(0xFF2563EB))),
                           ],
                         ),
                       ),
@@ -48,9 +60,15 @@ class LudoBoardTiled extends StatelessWidget {
                         flex: 3,
                         child: Row(
                           children: [
-                            Expanded(flex: 6, child: _TrackHorizontal(color: Color(0xFF22C55E))),
+                            Expanded(
+                                flex: 6,
+                                child:
+                                    _TrackHorizontal(color: Color(0xFF22C55E))),
                             Expanded(flex: 3, child: _CenterSquare()),
-                            Expanded(flex: 6, child: _TrackHorizontal(color: Color(0xFFF59E0B))),
+                            Expanded(
+                                flex: 6,
+                                child:
+                                    _TrackHorizontal(color: Color(0xFFF59E0B))),
                           ],
                         ),
                       ),
@@ -58,9 +76,20 @@ class LudoBoardTiled extends StatelessWidget {
                         flex: 6,
                         child: Row(
                           children: [
-                            Expanded(flex: 6, child: _Base(color: Color(0xFFEF4444), tokenColor: Color(0xFFDC2626))),
-                            Expanded(flex: 3, child: _TrackVertical(color: Color(0xFFEF4444))),
-                            Expanded(flex: 6, child: _Base(color: Color(0xFFF59E0B), tokenColor: Color(0xFFD97706))),
+                            Expanded(
+                                flex: 6,
+                                child: _Base(
+                                    color: Color(0xFFEF4444),
+                                    tokenColor: Color(0xFFDC2626))),
+                            Expanded(
+                                flex: 3,
+                                child:
+                                    _TrackVertical(color: Color(0xFFEF4444))),
+                            Expanded(
+                                flex: 6,
+                                child: _Base(
+                                    color: Color(0xFFF59E0B),
+                                    tokenColor: Color(0xFFD97706))),
                           ],
                         ),
                       ),
@@ -95,7 +124,9 @@ class _Base extends StatelessWidget {
       child: GridView.builder(
         physics: const NeverScrollableScrollPhysics(),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2, mainAxisSpacing: 6, crossAxisSpacing: 6,
+          crossAxisCount: 2,
+          mainAxisSpacing: 6,
+          crossAxisSpacing: 6,
         ),
         itemCount: 4,
         itemBuilder: (context, _) => Container(
@@ -105,12 +136,18 @@ class _Base extends StatelessWidget {
           ),
           child: Center(
             child: Container(
-              width: 18, height: 18,
+              width: 18,
+              height: 18,
               decoration: BoxDecoration(
                 color: tokenColor,
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.white, width: 2),
-                boxShadow: const [BoxShadow(blurRadius: 3, offset: Offset(0, 1), color: Color(0x33000000))],
+                boxShadow: const [
+                  BoxShadow(
+                      blurRadius: 3,
+                      offset: Offset(0, 1),
+                      color: Color(0x33000000))
+                ],
               ),
             ),
           ),
@@ -128,9 +165,11 @@ class _TrackVertical extends StatelessWidget {
   Widget build(BuildContext context) {
     return GridView.builder(
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3),
+      gridDelegate:
+          const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3),
       itemCount: 18,
-      itemBuilder: (context, index) => _Box(color: index % 3 == 1 ? color.withValues(alpha: 0.25) : null),
+      itemBuilder: (context, index) =>
+          _Box(color: index % 3 == 1 ? color.withValues(alpha: 0.25) : null),
     );
   }
 }
@@ -143,9 +182,11 @@ class _TrackHorizontal extends StatelessWidget {
   Widget build(BuildContext context) {
     return GridView.builder(
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 6),
+      gridDelegate:
+          const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 6),
       itemCount: 18,
-      itemBuilder: (context, index) => _Box(color: index ~/ 6 == 1 ? color.withValues(alpha: 0.25) : null),
+      itemBuilder: (context, index) =>
+          _Box(color: index ~/ 6 == 1 ? color.withValues(alpha: 0.25) : null),
     );
   }
 }
@@ -185,10 +226,26 @@ class _CenterPainter extends CustomPainter {
 
     final w = size.width, h = size.height;
 
-    final p1 = Path()..moveTo(0, 0)..lineTo(w, 0)..lineTo(0, h)..close();
-    final p2 = Path()..moveTo(0, 0)..lineTo(w, 0)..lineTo(w, h)..close();
-    final p3 = Path()..moveTo(0, h)..lineTo(w, h)..lineTo(0, 0)..close();
-    final p4 = Path()..moveTo(w, 0)..lineTo(w, h)..lineTo(0, h)..close();
+    final p1 = Path()
+      ..moveTo(0, 0)
+      ..lineTo(w, 0)
+      ..lineTo(0, h)
+      ..close();
+    final p2 = Path()
+      ..moveTo(0, 0)
+      ..lineTo(w, 0)
+      ..lineTo(w, h)
+      ..close();
+    final p3 = Path()
+      ..moveTo(0, h)
+      ..lineTo(w, h)
+      ..lineTo(0, 0)
+      ..close();
+    final p4 = Path()
+      ..moveTo(w, 0)
+      ..lineTo(w, h)
+      ..lineTo(0, h)
+      ..close();
 
     // Top-left GREEN, top-right BLUE, bottom-left RED, bottom-right YELLOW
     canvas.drawPath(p1, green);
@@ -210,7 +267,8 @@ class _MarkersPainter extends CustomPainter {
     final double cell = size.width / 15.0;
 
     // Helper to draw ring circle
-    void ring(int col, int row, {Color fill = Colors.white, Color stroke = Colors.white}) {
+    void ring(int col, int row,
+        {Color fill = Colors.white, Color stroke = Colors.white}) {
       final center = Offset(cell * (col + 0.5), cell * (row + 0.5));
       final r = cell * 0.35;
       final paintFill = Paint()..color = fill;
@@ -226,7 +284,10 @@ class _MarkersPainter extends CustomPainter {
     // Red (bottom-left) at (1,11) (3,11) (1,13) (3,13)
     final redFill = const Color(0xFFEF4444).withValues(alpha: 0.25);
     for (final p in const [
-      (1, 11), (3, 11), (1, 13), (3, 13),
+      (1, 11),
+      (3, 11),
+      (1, 13),
+      (3, 13),
     ]) {
       ring(p.$1, p.$2, fill: redFill);
     }
@@ -234,7 +295,10 @@ class _MarkersPainter extends CustomPainter {
     // Green (top-left) at (1,1) (3,1) (1,3) (3,3)
     final greenFill = const Color(0xFF22C55E).withValues(alpha: 0.25);
     for (final p in const [
-      (1, 1), (3, 1), (1, 3), (3, 3),
+      (1, 1),
+      (3, 1),
+      (1, 3),
+      (3, 3),
     ]) {
       ring(p.$1, p.$2, fill: greenFill);
     }
@@ -242,7 +306,10 @@ class _MarkersPainter extends CustomPainter {
     // Blue (top-right) at (11,1) (13,1) (11,3) (13,3)
     final blueFill = const Color(0xFF3B82F6).withValues(alpha: 0.25);
     for (final p in const [
-      (11, 1), (13, 1), (11, 3), (13, 3),
+      (11, 1),
+      (13, 1),
+      (11, 3),
+      (13, 3),
     ]) {
       ring(p.$1, p.$2, fill: blueFill);
     }
@@ -250,7 +317,10 @@ class _MarkersPainter extends CustomPainter {
     // Yellow (bottom-right) at (11,11) (13,11) (11,13) (13,13)
     final yellowFill = const Color(0xFFF59E0B).withValues(alpha: 0.25);
     for (final p in const [
-      (11, 11), (13, 11), (11, 13), (13, 13),
+      (11, 11),
+      (13, 11),
+      (11, 13),
+      (13, 13),
     ]) {
       ring(p.$1, p.$2, fill: yellowFill);
     }
@@ -260,19 +330,23 @@ class _MarkersPainter extends CustomPainter {
 
     // Red vertical from rows 9..13 at column 7
     stretchPaint.color = const Color(0xFFEF4444).withValues(alpha: 0.18);
-    canvas.drawRect(Rect.fromLTWH(cell * 7, cell * 9, cell, cell * 5), stretchPaint);
+    canvas.drawRect(
+        Rect.fromLTWH(cell * 7, cell * 9, cell, cell * 5), stretchPaint);
 
     // Green horizontal just above the shifted main path (cols 2..6) at row 7
     stretchPaint.color = const Color(0xFF22C55E).withValues(alpha: 0.18);
-    canvas.drawRect(Rect.fromLTWH(cell * 2, cell * 7, cell * 5, cell), stretchPaint);
+    canvas.drawRect(
+        Rect.fromLTWH(cell * 2, cell * 7, cell * 5, cell), stretchPaint);
 
     // Blue vertical goal lane from rows 1..5 at column 7
     stretchPaint.color = const Color(0xFF3B82F6).withValues(alpha: 0.18);
-    canvas.drawRect(Rect.fromLTWH(cell * 7, cell * 1, cell, cell * 5), stretchPaint);
+    canvas.drawRect(
+        Rect.fromLTWH(cell * 7, cell * 1, cell, cell * 5), stretchPaint);
 
     // Yellow horizontal goal lane from cols 9..13 at row 7
     stretchPaint.color = const Color(0xFFF59E0B).withValues(alpha: 0.18);
-    canvas.drawRect(Rect.fromLTWH(cell * 9, cell * 7, cell * 5, cell), stretchPaint);
+    canvas.drawRect(
+        Rect.fromLTWH(cell * 9, cell * 7, cell * 5, cell), stretchPaint);
 
     // Main path neutral cells to visualize the shifted track lightly
     final neutral = Paint()..color = const Color(0xFFEFF2F7);
@@ -289,8 +363,9 @@ class _MarkersPainter extends CustomPainter {
       if (index < 0 || index >= LudoPath.coords.length) return;
       final g = LudoPath.coords[index];
       final center = Offset(cell * (g.dx + 0.5), cell * (g.dy + 0.5));
-      _drawStar(canvas, center, cell * 0.28, Paint()..color = color.withValues(alpha: 0.9));
-  }
+      _drawStar(canvas, center, cell * 0.28,
+          Paint()..color = color.withValues(alpha: 0.9));
+    }
 
     // Safe indices (start tiles + stars): 0,8,13,21,26,34,39,47
     for (final idx in const [0, 8, 13, 21, 26, 34, 39, 47]) {

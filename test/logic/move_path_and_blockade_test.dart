@@ -162,11 +162,14 @@ void main() {
           .firstWhere((p) => p.color == PlayerColor.red)
           .pieces
           .first;
+      final startIndex = LudoGame.startFields[PlayerColor.red]!;
       expect(moved.position.isHome, isFalse);
-      expect(moved.position.fieldId, LudoGame.startFields[PlayerColor.red]);
+      // Without the six-to-start requirement the engine advances one tile past
+      // the start square using the rolled value.
+      expect(moved.position.fieldId, startIndex + 1);
     });
 
-    test('Captures disabled block landing on opponent when sharing off', () {
+    test('Captures disabled allows sharing the start square', () {
       final redPiece = Piece(
         PlayerColor.red,
         0,
@@ -184,10 +187,11 @@ void main() {
                   const PiecePosition(GameState.basePosition)))
         ],
       );
+      final startIndex = LudoGame.startFields[PlayerColor.red]!;
       final greenPiece = Piece(
         PlayerColor.green,
         0,
-        PiecePosition(LudoGame.startFields[PlayerColor.red]!, isHome: false),
+        PiecePosition(startIndex, isHome: false),
       );
       final greenPlayer = Player(
         id: 'green',
@@ -209,11 +213,20 @@ void main() {
       );
 
       final validation = LudoGame.validateMove(state, redPiece, 6);
-      expect(validation.isValid, isFalse);
-      expect(validation.error, ValidationError.occupiedByOpponent);
+      expect(validation.isValid, isTrue);
+      expect(validation.error, isNull);
 
       final result = LudoGame.movePiece(state, redPiece);
-      expect(identical(result.newState, state), isTrue);
+      final redMoved = result.newState.players
+          .firstWhere((p) => p.color == PlayerColor.red)
+          .pieces
+          .first;
+      final greenStayed = result.newState.players
+          .firstWhere((p) => p.color == PlayerColor.green)
+          .pieces
+          .first;
+      expect(redMoved.position.fieldId, startIndex + 1);
+      expect(greenStayed.position.fieldId, startIndex);
       expect(result.capturedOpponentPiece, isNull);
     });
 

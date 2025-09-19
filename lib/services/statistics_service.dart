@@ -70,10 +70,10 @@ class StatisticsService {
     try {
       final jsonString = _prefs.getString(_playerStatsListKey);
       if (jsonString == null) return [];
-      
+
       final decoded = json.decode(jsonString);
       if (decoded is! List) return [];
-      
+
       return decoded
           .whereType<Map<String, dynamic>>()
           .map(PlayerStats.fromJson)
@@ -94,13 +94,13 @@ class StatisticsService {
   Future<void> updatePlayerStats(PlayerStats stats) async {
     final allStats = await getAllPlayerStats();
     final index = allStats.indexWhere((s) => s.playerName == stats.playerName);
-    
+
     if (index >= 0) {
       allStats[index] = stats;
     } else {
       allStats.add(stats);
     }
-    
+
     await _saveToDisk(allStats);
   }
 
@@ -111,27 +111,32 @@ class StatisticsService {
     Map<String, int>? opponentsCaptured,
   }) async {
     final allStats = await getAllPlayerStats();
-    
+
     for (final playerName in allPlayerNames) {
-      final existingIndex = allStats.indexWhere((s) => s.playerName == playerName);
-      final existing = existingIndex >= 0 
-          ? allStats[existingIndex] 
+      final existingIndex =
+          allStats.indexWhere((s) => s.playerName == playerName);
+      final existing = existingIndex >= 0
+          ? allStats[existingIndex]
           : PlayerStats(playerName: playerName);
-      
+
       final updated = existing.copyWith(
         gamesPlayed: existing.gamesPlayed + 1,
-        gamesWon: playerName == winnerName ? existing.gamesWon + 1 : existing.gamesWon,
-        tokensReachedHome: existing.tokensReachedHome + (tokensReachedHome?[playerName] ?? 0),
-        opponentsCaptured: existing.opponentsCaptured + (opponentsCaptured?[playerName] ?? 0),
+        gamesWon: playerName == winnerName
+            ? existing.gamesWon + 1
+            : existing.gamesWon,
+        tokensReachedHome:
+            existing.tokensReachedHome + (tokensReachedHome?[playerName] ?? 0),
+        opponentsCaptured:
+            existing.opponentsCaptured + (opponentsCaptured?[playerName] ?? 0),
       );
-      
+
       if (existingIndex >= 0) {
         allStats[existingIndex] = updated;
       } else {
         allStats.add(updated);
       }
     }
-    
+
     await _saveToDisk(allStats);
   }
 
@@ -143,4 +148,4 @@ class StatisticsService {
     final jsonList = stats.map((s) => s.toJson()).toList();
     await _prefs.setString(_playerStatsListKey, json.encode(jsonList));
   }
-} 
+}
