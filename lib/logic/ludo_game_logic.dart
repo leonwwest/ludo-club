@@ -160,8 +160,8 @@ class LudoGame {
   static const Map<PlayerColor, int> startFields = {
     PlayerColor.red: 0,
     PlayerColor.green: 13,
-    PlayerColor.yellow: 26,
-    PlayerColor.blue: 39,
+    PlayerColor.blue: 26,
+    PlayerColor.yellow: 39,
   };
 
   static const int homePathLength = GameConstants.homePathLength;

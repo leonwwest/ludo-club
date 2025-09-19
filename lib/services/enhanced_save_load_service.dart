@@ -453,8 +453,9 @@ class StorageStats {
 
   String get formattedSize {
     if (totalStorageSize < 1024) return '$totalStorageSize B';
-    if (totalStorageSize < 1024 * 1024)
+    if (totalStorageSize < 1024 * 1024) {
       return '${(totalStorageSize / 1024).toStringAsFixed(1)} KB';
+    }
     return '${(totalStorageSize / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 }

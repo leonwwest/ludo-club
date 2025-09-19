@@ -27,11 +27,13 @@ class GameConstants {
   // Used to correct placement so the SVG tip aligns to board centers
   static const double pinPaddingPx = 4.0;
   static const double boardCornerRadius = 8.0;
-  // When using an image background that contains margins around the 15x15 grid,
-  // use this inset ratio to map logical grid coordinates into the inner area.
-  // This value represents the fractional whitespace on each edge of the image.
-  // Tune if your asset changes; 0.045 ~= 4.5% per side.
-  static const double boardContentInsetRatio = 0.045;
+
+  // High-res board asset margins expressed as a fraction of the image side.
+  // These measurements ensure piece coordinates align with the printed grid.
+  static const double boardInsetLeftRatio = 74.5 / 1024;
+  static const double boardInsetRightRatio = 199.5 / 1024;
+  static const double boardInsetTopRatio = 74.5 / 1024;
+  static const double boardInsetBottomRatio = 199.5 / 1024;
 
   // Main-path safe tiles shared across rulesets
   static const Set<int> safeMainPathFields = {

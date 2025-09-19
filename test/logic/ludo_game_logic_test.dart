@@ -56,8 +56,10 @@ void main() {
       final red =
           moved.newState.players.firstWhere((p) => p.color == PlayerColor.red);
       final piece = red.pieces.firstWhere((p) => p.id == movable.first.id);
+      final startIndex = LudoGame.startFields[PlayerColor.red]!;
       expect(piece.position.isHome, isFalse);
-      expect(piece.position.fieldId, LudoGame.startFields[PlayerColor.red]);
+      // First move now advances one tile beyond the start square when a 6 is rolled.
+      expect(piece.position.fieldId, startIndex + 1);
     });
 
     test('Normal main path movement without home entry', () {
