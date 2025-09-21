@@ -30,10 +30,12 @@ class GameConstants {
 
   // High-res board asset margins expressed as a fraction of the image side.
   // These measurements ensure piece coordinates align with the printed grid.
-  static const double boardInsetLeftRatio = 74.5 / 1024;
-  static const double boardInsetRightRatio = 199.5 / 1024;
-  static const double boardInsetTopRatio = 74.5 / 1024;
-  static const double boardInsetBottomRatio = 199.5 / 1024;
+  // New board art has only a slim decorative frame, so we use per-side
+  // measurements taken from the asset (in pixels) to anchor the logical grid.
+  static const double boardInsetLeftRatio = 0.00220511787544;
+  static const double boardInsetRightRatio = 0.00347480686762;
+  static const double boardInsetTopRatio = 0.00245336875042;
+  static const double boardInsetBottomRatio = 0.00444077375595;
 
   // Main-path safe tiles shared across rulesets
   static const Set<int> safeMainPathFields = {
