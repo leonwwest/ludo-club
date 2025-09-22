@@ -164,9 +164,9 @@ void main() {
           .first;
       final startIndex = LudoGame.startFields[PlayerColor.red]!;
       expect(moved.position.isHome, isFalse);
-      // Without the six-to-start requirement the engine advances one tile past
-      // the start square using the rolled value.
-      expect(moved.position.fieldId, startIndex + 1);
+      // Without the six-to-start requirement the pawn still enters on the
+      // coloured start tile because the board art includes it on the loop.
+      expect(moved.position.fieldId, startIndex);
     });
 
     test('Captures disabled allows sharing the start square', () {
@@ -225,7 +225,7 @@ void main() {
           .firstWhere((p) => p.color == PlayerColor.green)
           .pieces
           .first;
-      expect(redMoved.position.fieldId, startIndex + 1);
+      expect(redMoved.position.fieldId, startIndex);
       expect(greenStayed.position.fieldId, startIndex);
       expect(result.capturedOpponentPiece, isNull);
     });
