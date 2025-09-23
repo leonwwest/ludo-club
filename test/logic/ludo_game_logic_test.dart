@@ -58,8 +58,8 @@ void main() {
       final piece = red.pieces.firstWhere((p) => p.id == movable.first.id);
       final startIndex = LudoGame.startFields[PlayerColor.red]!;
       expect(piece.position.isHome, isFalse);
-      // First move now advances one tile beyond the start square when a 6 is rolled.
-      expect(piece.position.fieldId, startIndex + 1);
+      // Pieces now enter directly onto their coloured start tile.
+      expect(piece.position.fieldId, startIndex);
     });
 
     test('Normal main path movement without home entry', () {
@@ -141,16 +141,16 @@ void main() {
     });
 
     test('No capture occurs on safe fields', () {
-      // Safe fields include 8; land on 8 where opponent stands
+      // Safe fields include 5; land on 5 where opponent stands
       final redPieces = [
-        Piece(PlayerColor.red, 0, const PiecePosition(7, isHome: false)),
+        Piece(PlayerColor.red, 0, const PiecePosition(4, isHome: false)),
         ...List.generate(
             3,
             (i) => Piece(PlayerColor.red, i + 1,
                 const PiecePosition(GameState.basePosition))),
       ];
       final greenPieces = [
-        Piece(PlayerColor.green, 0, const PiecePosition(8, isHome: false)),
+        Piece(PlayerColor.green, 0, const PiecePosition(5, isHome: false)),
         ...List.generate(
             3,
             (i) => Piece(PlayerColor.green, i + 1,
@@ -174,8 +174,8 @@ void main() {
           result.newState.players.firstWhere((p) => p.color == PlayerColor.red);
       final greenAfter = result.newState.players
           .firstWhere((p) => p.color == PlayerColor.green);
-      expect(redAfter.pieces.first.position.fieldId, 8);
-      expect(greenAfter.pieces.first.position.fieldId, 8);
+      expect(redAfter.pieces.first.position.fieldId, 5);
+      expect(greenAfter.pieces.first.position.fieldId, 5);
     });
 
     test('Enters home stretch and can finish', () {

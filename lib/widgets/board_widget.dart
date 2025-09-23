@@ -52,6 +52,7 @@ class BoardWidget extends StatelessWidget {
   }
 
   Widget _buildBoardBackground(double size) {
+    // Use the provided board asset image as background.
     return Positioned.fill(
       child: ClipRRect(
         borderRadius: BorderRadius.circular(GameConstants.boardCornerRadius),
@@ -167,9 +168,15 @@ class BoardWidget extends StatelessWidget {
   }
 
   List<Offset> _getMainPathPositions(_BoardGeometry metrics) {
-    return LudoPath.coords
-        .map((g) => metrics.toPx(g.dx + 0.5, g.dy + 0.5))
-        .toList(growable: false);
+    final offset = GameConstants.uiMainPathIndexOffset;
+    final coords = LudoPath.coords;
+    final length = coords.length;
+    return List<Offset>.generate(length, (i) {
+      final mapped = (i + offset) % length;
+      final idx = mapped < 0 ? mapped + length : mapped;
+      final g = coords[idx];
+      return metrics.toPx(g.dx + 0.5, g.dy + 0.5);
+    }, growable: false);
   }
 }
 

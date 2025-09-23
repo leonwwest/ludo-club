@@ -160,8 +160,8 @@ class LudoGame {
   static const Map<PlayerColor, int> startFields = {
     PlayerColor.red: 0,
     PlayerColor.green: 13,
-    PlayerColor.blue: 26,
-    PlayerColor.yellow: 39,
+    PlayerColor.yellow: 26,
+    PlayerColor.blue: 39,
   };
 
   static const int homePathLength = GameConstants.homePathLength;
@@ -330,9 +330,9 @@ class LudoGame {
     }
 
     final startIndex = _startIndexFor(state, piece.color);
-    // Rule: entering from base skips the colored start tile and places the
-    // piece on the first neutral (white) tile after start.
-    final entryIndex = (startIndex + 1) % config.trackLength;
+    // Revised board art keeps the coloured start squares on the main loop, so
+    // entering from base should place the pawn directly on that start tile.
+    final entryIndex = startIndex % config.trackLength;
 
     final occupants = List<Piece>.from(trackOccupants[entryIndex] ?? const []);
     final ownPieces =
@@ -358,8 +358,11 @@ class LudoGame {
       final canCapture = config.captureReturnsToHome &&
           (!isSafeTarget || config.captureOnSafeAllowed);
       if (!canCapture) {
-        return const _MoveEvaluation.invalid(
-            ValidationError.occupiedByOpponent);
+        if (!isSafeTarget) {
+          return const _MoveEvaluation.invalid(
+              ValidationError.occupiedByOpponent);
+        }
+        // Sharing on the coloured start tile is allowed when capture is off.
       }
     }
 

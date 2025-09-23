@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'package:ludo_club/logic/ludo_path.dart';
+import 'package:ludo_club/constants/game_constants.dart';
 
 /// A tiled, grid-based Ludo board background composed of bases and tracks.
 /// Designed to align with a 15x15 logical grid, without margins/padding, so
@@ -348,15 +349,17 @@ class _MarkersPainter extends CustomPainter {
     canvas.drawRect(
         Rect.fromLTWH(cell * 9, cell * 7, cell * 5, cell), stretchPaint);
 
-    // Main path neutral cells to visualize the shifted track lightly
+    // Main path neutral cells following the shared geometry definition
     final neutral = Paint()..color = const Color(0xFFEFF2F7);
-
-    // Left top segment: (1..5, row 6)
-    canvas.drawRect(Rect.fromLTWH(cell * 1, cell * 6, cell * 5, cell), neutral);
-    // Top vertical segment: (col 8, rows 0..6)
-    canvas.drawRect(Rect.fromLTWH(cell * 8, 0, cell, cell * 7), neutral);
-    // Right horizontal segment: (cols 9..14, row 8)
-    canvas.drawRect(Rect.fromLTWH(cell * 9, cell * 8, cell * 6, cell), neutral);
+    final seen = <String>{};
+    for (final g in LudoPath.coords) {
+      final key = '${g.dx.toInt()},${g.dy.toInt()}';
+      if (!seen.add(key)) continue;
+      canvas.drawRect(
+        Rect.fromLTWH(cell * g.dx, cell * g.dy, cell, cell),
+        neutral,
+      );
+    }
 
     // Draw safe-field stars at canonical indices using path mapping
     void starAtIndex(int index, {Color color = const Color(0xFF16A34A)}) {
@@ -368,7 +371,7 @@ class _MarkersPainter extends CustomPainter {
     }
 
     // Safe indices (start tiles + stars): 0,8,13,21,26,34,39,47
-    for (final idx in const [0, 8, 13, 21, 26, 34, 39, 47]) {
+    for (final idx in GameConstants.safeMainPathFields) {
       starAtIndex(idx);
     }
   }
