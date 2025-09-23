@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:ludo_club/models/ludo_objects.dart';
 import 'package:ludo_club/utils/color_utils.dart';
 import 'package:ludo_club/logic/ludo_path.dart';
+import 'package:ludo_club/constants/game_constants.dart';
 
 class LudoBoardPainter extends CustomPainter {
   // Reusable Paint objects for better performance
@@ -116,54 +117,19 @@ class LudoBoardPainter extends CustomPainter {
       ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke;
 
-    RRect rr(int col, int row) => RRect.fromRectAndRadius(
-          Rect.fromLTWH(col * cellSize, row * cellSize, cellSize, cellSize),
-          const Radius.circular(4),
-        );
-
-    final cells = <RRect>[];
-
-    // Match BoardWidget._getMainPathPositions (0..51)
-    // Segment A: up along column 6 from row 13 -> 8
-    for (int r = 13; r >= 8; r--) {
-      cells.add(rr(6, r));
-    }
-    // Segment B: left along row 8 from col 5 -> 0
-    for (int c = 5; c >= 0; c--) {
-      cells.add(rr(c, 8));
-    }
-    // Segment C: up along column 0 from row 7 -> 1
-    for (int r = 7; r >= 1; r--) {
-      cells.add(rr(0, r));
-    }
-    // Segment D: right along row 0 from col 1 -> 5
-    for (int c = 1; c <= 5; c++) {
-      cells.add(rr(c, 0));
-    }
-    // Segment E: down along column 7 from row 0 -> 6
-    for (int r = 0; r <= 6; r++) {
-      cells.add(rr(7, r));
-    }
-    // Segment F: right along row 6 from col 8 -> 14
-    for (int c = 8; c <= 14; c++) {
-      cells.add(rr(c, 6));
-    }
-    // Segment G: down along column 14 from row 7 -> 13
-    for (int r = 7; r <= 13; r++) {
-      cells.add(rr(14, r));
-    }
-    // Segment H: left along row 14 from col 13 -> 8
-    for (int c = 13; c >= 8; c--) {
-      cells.add(rr(c, 14));
-    }
-    // Segment I: up along column 8 from row 13 -> 8
-    for (int r = 13; r >= 8; r--) {
-      cells.add(rr(8, r));
-    }
-
-    for (final cell in cells) {
-      canvas.drawRRect(cell, pathPaint);
-      canvas.drawRRect(cell, borderPaint);
+    final seen = <String>{};
+    for (final g in LudoPath.coords) {
+      final key = '${g.dx.toInt()},${g.dy.toInt()}';
+      if (!seen.add(key)) continue;
+      final rect = Rect.fromLTWH(
+        g.dx * cellSize,
+        g.dy * cellSize,
+        cellSize,
+        cellSize,
+      );
+      final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(4));
+      canvas.drawRRect(rrect, pathPaint);
+      canvas.drawRRect(rrect, borderPaint);
     }
   }
 
@@ -257,11 +223,7 @@ class LudoBoardPainter extends CustomPainter {
       ..color = Colors.green.shade400
       ..style = PaintingStyle.fill;
 
-    // Safe fields follow canonical path indices: starts and +8 from each start
-    // Indices: 0, 8, 13, 21, 26, 34, 39, 47
-    final indices = const [0, 8, 13, 21, 26, 34, 39, 47];
-
-    for (final i in indices) {
+    for (final i in GameConstants.safeMainPathFields) {
       if (i < 0 || i >= LudoPath.coords.length) continue;
       final g = LudoPath.coords[i];
       final pos = Offset(cellSize * (g.dx + 0.5), cellSize * (g.dy + 0.5));

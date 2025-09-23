@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ludo_club/constants/game_constants.dart';
 import 'package:ludo_club/logic/ludo_path.dart';
 
 void main() {
@@ -23,5 +24,28 @@ void main() {
     expect(LudoPath.coords[25], isNotNull); // Blue entry
     expect(LudoPath.coords[38], isNotNull); // Yellow entry
     expect(LudoPath.coords[51], isNotNull); // Red entry
+
+    expect(LudoPath.coords[0], const Offset(6, 13));
+    expect(LudoPath.coords[13], const Offset(1, 6));
+    expect(LudoPath.coords[26], const Offset(8, 1));
+    expect(LudoPath.coords[39], const Offset(13, 8));
+
+    expect(LudoPath.coords[12], const Offset(0, 6));
+    expect(LudoPath.coords[25], const Offset(8, 0));
+    expect(LudoPath.coords[38], const Offset(14, 8));
+    expect(LudoPath.coords[51], const Offset(6, 14));
+
+    expect(
+        GameConstants.safeMainPathFields,
+        containsAll(<int>{
+          0,
+          5,
+          13,
+          18,
+          26,
+          31,
+          39,
+          44,
+        }));
   });
 }

@@ -40,14 +40,18 @@ class GameConstants {
   // Main-path safe tiles shared across rulesets
   static const Set<int> safeMainPathFields = {
     0,
-    8,
+    5,
     13,
-    21,
+    18,
     26,
-    34,
+    31,
     39,
-    47,
+    44,
   };
+
+  // UI-only offset to align logical main-path indices to the board asset.
+  // If pieces appear one tile after the expected colored start tile, set to -1.
+  static const int uiMainPathIndexOffset = 0;
 
   // Default positions
   static const int basePosition = -1;

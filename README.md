@@ -45,7 +45,7 @@ A beautiful, feature-rich Ludo (Mensch ärgere Dich nicht) game built with Flutt
 ### 🛡️ **Game Logic**
 - **⚔️ Advanced Capture System**
   - Pieces can capture opponents on main path
-  - Safe fields prevent captures (positions 0, 8, 13, 21, 26, 34, 39, 47)
+  - Safe fields prevent captures (positions 0, 5, 13, 18, 26, 31, 39, 44)
   - Captured pieces return to home base
   - Capturing grants extra turn
 
