@@ -1,400 +1,393 @@
-import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'dart:ui' show ImageFilter;
-import 'package:provider/provider.dart';
-import 'package:ludo_club/providers/game_provider.dart';
-import 'package:ludo_club/models/game_state.dart';
-import 'package:ludo_club/models/ludo_objects.dart';
-import 'package:ludo_club/models/game_phase.dart';
-import 'package:ludo_club/models/game_rules.dart';
-import 'package:ludo_club/widgets/board_widget.dart';
-import 'package:ludo_club/widgets/dice_widget.dart';
-import 'package:ludo_club/services/rule_preset_service.dart';
-import 'package:ludo_club/ui/components/game_rules_sheet.dart';
-import 'package:ludo_club/widgets/rule_summary_chips.dart';
-import 'package:ludo_club/utils/color_utils.dart';
+import 'dart:math' as math;
 
-class GameScreen extends StatefulWidget {
+import 'package:flutter/material.dart';
+import 'package:ludo_club/models/ludo_models.dart';
+import 'package:ludo_club/providers/game_controller.dart';
+import 'package:ludo_club/theme/player_palette.dart';
+import 'package:ludo_club/widgets/dice_panel.dart';
+import 'package:ludo_club/widgets/ludo_board.dart';
+import 'package:ludo_club/widgets/player_strip.dart';
+import 'package:provider/provider.dart';
+
+class GameScreen extends StatelessWidget {
   const GameScreen({super.key});
 
   @override
-  GameScreenState createState() => GameScreenState();
-}
-
-class GameScreenState extends State<GameScreen> {
-  bool _winnerDialogShown = false;
-  RulePresetService? _presetService;
-
-  @override
-  void initState() {
-    super.initState();
-    RulePresetService.create().then((service) {
-      if (!mounted) return;
-      setState(() {
-        _presetService = service;
-      });
-    });
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // No external board image anymore; CustomPaint handles rendering.
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final controller = context.watch<GameController>();
+    final state = controller.state;
+    final isWide = MediaQuery.sizeOf(context).width >= 920;
+    final pagePadding = isWide ? 16.0 : 12.0;
+
     return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Consumer<GameProvider>(
-        builder: (context, gameProvider, child) {
-          // currentPlayerMeta not needed here; UI selects directly from provider
-          final bool isGameOver = gameProvider.gameState.isGameOver;
-          final PlayerColor? winnerColor = gameProvider.gameState.winnerId;
-
-          if (isGameOver && winnerColor != null && !_winnerDialogShown) {
-            Future.delayed(const Duration(milliseconds: 500), () {
-              if (mounted) {
-                _showWinnerDialog(gameProvider, winnerColor);
-                _winnerDialogShown = true;
-              }
-            });
-          }
-          final bgGradient = const LinearGradient(
-            colors: [Color(0xFF5D4BFF), Color(0xFF2EB9FF)],
-          );
-
-          return Container(
-            decoration: BoxDecoration(gradient: bgGradient),
-            child: SafeArea(
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1100),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
-                    child: Column(
-                      children: [
-                        // Top bar
-                        Row(
+      body: DecoratedBox(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/backgrounds/club_table_v2.png'),
+            fit: BoxFit.cover,
+            colorFilter: ColorFilter.mode(Color(0xDDF6F8FB), BlendMode.srcOver),
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: EdgeInsets.all(pagePadding),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _Header(
+                  playerCount: controller.playerCount,
+                  onPlayerCountChanged: (count) =>
+                      controller.newGame(playerCount: count),
+                  onRestart: () => controller.newGame(),
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: isWide
+                      ? Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            IconButton(
-                              icon: const Icon(Icons.arrow_back,
-                                  color: Colors.white),
-                              onPressed: () => Navigator.maybePop(context),
-                              tooltip: 'Back',
-                            ),
-                            Expanded(
-                              child: Text(
-                                'Ludo Club',
-                                textAlign: TextAlign.center,
-                                style: GoogleFonts.poppins(
-                                  color: Colors.white,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w700,
+                            Expanded(child: _BoardStage(state: state)),
+                            const SizedBox(width: 16),
+                            SizedBox(
+                              width: 360,
+                              child: SingleChildScrollView(
+                                child: _SidePanel(
+                                  state: state,
+                                  onRoll: controller.rollDice,
                                 ),
                               ),
                             ),
-                            IconButton(
-                              icon: const Icon(Icons.rule, color: Colors.white),
-                              tooltip: 'View & adjust rules',
-                              onPressed: () => showGameRulesSheet(
-                                context: context,
-                                initialRules: gameProvider.gameState.rules,
-                                onRulesChanged: gameProvider.setRules,
-                                messengerContext: context,
-                                presetService: _presetService,
-                              ),
+                          ],
+                        )
+                      : ListView(
+                          physics: const BouncingScrollPhysics(),
+                          children: [
+                            _MobileGameLayout(
+                              state: state,
+                              onRoll: controller.rollDice,
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
-
-                        // Current player info (glass card)
-                        _GlassCard(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 18, vertical: 14),
-                          child: Selector<GameProvider, Map<String, Object>>(
-                            selector: (_, gp) => {
-                              'name':
-                                  gp.getPlayerMeta(gp.currentPlayerColor).name,
-                              'color': gp.currentPlayerColor,
-                              'isAI': gp.gameState.currentPlayer.isAI,
-                              'phase': gp.phase,
-                              'rules': gp.gameState.rules,
-                            },
-                            builder: (context, data, _) {
-                              final playerName = data['name'] as String;
-                              final playerColor = data['color'] as PlayerColor;
-                              final isAI = data['isAI'] as bool;
-                              final phase = data['phase'] as GamePhase;
-                              final rules = data['rules'] as GameRules;
-                              final status = isAI
-                                  ? 'AI is thinking...'
-                                  : phase == GamePhase.waitingForRoll
-                                      ? 'Tap your dice to roll'
-                                      : phase == GamePhase.waitingForMove
-                                          ? 'Select a highlighted piece'
-                                          : 'Please wait...';
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Container(
-                                        width: 14,
-                                        height: 14,
-                                        decoration: BoxDecoration(
-                                          color: ColorUtils.getDisplayColor(
-                                              playerColor),
-                                          shape: BoxShape.circle,
-                                          boxShadow: const [
-                                            BoxShadow(
-                                              blurRadius: 8,
-                                              offset: Offset(0, 4),
-                                              color: Color(0x33000000),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(width: 10),
-                                      Expanded(
-                                        child: Text(
-                                          playerName,
-                                          style: GoogleFonts.poppins(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 18,
-                                          ),
-                                        ),
-                                      ),
-                                      Text(
-                                        status,
-                                        style: GoogleFonts.poppins(
-                                          color: Colors.white
-                                              .withValues(alpha: .9),
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  RuleSummaryChips(rules: rules, compact: true),
-                                ],
-                              );
-                            },
-                          ),
-                        ),
-
-                        const SizedBox(height: 12),
-
-                        // Board + dice
-                        Expanded(
-                          child: Selector<GameProvider, Map<String, Object>>(
-                            selector: (_, gp) => {
-                              'players': gp.gameState.players,
-                              'currentColor': gp.currentPlayerColor,
-                              'phase': gp.phase,
-                              'currentDice': gp.currentDiceValue,
-                            },
-                            builder: (context, data, _) {
-                              return _BoardWithDice(
-                                players: data['players'] as List<Player>,
-                                currentPlayerColor:
-                                    data['currentColor'] as PlayerColor,
-                                phase: data['phase'] as GamePhase,
-                                currentDice: data['currentDice'] as int,
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                 ),
-              ),
+              ],
             ),
-          );
-        },
+          ),
+        ),
       ),
     );
   }
+}
 
-  // Board construction moved into Selector inside _BoardWithDice
+class _BoardStage extends StatelessWidget {
+  const _BoardStage({required this.state});
 
-  void _showWinnerDialog(GameProvider gameProvider, PlayerColor winnerColor) {
-    final displayPlayerColor = ColorUtils.getDisplayColor(winnerColor);
-    final winnerMeta = gameProvider.getPlayerMeta(winnerColor);
+  final LudoGameState state;
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(
-            '🎉 Game Over 🎉',
-            textAlign: TextAlign.center,
-            style:
-                GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.w700),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
+  @override
+  Widget build(BuildContext context) {
+    return Center(child: _BoardArena(state: state));
+  }
+}
+
+class _MobileGameLayout extends StatelessWidget {
+  const _MobileGameLayout({required this.state, required this.onRoll});
+
+  final LudoGameState state;
+  final VoidCallback onRoll;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _BoardArena(state: state),
+        const SizedBox(height: 12),
+        _MobileActionDock(state: state, onRoll: onRoll),
+        const SizedBox(height: 12),
+      ],
+    );
+  }
+}
+
+class _BoardArena extends StatelessWidget {
+  const _BoardArena({required this.state});
+
+  final LudoGameState state;
+
+  @override
+  Widget build(BuildContext context) {
+    const badgeHeight = 62.0;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final heightCap = constraints.maxHeight.isFinite
+            ? math.max(260.0, constraints.maxHeight - badgeHeight)
+            : constraints.maxWidth;
+        final boardSize = math
+            .min(constraints.maxWidth, heightCap)
+            .clamp(280.0, 620.0)
+            .toDouble();
+        final badgeWidth = (boardSize * 0.43).clamp(136.0, 178.0).toDouble();
+        final arenaHeight = boardSize + badgeHeight;
+        final boardTop = badgeHeight * 0.56;
+
+        return SizedBox(
+          height: arenaHeight,
+          child: Stack(
+            clipBehavior: Clip.none,
             children: [
-              const SizedBox(height: 20),
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: displayPlayerColor,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 3),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withAlpha((255 * 0.3).round()),
-                      blurRadius: 5,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
+              Positioned(
+                top: boardTop,
+                left: 0,
+                right: 0,
                 child: Center(
-                  child: Text(
-                    winnerMeta.name.substring(0, 1).toUpperCase(),
-                    style: GoogleFonts.poppins(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 28,
-                    ),
+                  child: SizedBox.square(
+                    dimension: boardSize,
+                    child: const LudoBoard(),
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
-              Text(
-                '${winnerMeta.name} has won!',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.poppins(
-                    fontSize: 18, fontWeight: FontWeight.w700),
+              _CornerPlayerBadge(
+                player: _playerForColor(PlayerColor.yellow),
+                isCurrent: _isCurrent(PlayerColor.yellow),
+                width: badgeWidth,
+                alignment: _CornerAlignment.topLeft,
               ),
-              const SizedBox(height: 10),
-              Text('Congratulations!',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.poppins(
-                      fontSize: 14, fontWeight: FontWeight.w500)),
-              const SizedBox(height: 30),
+              _CornerPlayerBadge(
+                player: _playerForColor(PlayerColor.red),
+                isCurrent: _isCurrent(PlayerColor.red),
+                width: badgeWidth,
+                alignment: _CornerAlignment.topRight,
+              ),
+              _CornerPlayerBadge(
+                player: _playerForColor(PlayerColor.blue),
+                isCurrent: _isCurrent(PlayerColor.blue),
+                width: badgeWidth,
+                alignment: _CornerAlignment.bottomLeft,
+              ),
+              _CornerPlayerBadge(
+                player: _playerForColor(PlayerColor.green),
+                isCurrent: _isCurrent(PlayerColor.green),
+                width: badgeWidth,
+                alignment: _CornerAlignment.bottomRight,
+              ),
             ],
           ),
-          actionsAlignment: MainAxisAlignment.center,
-          actions: [
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).pop();
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF3B82F6),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              ),
-              child: const Text('Back to Main Menu'),
-            ),
-            const SizedBox(width: 10),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-
-                final gameProvider =
-                    Provider.of<GameProvider>(context, listen: false);
-                gameProvider
-                    .startNewGame(gameProvider.gameState.players.map((p) {
-                  return Player(
-                      id: p.id,
-                      name: p.name,
-                      type: p.type,
-                      color: p.color,
-                      pieces: p.pieces);
-                }).toList());
-
-                setState(() {
-                  _winnerDialogShown = false;
-                });
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF7A1A),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              ),
-              child: const Text('New Game'),
-            ),
-          ],
         );
       },
     );
   }
+
+  LudoPlayer? _playerForColor(PlayerColor color) {
+    for (final player in state.players) {
+      if (player.color == color) {
+        return player;
+      }
+    }
+    return null;
+  }
+
+  bool _isCurrent(PlayerColor color) {
+    return state.phase != TurnPhase.gameOver &&
+        state.currentPlayer.color == color;
+  }
 }
 
-class _BoardWithDice extends StatelessWidget {
-  const _BoardWithDice({
-    required this.players,
-    required this.currentPlayerColor,
-    required this.phase,
-    required this.currentDice,
+enum _CornerAlignment { topLeft, topRight, bottomLeft, bottomRight }
+
+class _CornerPlayerBadge extends StatelessWidget {
+  const _CornerPlayerBadge({
+    required this.player,
+    required this.isCurrent,
+    required this.width,
+    required this.alignment,
   });
 
-  final List<Player> players;
-  final PlayerColor currentPlayerColor;
-  final GamePhase phase;
-  final int currentDice;
+  final LudoPlayer? player;
+  final bool isCurrent;
+  final double width;
+  final _CornerAlignment alignment;
 
   @override
   Widget build(BuildContext context) {
-    return AspectRatio(
-      aspectRatio: 1,
-      child: Container(
+    final player = this.player;
+    if (player == null) {
+      return const SizedBox.shrink();
+    }
+
+    final color = player.color.paint;
+    final badge = AnimatedScale(
+      duration: const Duration(milliseconds: 180),
+      scale: isCurrent ? 1.04 : 1,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        width: width,
+        padding: const EdgeInsets.all(7),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(22),
-          boxShadow: const [
+          color: Colors.white.withValues(alpha: isCurrent ? 0.97 : 0.88),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isCurrent ? color : Colors.white.withValues(alpha: 0.76),
+            width: isCurrent ? 2 : 1,
+          ),
+          boxShadow: [
             BoxShadow(
-              blurRadius: 10,
-              offset: Offset(0, 6),
-              color: Color(0x1A000000),
-            ),
-            BoxShadow(
-              blurRadius: 6,
-              offset: Offset(0, 2),
-              color: Color(0x14000000),
+              color: color.withValues(alpha: isCurrent ? 0.26 : 0.1),
+              blurRadius: isCurrent ? 18 : 10,
+              offset: const Offset(0, 7),
             ),
           ],
         ),
-        padding: const EdgeInsets.all(10),
-        child: Stack(
+        child: Row(
           children: [
-            RepaintBoundary(
-              child: Selector<GameProvider, Map<String, Object>>(
-                selector: (_, gp) => {
-                  'pieces': gp.allBoardPieces,
-                  'movable': gp.getMovablePieces().toSet(),
-                  'current': gp.currentPlayerColor,
-                },
-                builder: (context, data, _) => BoardWidget(
-                  pieces: data['pieces'] as List<Piece>,
-                  onPieceSelected: context.read<GameProvider>().movePiece,
-                  currentPlayer: data['current'] as PlayerColor,
-                  movablePieces: data['movable'] as Set<Piece>,
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: color, width: 2),
+                image: DecorationImage(
+                  image: AssetImage(player.color.avatarAsset),
+                  fit: BoxFit.cover,
                 ),
               ),
             ),
-            ...players.map((player) {
-              final isCurrent = player.color == currentPlayerColor;
-              final canRoll = isCurrent &&
-                  phase == GamePhase.waitingForRoll &&
-                  !player.isAI;
-              return _PlayerDiceIndicator(
-                player: player,
-                isCurrentPlayer: isCurrent,
-                isEnabled: canRoll,
-                currentDice: currentDice,
-              );
-            }),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    player.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w900,
+                          height: 1.05,
+                        ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${player.color.colorLabel}  ${player.finishedCount}/4',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: const Color(0xFF64748B),
+                          height: 1.05,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    return switch (alignment) {
+      _CornerAlignment.topLeft => Positioned(top: 0, left: 0, child: badge),
+      _CornerAlignment.topRight => Positioned(top: 0, right: 0, child: badge),
+      _CornerAlignment.bottomLeft =>
+        Positioned(bottom: 0, left: 0, child: badge),
+      _CornerAlignment.bottomRight =>
+        Positioned(bottom: 0, right: 0, child: badge),
+    };
+  }
+}
+
+class _MobileActionDock extends StatelessWidget {
+  const _MobileActionDock({required this.state, required this.onRoll});
+
+  final LudoGameState state;
+  final VoidCallback onRoll;
+
+  @override
+  Widget build(BuildContext context) {
+    final currentColor = state.winner ?? state.currentPlayer.color;
+    final color = currentColor.paint;
+    final canRoll = state.phase == TurnPhase.waitingForRoll;
+    final title = state.phase == TurnPhase.gameOver
+        ? '${currentColor.label} gewinnt'
+        : '${state.currentPlayer.name} ist dran';
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.93),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.14),
+            blurRadius: 22,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: color, width: 2.5),
+                    image: DecorationImage(
+                      image: AssetImage(currentColor.avatarAsset),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w900,
+                                ),
+                      ),
+                      Text(
+                        state.turnMessage,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: const Color(0xFF64748B),
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                SizedBox(
+                  width: 58,
+                  height: 58,
+                  child: FittedBox(child: DiceFace(value: state.diceValue)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 48,
+              child: FilledButton.icon(
+                onPressed: canRoll ? onRoll : null,
+                icon: const Icon(Icons.casino_outlined),
+                label: Text(
+                  canRoll
+                      ? '${state.currentPlayer.name} würfelt'
+                      : 'Figur auswählen',
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -402,136 +395,217 @@ class _BoardWithDice extends StatelessWidget {
   }
 }
 
-class _PlayerDiceIndicator extends StatelessWidget {
-  const _PlayerDiceIndicator({
-    required this.player,
-    required this.isCurrentPlayer,
-    required this.isEnabled,
-    required this.currentDice,
+class _Header extends StatelessWidget {
+  const _Header({
+    required this.playerCount,
+    required this.onPlayerCountChanged,
+    required this.onRestart,
   });
 
-  final Player player;
-  final bool isCurrentPlayer;
-  final bool isEnabled;
-  final int currentDice;
+  final int playerCount;
+  final ValueChanged<int> onPlayerCountChanged;
+  final VoidCallback onRestart;
 
   @override
   Widget build(BuildContext context) {
-    final position = _dicePositionFor(player.color);
-    return Positioned(
-      left: position['left'],
-      top: position['top'],
-      right: position['right'],
-      bottom: position['bottom'],
-      child: RepaintBoundary(
-        child: SizedBox(
-          width: 70,
-          height: 100,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _NameChip(
-                label: player.name.length > 10
-                    ? player.name.substring(0, 10)
-                    : player.name,
-                color: ColorUtils.getDisplayColor(player.color),
-                highlighted: isCurrentPlayer,
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      alignment: WrapAlignment.spaceBetween,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.asset(
+                'assets/branding/ludo_club_mark_v2.png',
+                width: 58,
+                height: 58,
+                fit: BoxFit.cover,
               ),
-              const SizedBox(height: 4),
-              DiceWidget(
-                key: ValueKey('dice-${player.color.name}'),
-                size: 50,
-                isEnabled: isEnabled,
-                currentDiceValue:
-                    isCurrentPlayer && currentDice > 0 ? currentDice : null,
-                onRoll: isEnabled
-                    ? () => context.read<GameProvider>().rollDice()
-                    : null,
+            ),
+            const SizedBox(width: 14),
+            ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: 220),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Ludo Club',
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0,
+                        ),
+                  ),
+                  Text(
+                    'Schlankes lokales Brettspiel',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: const Color(0xFF64748B),
+                        ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-      ),
-    );
-  }
-
-  static Map<String, double?> _dicePositionFor(PlayerColor color) {
-    switch (color) {
-      case PlayerColor.red:
-        return {'left': 10.0, 'top': null, 'right': null, 'bottom': 10.0};
-      case PlayerColor.green:
-        return {'left': 10.0, 'top': 10.0, 'right': null, 'bottom': null};
-      case PlayerColor.blue:
-        return {'left': null, 'top': 10.0, 'right': 10.0, 'bottom': null};
-      case PlayerColor.yellow:
-        return {'left': null, 'top': null, 'right': 10.0, 'bottom': 10.0};
-    }
-  }
-}
-
-class _GlassCard extends StatelessWidget {
-  const _GlassCard({required this.child, this.padding});
-  final Widget child;
-  final EdgeInsetsGeometry? padding;
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(22),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-        child: Container(
-          padding: padding ?? const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.18),
-            borderRadius: BorderRadius.circular(22),
-            boxShadow: const [
-              BoxShadow(
-                  blurRadius: 8,
-                  offset: Offset(0, 4),
-                  color: Color(0x1A000000)),
-              BoxShadow(
-                  blurRadius: 6,
-                  offset: Offset(0, 2),
-                  color: Color(0x1A000000)),
-            ],
-          ),
-          child: child,
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            SegmentedButton<int>(
+              segments: const [
+                ButtonSegment(value: 2, label: Text('2')),
+                ButtonSegment(value: 3, label: Text('3')),
+                ButtonSegment(value: 4, label: Text('4')),
+              ],
+              selected: {playerCount},
+              onSelectionChanged: (selection) =>
+                  onPlayerCountChanged(selection.first),
+            ),
+            OutlinedButton.icon(
+              onPressed: onRestart,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Neu starten'),
+            ),
+          ],
         ),
-      ),
+      ],
     );
   }
 }
 
-class _NameChip extends StatelessWidget {
-  const _NameChip(
-      {required this.label, required this.color, this.highlighted = false});
-  final String label;
-  final Color color;
-  final bool highlighted;
+class _SidePanel extends StatelessWidget {
+  const _SidePanel({required this.state, required this.onRoll});
+
+  final LudoGameState state;
+  final VoidCallback onRoll;
 
   @override
   Widget build(BuildContext context) {
-    final bg = highlighted ? color : color.withValues(alpha: .85);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _StatusCard(state: state),
+        const SizedBox(height: 12),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: DicePanel(state: state, onRoll: onRoll),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: PlayerStrip(state: state),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StatusCard extends StatelessWidget {
+  const _StatusCard({required this.state});
+
+  final LudoGameState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final currentColor = state.winner ?? state.currentPlayer.color;
+    final color = currentColor.paint;
+    final title = state.phase == TurnPhase.gameOver
+        ? '${currentColor.label} gewinnt'
+        : '${state.currentPlayer.name} ist dran';
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: color, width: 3),
+                    image: DecorationImage(
+                      image: AssetImage(currentColor.avatarAsset),
+                      fit: BoxFit.cover,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: color.withValues(alpha: 0.32),
+                        blurRadius: 16,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Text(
+              state.turnMessage,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: const Color(0xFF475569)),
+            ),
+            if (state.phase == TurnPhase.waitingForMove) ...[
+              const SizedBox(height: 14),
+              _MoveHint(state: state),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MoveHint extends StatelessWidget {
+  const _MoveHint({required this.state});
+
+  final LudoGameState state;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
       decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(12),
-        border: highlighted ? Border.all(color: Colors.white, width: 2) : null,
-        boxShadow: const [
-          BoxShadow(
-              blurRadius: 6, offset: Offset(0, 3), color: Color(0x33000000)),
-        ],
+        color: const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(8),
       ),
-      child: Text(
-        label,
-        style: GoogleFonts.poppins(
-          color: Colors.white,
-          fontSize: 10,
-          fontWeight: highlighted ? FontWeight.w700 : FontWeight.w500,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Icon(
+              Icons.touch_app_outlined,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Eine markierte Figur antippen.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ),
+          ],
         ),
-        textAlign: TextAlign.center,
       ),
     );
   }

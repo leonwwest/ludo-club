@@ -1,72 +1,62 @@
 import 'package:flutter/material.dart';
+import 'package:ludo_club/providers/game_controller.dart';
+import 'package:ludo_club/ui/game_screen.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:ludo_club/providers/game_provider.dart';
-// Temporarily commented out due to Firebase dependency issues
-// import 'package:ludo_club/services/database_initialization_service.dart';
-import 'package:ludo_club/services/audio_service.dart';
-import 'package:ludo_club/services/ai_service.dart';
-import 'package:ludo_club/ui/landing_page.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  // Allow runtime font fetching; macOS entitlements enable outbound network access.
-  GoogleFonts.config.allowRuntimeFetching = true;
-
-  // Temporarily disabled database initialization due to Firebase dependency issues
-  // This allows the core game to run while Firebase issues are resolved
-  // final dbInitService = DatabaseInitializationService();
-  // final databaseInitialized = await dbInitService.initializeDatabase();
-  // Database initialization temporarily disabled - using in-memory game state only.
-
-  // Initialize shared services
-  final AudioServiceBase audioService = AudioService();
-  await audioService.init();
-  final AIService aiService = AIService();
-
-  runApp(MyApp(audioService: audioService, aiService: aiService));
+void main() {
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => GameController(),
+      child: const LudoClubApp(),
+    ),
+  );
 }
 
-class MyApp extends StatefulWidget {
-  final AudioServiceBase audioService;
-  final AIService aiService;
-
-  const MyApp({super.key, required this.audioService, required this.aiService});
-
-  @override
-  State<MyApp> createState() => _MyAppState();
-}
-
-class _MyAppState extends State<MyApp> {
-  @override
-  void dispose() {
-    widget.audioService.dispose();
-    super.dispose();
-  }
+class LudoClubApp extends StatelessWidget {
+  const LudoClubApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        Provider<AudioServiceBase>.value(value: widget.audioService),
-        Provider<AIService>.value(value: widget.aiService),
-        // Inject the shared AudioService instance directly into GameProvider
-        ChangeNotifierProvider(
-          create: (_) => GameProvider(
-            audioService: widget.audioService,
-            aiService: widget.aiService,
+    const ink = Color(0xFF111827);
+    const surface = Color(0xFFF6F8FB);
+    const teal = Color(0xFF0E8F83);
+
+    return MaterialApp(
+      title: 'Ludo Club',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        useMaterial3: true,
+        scaffoldBackgroundColor: surface,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: teal,
+          surface: Colors.white,
+        ).copyWith(
+          primary: teal,
+          secondary: const Color(0xFFE74C4C),
+          tertiary: const Color(0xFFE3A72F),
+          onSurface: ink,
+        ),
+        textTheme: Typography.blackCupertino.apply(
+          bodyColor: ink,
+          displayColor: ink,
+        ),
+        cardTheme: const CardThemeData(
+          elevation: 0,
+          margin: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(8)),
+            side: BorderSide(color: Color(0xFFE2E8F0)),
           ),
         ),
-      ],
-      child: MaterialApp(
-        title: 'Ludo Club',
-        theme: ThemeData(
-          primarySwatch: Colors.blue,
-          visualDensity: VisualDensity.adaptivePlatformDensity,
+        segmentedButtonTheme: SegmentedButtonThemeData(
+          style: ButtonStyle(
+            shape: WidgetStateProperty.all(
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+          ),
         ),
-        home: const LudoClubLandingPage(),
-        debugShowCheckedModeBanner: false,
       ),
+      home: const GameScreen(),
     );
   }
 }
