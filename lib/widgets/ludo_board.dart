@@ -26,6 +26,11 @@ class LudoBoard extends StatelessWidget {
               state.players.expand((player) => player.pieces).toList();
           final stackCounts = _stackCountsFor(pieces);
           final stackIndexes = <String, int>{};
+          final moveTargets = {
+            for (final piece in pieces)
+              if (controller.legalTargetStepsFor(piece) case final int target)
+                '${piece.color.name}:${piece.id}': target,
+          };
 
           return DecoratedBox(
             decoration: BoxDecoration(
@@ -47,6 +52,17 @@ class LudoBoard extends StatelessWidget {
                   const Positioned.fill(
                     child: CustomPaint(painter: _BoardPainter()),
                   ),
+                  for (final piece in pieces)
+                    if (moveTargets['${piece.color.name}:${piece.id}']
+                        case final int target)
+                      _TargetHalo(
+                        offset: _BoardGeometry.positionFor(
+                          piece.copyWith(steps: target),
+                          size,
+                        ),
+                        size: pieceSize,
+                        color: piece.color.paint,
+                      ),
                   for (final piece in pieces)
                     _buildPiece(
                       controller,
@@ -86,6 +102,7 @@ class LudoBoard extends StatelessWidget {
         : _BoardGeometry.stackJitter(stackIndex, stackCount, pieceSize);
     final offset = baseOffset + jitter;
     final isMovable = controller.isMovable(piece);
+    final moveHint = controller.moveHintFor(piece);
 
     return AnimatedPositioned(
       duration: const Duration(milliseconds: 260),
@@ -97,6 +114,7 @@ class LudoBoard extends StatelessWidget {
       child: _PieceChip(
         piece: piece,
         isMovable: isMovable,
+        moveHint: moveHint,
         onTap: isMovable ? () => controller.movePiece(piece) : null,
       ),
     );
@@ -125,23 +143,60 @@ class LudoBoard extends StatelessWidget {
   }
 }
 
+class _TargetHalo extends StatelessWidget {
+  const _TargetHalo({
+    required this.offset,
+    required this.size,
+    required this.color,
+  });
+
+  final Offset offset;
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      left: offset.dx - size * 0.45,
+      top: offset.dy - size * 0.45,
+      width: size * 0.9,
+      height: size * 0.9,
+      child: IgnorePointer(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: color.withValues(alpha: 0.14),
+            border: Border.all(color: color, width: 2),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _PieceChip extends StatelessWidget {
   const _PieceChip({
     required this.piece,
     required this.isMovable,
+    required this.moveHint,
     required this.onTap,
   });
 
   final LudoPiece piece;
   final bool isMovable;
+  final String? moveHint;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final color = piece.color.paint;
-    return Semantics(
+    final semanticLabel = moveHint == null
+        ? '${piece.color.label} Figur ${piece.id + 1}'
+        : '${piece.color.label}: $moveHint';
+    final chip = Semantics(
       button: isMovable,
-      label: '${piece.color.label} Figur ${piece.id + 1}',
+      enabled: isMovable,
+      label: semanticLabel,
       child: AnimatedScale(
         duration: const Duration(milliseconds: 160),
         scale: isMovable ? 1.14 : 1,
@@ -192,6 +247,10 @@ class _PieceChip extends StatelessWidget {
         ),
       ),
     );
+    if (moveHint == null) {
+      return chip;
+    }
+    return Tooltip(message: moveHint!, child: chip);
   }
 }
 

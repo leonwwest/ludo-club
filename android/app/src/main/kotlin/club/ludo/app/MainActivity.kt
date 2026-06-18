@@ -1,4 +1,4 @@
-package com.example.ludo_club
+package club.ludo.app
 
 import io.flutter.embedding.android.FlutterActivity
 

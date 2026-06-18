@@ -14,6 +14,13 @@ void main() {
 
     expect(find.text('Ludo Club'), findsOneWidget);
     expect(find.text('Neu starten'), findsOneWidget);
+    expect(find.text('Zurück'), findsOneWidget);
     expect(find.text('Schlankes lokales Brettspiel'), findsOneWidget);
+    expect(find.text('Spieler-Setup'), findsOneWidget);
+    expect(find.text('Regeln'), findsOneWidget);
+    expect(find.text('Zugprotokoll'), findsOneWidget);
+    expect(find.text('3 Startwürfe'), findsOneWidget);
+    expect(find.text('Dritte 6 beendet den Zug'), findsOneWidget);
+    expect(find.text('Schlagzwang'), findsOneWidget);
   });
 }

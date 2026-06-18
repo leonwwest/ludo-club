@@ -97,6 +97,173 @@ void main() {
       expect(state.phase, TurnPhase.gameOver);
       expect(state.winner, PlayerColor.red);
     });
+
+    test('allows three opening rolls when that rule is enabled', () {
+      var state = LudoGameState.newGame(
+        playerCount: 2,
+        rules: const RuleOptions(openRollRule: OpenRollRule.threeRolls),
+      );
+
+      state = LudoRules.roll(state, 2);
+
+      expect(state.currentPlayer.color, PlayerColor.red);
+      expect(state.phase, TurnPhase.waitingForRoll);
+      expect(state.pendingOpenRolls, 2);
+      expect(state.moveLog.first.message, contains('kein Zug'));
+    });
+
+    test('can require a six to leave base before moving another piece', () {
+      var state = LudoGameState.newGame(
+        playerCount: 2,
+        rules: const RuleOptions(mustLeaveBaseOnSix: true),
+      );
+      final red = state.players.first;
+      state = state.copyWith(
+        phase: TurnPhase.waitingForMove,
+        diceValue: 6,
+        players: [
+          red.copyWith(
+            pieces: [
+              red.pieces.first.copyWith(steps: 5),
+              ...red.pieces.skip(1),
+            ],
+          ),
+          state.players.last,
+        ],
+      );
+
+      final movable = LudoRules.movablePieces(state);
+
+      expect(movable.every((piece) => piece.isInBase), isTrue);
+      expect(movable, hasLength(3));
+    });
+
+    test('can block landing on own occupied fields', () {
+      var state = LudoGameState.newGame(
+        playerCount: 2,
+        rules: const RuleOptions(blockOwnFields: true),
+      );
+      final red = state.players.first;
+      state = state.copyWith(
+        phase: TurnPhase.waitingForMove,
+        diceValue: 3,
+        players: [
+          red.copyWith(
+            pieces: [
+              red.pieces[0].copyWith(steps: 4),
+              red.pieces[1].copyWith(steps: 7),
+              ...red.pieces.skip(2),
+            ],
+          ),
+          state.players.last,
+        ],
+      );
+
+      expect(
+          LudoRules.canMove(state, state.currentPlayer.pieces.first), isFalse);
+    });
+
+    test('can grant an extra turn when a piece reaches finish', () {
+      var state = LudoGameState.newGame(
+        playerCount: 2,
+        rules: const RuleOptions(extraTurnOnFinish: true),
+      );
+      final red = state.players.first;
+      state = state.copyWith(
+        phase: TurnPhase.waitingForMove,
+        diceValue: 1,
+        players: [
+          red.copyWith(
+            pieces: [
+              red.pieces.first.copyWith(steps: 56),
+              ...red.pieces.skip(1),
+            ],
+          ),
+          state.players.last,
+        ],
+      );
+
+      state = LudoRules.movePiece(state, state.currentPlayer.pieces.first);
+
+      expect(state.currentPlayer.color, PlayerColor.red);
+      expect(state.phase, TurnPhase.waitingForRoll);
+    });
+
+    test('can end the turn after the third consecutive six', () {
+      var state = LudoGameState.newGame(
+        playerCount: 2,
+        rules: const RuleOptions(threeSixesEndTurn: true),
+      );
+      final red = state.players.first;
+      state = state.copyWith(
+        consecutiveSixes: 2,
+        players: [
+          red.copyWith(
+            pieces: [
+              red.pieces.first.copyWith(steps: 0),
+              ...red.pieces.skip(1),
+            ],
+          ),
+          state.players.last,
+        ],
+      );
+
+      state = LudoRules.roll(state, 6);
+
+      expect(state.currentPlayer.color, PlayerColor.yellow);
+      expect(state.phase, TurnPhase.waitingForRoll);
+      expect(state.consecutiveSixes, 0);
+      expect(state.moveLog.first.message, contains('dritte 6'));
+    });
+
+    test('can force capturing moves when a capture is available', () {
+      var state = LudoGameState.newGame(
+        playerCount: 2,
+        rules: const RuleOptions(mustCapture: true),
+      );
+      final red = state.players.first;
+      final yellow = state.players.last;
+      state = state.copyWith(
+        phase: TurnPhase.waitingForMove,
+        diceValue: 4,
+        players: [
+          red.copyWith(
+            pieces: [
+              red.pieces[0].copyWith(steps: 0),
+              red.pieces[1].copyWith(steps: 5),
+              ...red.pieces.skip(2),
+            ],
+          ),
+          yellow.copyWith(
+            pieces: [
+              yellow.pieces.first.copyWith(steps: 17),
+              ...yellow.pieces.skip(1),
+            ],
+          ),
+        ],
+      );
+
+      expect(LudoRules.canMove(state, state.currentPlayer.pieces[0]), isTrue);
+      expect(LudoRules.canMove(state, state.currentPlayer.pieces[1]), isFalse);
+      expect(
+        LudoRules.moveHintFor(state, state.currentPlayer.pieces[0]),
+        contains('schlägt'),
+      );
+    });
+
+    test('can disable bonus turns after captures', () {
+      var state = _stateWithPieces(
+        redSteps: 0,
+        yellowSteps: 17,
+        diceValue: 4,
+        rules: const RuleOptions(extraTurnOnCapture: false),
+      );
+
+      state = LudoRules.movePiece(state, state.currentPlayer.pieces.first);
+
+      expect(state.moveSummary?.didCapture, isTrue);
+      expect(state.currentPlayer.color, PlayerColor.yellow);
+    });
   });
 }
 
@@ -104,8 +271,9 @@ LudoGameState _stateWithPieces({
   required int redSteps,
   required int yellowSteps,
   required int diceValue,
+  RuleOptions rules = const RuleOptions(),
 }) {
-  final initial = LudoGameState.newGame(playerCount: 2);
+  final initial = LudoGameState.newGame(playerCount: 2, rules: rules);
   final red = initial.players.firstWhere(
     (player) => player.color == PlayerColor.red,
   );

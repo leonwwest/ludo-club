@@ -1,11 +1,11 @@
 {
-    "name": "ludo_club",
-    "short_name": "ludo_club",
+    "name": "Ludo Club",
+    "short_name": "Ludo Club",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#F6F8FB",
+    "theme_color": "#0E8F83",
+    "description": "A local Flutter Ludo board game with custom rules and quick resume.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

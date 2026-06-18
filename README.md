@@ -2,12 +2,15 @@
 
 A rebuilt Flutter Ludo app with a lean codebase, Material 3 UI, pure Dart game
 rules, and a custom-painted board. The app no longer depends on image, SVG,
-audio, database, save/load, AI, or statistics layers.
+audio, database, AI, or statistics layers.
 
 ## What is included
 
 - Local 2-4 player Ludo match
 - Exact finish, safe fields, captures, extra turn on six or capture
+- Optional rule variants for opening rolls, mandatory base exits, own-field blocks, capture bonuses, finish bonuses, third-six penalties, and mandatory captures
+- Editable local player names, legal-move target explanations, undo, and a compact move log
+- Automatic local save/resume via shared preferences with an explicit clear-save action
 - Responsive 15x15 Ludo board rendered with Flutter canvas and widgets
 - Generated brand mark, native/web app icons, avatars, dice art, and background texture
 - Single controller based on `ChangeNotifier`
@@ -29,7 +32,8 @@ assets/
 ├── avatars/        # Generated fictional player portraits
 ├── backgrounds/    # Generated in-app background art
 ├── branding/       # Generated brand mark used by the UI and web icons
-└── dice/           # Generated roll-dice HUD artwork
+├── dice/           # Generated roll-dice HUD artwork
+└── pins/           # Generated player pin artwork
 
 test/
 ├── logic/

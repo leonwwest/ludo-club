@@ -3,10 +3,13 @@ import 'package:ludo_club/providers/game_controller.dart';
 import 'package:ludo_club/ui/game_screen.dart';
 import 'package:provider/provider.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final savedState = await GameController.loadSavedState();
+
   runApp(
     ChangeNotifierProvider(
-      create: (_) => GameController(),
+      create: (_) => GameController(initialState: savedState),
       child: const LudoClubApp(),
     ),
   );

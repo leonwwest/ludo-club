@@ -36,9 +36,12 @@ class GameScreen extends StatelessWidget {
               children: [
                 _Header(
                   playerCount: controller.playerCount,
+                  canUndo: controller.canUndo,
                   onPlayerCountChanged: (count) =>
                       controller.newGame(playerCount: count),
                   onRestart: () => controller.newGame(),
+                  onUndo: controller.undoLastAction,
+                  onClearSave: controller.clearSavedGame,
                 ),
                 const SizedBox(height: 16),
                 Expanded(
@@ -54,6 +57,9 @@ class GameScreen extends StatelessWidget {
                                 child: _SidePanel(
                                   state: state,
                                   onRoll: controller.rollDice,
+                                  onPlayerNameChanged:
+                                      controller.updatePlayerName,
+                                  onRulesChanged: controller.updateRules,
                                 ),
                               ),
                             ),
@@ -65,6 +71,8 @@ class GameScreen extends StatelessWidget {
                             _MobileGameLayout(
                               state: state,
                               onRoll: controller.rollDice,
+                              onPlayerNameChanged: controller.updatePlayerName,
+                              onRulesChanged: controller.updateRules,
                             ),
                           ],
                         ),
@@ -90,10 +98,17 @@ class _BoardStage extends StatelessWidget {
 }
 
 class _MobileGameLayout extends StatelessWidget {
-  const _MobileGameLayout({required this.state, required this.onRoll});
+  const _MobileGameLayout({
+    required this.state,
+    required this.onRoll,
+    required this.onPlayerNameChanged,
+    required this.onRulesChanged,
+  });
 
   final LudoGameState state;
   final VoidCallback onRoll;
+  final void Function(PlayerColor color, String name) onPlayerNameChanged;
+  final ValueChanged<RuleOptions> onRulesChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -103,6 +118,12 @@ class _MobileGameLayout extends StatelessWidget {
         _BoardArena(state: state),
         const SizedBox(height: 12),
         _MobileActionDock(state: state, onRoll: onRoll),
+        const SizedBox(height: 12),
+        _SetupCard(state: state, onPlayerNameChanged: onPlayerNameChanged),
+        const SizedBox(height: 12),
+        _RuleOptionsCard(state: state, onRulesChanged: onRulesChanged),
+        const SizedBox(height: 12),
+        _MoveLogCard(state: state),
         const SizedBox(height: 12),
       ],
     );
@@ -398,13 +419,19 @@ class _MobileActionDock extends StatelessWidget {
 class _Header extends StatelessWidget {
   const _Header({
     required this.playerCount,
+    required this.canUndo,
     required this.onPlayerCountChanged,
     required this.onRestart,
+    required this.onUndo,
+    required this.onClearSave,
   });
 
   final int playerCount;
+  final bool canUndo;
   final ValueChanged<int> onPlayerCountChanged;
   final VoidCallback onRestart;
+  final VoidCallback onUndo;
+  final VoidCallback onClearSave;
 
   @override
   Widget build(BuildContext context) {
@@ -466,9 +493,19 @@ class _Header extends StatelessWidget {
                   onPlayerCountChanged(selection.first),
             ),
             OutlinedButton.icon(
+              onPressed: canUndo ? onUndo : null,
+              icon: const Icon(Icons.undo),
+              label: const Text('Zurück'),
+            ),
+            OutlinedButton.icon(
               onPressed: onRestart,
               icon: const Icon(Icons.refresh),
               label: const Text('Neu starten'),
+            ),
+            IconButton.outlined(
+              tooltip: 'Speicherstand löschen',
+              onPressed: onClearSave,
+              icon: const Icon(Icons.delete_outline),
             ),
           ],
         ),
@@ -478,10 +515,17 @@ class _Header extends StatelessWidget {
 }
 
 class _SidePanel extends StatelessWidget {
-  const _SidePanel({required this.state, required this.onRoll});
+  const _SidePanel({
+    required this.state,
+    required this.onRoll,
+    required this.onPlayerNameChanged,
+    required this.onRulesChanged,
+  });
 
   final LudoGameState state;
   final VoidCallback onRoll;
+  final void Function(PlayerColor color, String name) onPlayerNameChanged;
+  final ValueChanged<RuleOptions> onRulesChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -503,6 +547,12 @@ class _SidePanel extends StatelessWidget {
             child: PlayerStrip(state: state),
           ),
         ),
+        const SizedBox(height: 12),
+        _SetupCard(state: state, onPlayerNameChanged: onPlayerNameChanged),
+        const SizedBox(height: 12),
+        _RuleOptionsCard(state: state, onRulesChanged: onRulesChanged),
+        const SizedBox(height: 12),
+        _MoveLogCard(state: state),
       ],
     );
   }
@@ -570,6 +620,250 @@ class _StatusCard extends StatelessWidget {
               const SizedBox(height: 14),
               _MoveHint(state: state),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SetupCard extends StatelessWidget {
+  const _SetupCard({
+    required this.state,
+    required this.onPlayerNameChanged,
+  });
+
+  final LudoGameState state;
+  final void Function(PlayerColor color, String name) onPlayerNameChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Spieler-Setup',
+                style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 12),
+            for (final player in state.players) ...[
+              _PlayerNameRow(
+                player: player,
+                onSubmitted: (name) => onPlayerNameChanged(player.color, name),
+              ),
+              const SizedBox(height: 10),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PlayerNameRow extends StatefulWidget {
+  const _PlayerNameRow({required this.player, required this.onSubmitted});
+
+  final LudoPlayer player;
+  final ValueChanged<String> onSubmitted;
+
+  @override
+  State<_PlayerNameRow> createState() => _PlayerNameRowState();
+}
+
+class _PlayerNameRowState extends State<_PlayerNameRow> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.player.name);
+  }
+
+  @override
+  void didUpdateWidget(covariant _PlayerNameRow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.player.name != widget.player.name &&
+        _controller.text != widget.player.name) {
+      _controller.text = widget.player.name;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = widget.player.color.paint;
+    return Row(
+      children: [
+        Container(
+          width: 30,
+          height: 30,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: color, width: 2),
+            image: DecorationImage(
+              image: AssetImage(widget.player.color.avatarAsset),
+              fit: BoxFit.cover,
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: TextField(
+            controller: _controller,
+            textInputAction: TextInputAction.done,
+            decoration: InputDecoration(
+              isDense: true,
+              labelText: widget.player.color.colorLabel,
+              border: const OutlineInputBorder(),
+            ),
+            onSubmitted: widget.onSubmitted,
+            onEditingComplete: () => widget.onSubmitted(_controller.text),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RuleOptionsCard extends StatelessWidget {
+  const _RuleOptionsCard({
+    required this.state,
+    required this.onRulesChanged,
+  });
+
+  final LudoGameState state;
+  final ValueChanged<RuleOptions> onRulesChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final rules = state.rules;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Regeln', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 12),
+            SegmentedButton<OpenRollRule>(
+              segments: const [
+                ButtonSegment(
+                  value: OpenRollRule.oneRoll,
+                  label: Text('1 Startwurf'),
+                ),
+                ButtonSegment(
+                  value: OpenRollRule.threeRolls,
+                  label: Text('3 Startwürfe'),
+                ),
+              ],
+              selected: {rules.openRollRule},
+              onSelectionChanged: (selection) {
+                onRulesChanged(rules.copyWith(openRollRule: selection.first));
+              },
+            ),
+            const SizedBox(height: 8),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Bei 6 aus dem Haus ziehen'),
+              value: rules.mustLeaveBaseOnSix,
+              onChanged: (value) =>
+                  onRulesChanged(rules.copyWith(mustLeaveBaseOnSix: value)),
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Eigene Felder blockieren'),
+              value: rules.blockOwnFields,
+              onChanged: (value) =>
+                  onRulesChanged(rules.copyWith(blockOwnFields: value)),
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Bonuswurf beim Ziel'),
+              value: rules.extraTurnOnFinish,
+              onChanged: (value) =>
+                  onRulesChanged(rules.copyWith(extraTurnOnFinish: value)),
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Bonuswurf nach Schlag'),
+              value: rules.extraTurnOnCapture,
+              onChanged: (value) =>
+                  onRulesChanged(rules.copyWith(extraTurnOnCapture: value)),
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Dritte 6 beendet den Zug'),
+              value: rules.threeSixesEndTurn,
+              onChanged: (value) =>
+                  onRulesChanged(rules.copyWith(threeSixesEndTurn: value)),
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Schlagzwang'),
+              value: rules.mustCapture,
+              onChanged: (value) =>
+                  onRulesChanged(rules.copyWith(mustCapture: value)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MoveLogCard extends StatelessWidget {
+  const _MoveLogCard({required this.state});
+
+  final LudoGameState state;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Zugprotokoll',
+                style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 12),
+            if (state.moveLog.isEmpty)
+              Text(
+                'Noch keine Züge.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: const Color(0xFF64748B),
+                    ),
+              )
+            else
+              for (final entry in state.moveLog) ...[
+                Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: entry.color.paint,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        entry.message,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+              ],
           ],
         ),
       ),
