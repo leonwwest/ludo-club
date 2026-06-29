@@ -264,6 +264,81 @@ void main() {
       expect(state.moveSummary?.didCapture, isTrue);
       expect(state.currentPlayer.color, PlayerColor.yellow);
     });
+
+    test('ignores must-capture when the only capture lands on a safe field',
+        () {
+      final initial = LudoGameState.newGame(
+        playerCount: 2,
+        rules: const RuleOptions(mustCapture: true),
+      );
+      final red = initial.players.first;
+      final yellow = initial.players.last;
+      final state = initial.copyWith(
+        phase: TurnPhase.waitingForMove,
+        diceValue: 3,
+        players: [
+          red.copyWith(
+            pieces: [
+              red.pieces[0].copyWith(steps: 5),
+              red.pieces[1].copyWith(steps: 10),
+              ...red.pieces.skip(2),
+            ],
+          ),
+          yellow.copyWith(
+            pieces: [
+              yellow.pieces.first.copyWith(steps: 21),
+              ...yellow.pieces.skip(1),
+            ],
+          ),
+        ],
+      );
+
+      expect(LudoRules.globalIndexFor(PlayerColor.red, 8), 21);
+      expect(LudoRules.safeFields, contains(21));
+      expect(LudoRules.canMove(state, state.currentPlayer.pieces[0]), isTrue);
+      expect(LudoRules.canMove(state, state.currentPlayer.pieces[1]), isTrue);
+    });
+
+    test('does not move a piece that would overshoot the finish', () {
+      final initial = LudoGameState.newGame(playerCount: 2);
+      final red = initial.players.first;
+      final state = initial.copyWith(
+        phase: TurnPhase.waitingForMove,
+        diceValue: 2,
+        players: [
+          red.copyWith(
+            pieces: [
+              red.pieces.first.copyWith(steps: LudoRules.finishStep),
+              ...red.pieces.skip(1),
+            ],
+          ),
+          initial.players.last,
+        ],
+      );
+
+      expect(LudoRules.movablePieces(state), isEmpty);
+      expect(
+        LudoRules.movePiece(state, state.currentPlayer.pieces.first),
+        same(state),
+      );
+    });
+
+    test('keeps only the latest eight move log entries', () {
+      var state = LudoGameState.newGame(playerCount: 2).copyWith(
+        moveLog: [
+          for (var i = 0; i < 8; i++)
+            MoveLogEntry(message: 'old $i', color: PlayerColor.red),
+        ],
+        phase: TurnPhase.waitingForMove,
+        diceValue: 6,
+      );
+
+      state = LudoRules.movePiece(state, state.currentPlayer.pieces.first);
+
+      expect(state.moveLog, hasLength(8));
+      expect(state.moveLog.first.message, contains('Figur 1'));
+      expect(state.moveLog.last.message, 'old 6');
+    });
   });
 }
 
