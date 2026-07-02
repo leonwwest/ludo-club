@@ -31,24 +31,6 @@ extension PlayerColorMetadata on PlayerColor {
     };
   }
 
-  String get avatarAsset {
-    return switch (this) {
-      PlayerColor.red => 'assets/avatars/sisiliya_v2.png',
-      PlayerColor.green => 'assets/avatars/flora_v2.png',
-      PlayerColor.yellow => 'assets/avatars/abdul_v2.png',
-      PlayerColor.blue => 'assets/avatars/kiran_v2.png',
-    };
-  }
-
-  String get pinAsset {
-    return switch (this) {
-      PlayerColor.red => 'assets/pins/pin_red_v2.png',
-      PlayerColor.green => 'assets/pins/pin_green_v2.png',
-      PlayerColor.yellow => 'assets/pins/pin_yellow_v2.png',
-      PlayerColor.blue => 'assets/pins/pin_blue_v2.png',
-    };
-  }
-
   String get colorLabel {
     return switch (this) {
       PlayerColor.red => 'Rot',

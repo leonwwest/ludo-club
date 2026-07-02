@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:ludo_club/constants/app_colors.dart';
 import 'package:ludo_club/constants/app_dimensions.dart';
 import 'package:ludo_club/constants/app_durations.dart';
+import 'package:ludo_club/constants/assets.dart';
 import 'package:ludo_club/logic/ludo_rules.dart';
 import 'package:ludo_club/models/ludo_models.dart';
 import 'package:ludo_club/theme/player_palette.dart';
@@ -63,7 +64,7 @@ class _PlayerProgressTile extends StatelessWidget {
                   shape: BoxShape.circle,
                   border: Border.all(color: color, width: 2),
                   image: DecorationImage(
-                    image: AssetImage(player.color.avatarAsset),
+                    image: AssetImage(AssetMapper.avatarFor(player.color)),
                     fit: BoxFit.cover,
                   ),
                 ),
