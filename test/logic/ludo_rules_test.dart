@@ -160,7 +160,9 @@ void main() {
       );
 
       expect(
-          LudoRules.canMove(state, state.currentPlayer.pieces.first), isFalse);
+        LudoRules.canMove(state, state.currentPlayer.pieces.first),
+        isFalse,
+      );
     });
 
     test('can grant an extra turn when a piece reaches finish', () {

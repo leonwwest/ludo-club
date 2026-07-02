@@ -1,6 +1,10 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:ludo_club/constants/app_colors.dart';
+import 'package:ludo_club/constants/app_dimensions.dart';
+import 'package:ludo_club/constants/app_durations.dart';
+import 'package:ludo_club/constants/game_constants.dart';
 import 'package:ludo_club/logic/ludo_rules.dart';
 import 'package:ludo_club/models/ludo_models.dart';
 import 'package:ludo_club/providers/game_controller.dart';
@@ -20,7 +24,7 @@ class LudoBoard extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final size = Size(constraints.maxWidth, constraints.maxHeight);
-          final cell = size.shortestSide / _BoardGeometry.gridSize;
+          final cell = size.shortestSide / GameConstants.gridSize;
           final pieceSize = (cell * 1.08).clamp(28.0, 56.0).toDouble();
           final pieces =
               state.players.expand((player) => player.pieces).toList();
@@ -35,17 +39,19 @@ class LudoBoard extends StatelessWidget {
           return DecoratedBox(
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius:
+                  BorderRadius.circular(AppDimensions.borderRadiusSmall),
               boxShadow: const [
                 BoxShadow(
-                  color: Color(0x22000000),
+                  color: AppColors.shadowBoard,
                   blurRadius: 26,
                   offset: Offset(0, 16),
                 ),
               ],
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius:
+                  BorderRadius.circular(AppDimensions.borderRadiusSmall),
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
@@ -105,7 +111,7 @@ class LudoBoard extends StatelessWidget {
     final moveHint = controller.moveHintFor(piece);
 
     return AnimatedPositioned(
-      duration: const Duration(milliseconds: 260),
+      duration: AppDurations.slow,
       curve: Curves.easeOutCubic,
       left: offset.dx - pieceSize / 2,
       top: offset.dy - pieceSize / 2,
@@ -198,7 +204,7 @@ class _PieceChip extends StatelessWidget {
       enabled: isMovable,
       label: semanticLabel,
       child: AnimatedScale(
-        duration: const Duration(milliseconds: 160),
+        duration: AppDurations.fast,
         scale: isMovable ? 1.14 : 1,
         child: Material(
           color: Colors.transparent,
@@ -321,7 +327,7 @@ class _BoardPainter extends CustomPainter {
     canvas.drawRRect(
       homeRRect,
       Paint()
-        ..color = const Color(0xFF1F2937).withValues(alpha: 0.22)
+        ..color = AppColors.slate800.withValues(alpha: 0.22)
         ..style = PaintingStyle.stroke
         ..strokeWidth = cell * 0.05,
     );
@@ -348,7 +354,7 @@ class _BoardPainter extends CustomPainter {
       canvas.drawCircle(
         offset,
         cell * 0.38,
-        Paint()..color = const Color(0xFFE5E7EB),
+        Paint()..color = AppColors.gray200,
       );
     }
   }
@@ -357,7 +363,7 @@ class _BoardPainter extends CustomPainter {
     final border = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = cell * 0.035
-      ..color = const Color(0xFF475569).withValues(alpha: 0.55);
+      ..color = AppColors.slate600.withValues(alpha: 0.55);
 
     for (var index = 0; index < LudoRules.trackLength; index++) {
       final point = _BoardGeometry.trackCell(index);
@@ -365,7 +371,7 @@ class _BoardPainter extends CustomPainter {
       final startColor = _BoardGeometry.startColorFor(index);
       final isSafe = LudoRules.safeFields.contains(index);
       final fill = startColor?.paint ??
-          (isSafe ? const Color(0xFFF8FAFC) : const Color(0xFFFFFFFF));
+          (isSafe ? AppColors.slate50 : const Color(0xFFFFFFFF));
       canvas.drawRect(rect, Paint()..color = fill);
       canvas.drawRect(rect, border);
 
@@ -374,7 +380,7 @@ class _BoardPainter extends CustomPainter {
           canvas,
           rect.center,
           cell * 0.28,
-          startColor?.paint ?? const Color(0xFFCBD5E1),
+          startColor?.paint ?? AppColors.slate300,
         );
       }
     }
@@ -395,7 +401,7 @@ class _BoardPainter extends CustomPainter {
           Paint()
             ..style = PaintingStyle.stroke
             ..strokeWidth = cell * 0.035
-            ..color = const Color(0xFF475569).withValues(alpha: 0.45),
+            ..color = AppColors.slate600.withValues(alpha: 0.45),
         );
       }
     }
@@ -441,7 +447,7 @@ class _BoardPainter extends CustomPainter {
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = cell * 0.05
-        ..color = const Color(0xFF111827).withValues(alpha: 0.62),
+        ..color = AppColors.ink.withValues(alpha: 0.62),
     );
   }
 
@@ -449,7 +455,7 @@ class _BoardPainter extends CustomPainter {
     final border = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = cell * 0.06
-      ..color = const Color(0xFF111827).withValues(alpha: 0.75);
+      ..color = AppColors.ink.withValues(alpha: 0.75);
     canvas.drawRect(Offset.zero & size, border);
   }
 
@@ -488,7 +494,7 @@ class _BoardPainter extends CustomPainter {
 class _BoardGeometry {
   const _BoardGeometry._();
 
-  static const int gridSize = 15;
+  static const int gridSize = GameConstants.gridSize;
 
   static const List<_GridCell> _track = [
     _GridCell(6, 1),

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:ludo_club/constants/app_colors.dart';
+import 'package:ludo_club/constants/app_dimensions.dart';
+import 'package:ludo_club/constants/app_durations.dart';
 import 'package:ludo_club/models/ludo_models.dart';
 
 class DicePanel extends StatelessWidget {
@@ -22,7 +25,7 @@ class DicePanel extends StatelessWidget {
               ),
             ),
             AnimatedSwitcher(
-              duration: const Duration(milliseconds: 180),
+              duration: AppDurations.normal,
               transitionBuilder: (child, animation) {
                 return ScaleTransition(scale: animation, child: child);
               },
@@ -79,11 +82,11 @@ class DiceFace extends StatelessWidget {
       height: 64,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
         border: Border.all(color: colorScheme.outlineVariant),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x1A000000),
+            color: AppColors.shadowLight,
             blurRadius: 18,
             offset: Offset(0, 8),
           ),

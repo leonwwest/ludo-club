@@ -78,7 +78,7 @@ run_in_worktree() {
 run_flutter_checks() {
   local dir="$1"
   local feature="$2"
-  run_in_worktree "$dir" bash -lc "set -euo pipefail; cd \"$APP_SUBDIR\"; echo \"Running Flutter checks for ${feature}\"; flutter pub get; flutter analyze --no-fatal-infos; flutter test"
+  run_in_worktree "$dir" bash -lc "set -euo pipefail; cd \"$APP_SUBDIR\"; echo \"Running Flutter checks for ${feature}\"; flutter pub get; flutter analyze; dart format --set-exit-if-changed .; flutter test"
 }
 
 commit_and_push() {
@@ -114,22 +114,20 @@ cleanup_worktree() {
   git -C "$REPO_ROOT" worktree prune || true
 }
 
-### === Example: two feature branches with Flutter checks ===
-FEATURE_A="awesome-A"
-FEATURE_B="awesome-B"
-DIR_A="${REPO_ROOT}/../repo-wt-${FEATURE_A}"
-DIR_B="${REPO_ROOT}/../repo-wt-${FEATURE_B}"
+# Usage: pass feature names as arguments, or set FEATURES="feat-a feat-b"
+# Example: ./worktree_run.sh "add-dice-anim" "fix-board-layout"
+FEATURES="${FEATURES:-$*}"
+if [[ -z "$FEATURES" ]]; then
+  echo "Usage: FEATURES=\"feat-a feat-b\" $0  (or pass features as args)" >&2
+  exit 1
+fi
 
-DIR_A="$(create_worktree "$FEATURE_A" "$DIR_A")"
-run_flutter_checks "$DIR_A" "$FEATURE_A"
-commit_and_push "$DIR_A" "feat(${FEATURE_A}): implementation & tests"
-# open_pr "$DIR_A" "feat(${FEATURE_A}): PR" "Automated PR creation"
-
-DIR_B="$(create_worktree "$FEATURE_B" "$DIR_B")"
-run_flutter_checks "$DIR_B" "$FEATURE_B"
-commit_and_push "$DIR_B" "feat(${FEATURE_B}): initial commit"
-# open_pr "$DIR_B" "feat(${FEATURE_B}): PR" "Automated PR creation"
-
-# Optional clean up once finished
-# cleanup_worktree "$DIR_A"
-# cleanup_worktree "$DIR_B"
+for feature in $FEATURES; do
+  branch="feature/${feature}"
+  dir="${REPO_ROOT}/../repo-wt-${feature}"
+  dir="$(create_worktree "$feature" "$dir")"
+  run_flutter_checks "$dir" "$feature"
+  commit_and_push "$dir" "feat(${feature}): implementation & tests"
+  # open_pr "$dir" "feat(${feature}): PR" "Automated PR creation"
+  # cleanup_worktree "$dir"
+done

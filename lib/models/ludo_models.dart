@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:ludo_club/constants/game_constants.dart';
 
 enum PlayerColor { red, green, yellow, blue }
 
@@ -306,7 +307,12 @@ class LudoGameState {
     RuleOptions rules = const RuleOptions(),
     Map<PlayerColor, String> playerNames = const {},
   }) {
-    assert(playerCount >= 2 && playerCount <= 4);
+    if (playerCount < GameConstants.minPlayers ||
+        playerCount > GameConstants.maxPlayers) {
+      throw ArgumentError(
+        'playerCount must be ${GameConstants.minPlayers}-${GameConstants.maxPlayers}, got $playerCount',
+      );
+    }
     final colors = colorsForPlayerCount(playerCount);
     return LudoGameState(
       players: [

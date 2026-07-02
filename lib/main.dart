@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:ludo_club/constants/app_colors.dart';
+import 'package:ludo_club/constants/app_dimensions.dart';
 import 'package:ludo_club/providers/game_controller.dart';
 import 'package:ludo_club/ui/game_screen.dart';
 import 'package:provider/provider.dart';
@@ -20,41 +22,43 @@ class LudoClubApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const ink = Color(0xFF111827);
-    const surface = Color(0xFFF6F8FB);
-    const teal = Color(0xFF0E8F83);
-
     return MaterialApp(
       title: 'Ludo Club',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        scaffoldBackgroundColor: surface,
+        scaffoldBackgroundColor: AppColors.surface,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: teal,
+          seedColor: AppColors.teal,
           surface: Colors.white,
         ).copyWith(
-          primary: teal,
-          secondary: const Color(0xFFE74C4C),
-          tertiary: const Color(0xFFE3A72F),
-          onSurface: ink,
+          primary: AppColors.teal,
+          secondary: AppColors.red,
+          tertiary: AppColors.amber,
+          onSurface: AppColors.ink,
         ),
         textTheme: Typography.blackCupertino.apply(
-          bodyColor: ink,
-          displayColor: ink,
+          bodyColor: AppColors.ink,
+          displayColor: AppColors.ink,
         ),
         cardTheme: const CardThemeData(
           elevation: 0,
           margin: EdgeInsets.zero,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(8)),
-            side: BorderSide(color: Color(0xFFE2E8F0)),
+            borderRadius: BorderRadius.all(
+              Radius.circular(AppDimensions.borderRadiusSmall),
+            ),
+            side: BorderSide(color: AppColors.slate200),
           ),
         ),
         segmentedButtonTheme: SegmentedButtonThemeData(
           style: ButtonStyle(
             shape: WidgetStateProperty.all(
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(
+                  AppDimensions.borderRadiusSmall,
+                ),
+              ),
             ),
           ),
         ),

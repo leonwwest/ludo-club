@@ -1,15 +1,17 @@
+import 'package:ludo_club/constants/game_constants.dart';
 import 'package:ludo_club/models/ludo_models.dart';
 
 class LudoRules {
   const LudoRules._();
 
-  static const int piecesPerPlayer = 4;
-  static const int trackLength = 52;
-  static const int homeLength = 6;
-  static const int finishStep = trackLength + homeLength - 1;
-  static const Set<int> safeFields = {0, 8, 13, 21, 26, 34, 39, 47};
+  static const int piecesPerPlayer = GameConstants.piecesPerPlayer;
+  static const int trackLength = GameConstants.trackLength;
+  static const int homeLength = GameConstants.homeLength;
+  static const int finishStep = GameConstants.finishStep;
+  static const Set<int> safeFields = GameConstants.safeFields;
 
-  static bool isValidDiceValue(int value) => value >= 1 && value <= 6;
+  static bool isValidDiceValue(int value) =>
+      value >= GameConstants.diceMin && value <= GameConstants.diceMax;
 
   static int? globalIndexOf(LudoPiece piece) {
     if (!piece.isOnMainTrack) {
@@ -135,7 +137,8 @@ class LudoRules {
       turnMessage: '${state.currentPlayer.name} würfelt $diceValue.',
     );
 
-    if (state.rules.threeSixesEndTurn && consecutiveSixes >= 3) {
+    if (state.rules.threeSixesEndTurn &&
+        consecutiveSixes >= GameConstants.consecutiveSixesLimit) {
       return _advanceTurn(
         rolled.copyWith(
           moveLog: _appendLog(
@@ -344,7 +347,7 @@ class LudoRules {
 
   static bool _canUseAnotherOpenRoll(LudoGameState state) {
     return state.currentPlayer.pieces.every((piece) => piece.isInBase) &&
-        state.pendingOpenRolls > 1;
+        state.pendingOpenRolls > GameConstants.minPendingRolls;
   }
 
   static int _pendingOpenRollsFor(LudoPlayer player, RuleOptions rules) {
@@ -408,7 +411,7 @@ class LudoRules {
     return [
       MoveLogEntry(message: message, color: color),
       ...state.moveLog,
-    ].take(8).toList(growable: false);
+    ].take(GameConstants.moveLogCap).toList(growable: false);
   }
 
   static String _logMessage(

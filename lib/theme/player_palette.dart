@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:ludo_club/constants/app_colors.dart';
 import 'package:ludo_club/models/ludo_models.dart';
 
 extension PlayerPalette on PlayerColor {
   Color get paint {
     return switch (this) {
-      PlayerColor.red => const Color(0xFFE74C4C),
-      PlayerColor.green => const Color(0xFF159A6A),
-      PlayerColor.yellow => const Color(0xFFE3A72F),
-      PlayerColor.blue => const Color(0xFF2D6CDF),
+      PlayerColor.red => AppColors.red,
+      PlayerColor.green => AppColors.green,
+      PlayerColor.yellow => AppColors.amber,
+      PlayerColor.blue => AppColors.blue,
     };
   }
 
   Color get ink {
     return switch (this) {
-      PlayerColor.yellow => const Color(0xFF211A0A),
+      PlayerColor.yellow => AppColors.yellowInk,
       _ => Colors.white,
     };
   }

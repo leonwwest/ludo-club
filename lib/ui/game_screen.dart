@@ -1,6 +1,9 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:ludo_club/constants/app_colors.dart';
+import 'package:ludo_club/constants/app_dimensions.dart';
+import 'package:ludo_club/constants/app_durations.dart';
 import 'package:ludo_club/models/ludo_models.dart';
 import 'package:ludo_club/providers/game_controller.dart';
 import 'package:ludo_club/theme/player_palette.dart';
@@ -16,8 +19,11 @@ class GameScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = context.watch<GameController>();
     final state = controller.state;
-    final isWide = MediaQuery.sizeOf(context).width >= 920;
-    final pagePadding = isWide ? 16.0 : 12.0;
+    final isWide =
+        MediaQuery.sizeOf(context).width >= AppDimensions.responsiveBreakpoint;
+    final pagePadding = isWide
+        ? AppDimensions.pagePaddingWide
+        : AppDimensions.pagePaddingNarrow;
 
     return Scaffold(
       body: DecoratedBox(
@@ -25,7 +31,10 @@ class GameScreen extends StatelessWidget {
           image: DecorationImage(
             image: AssetImage('assets/backgrounds/club_table_v2.png'),
             fit: BoxFit.cover,
-            colorFilter: ColorFilter.mode(Color(0xDDF6F8FB), BlendMode.srcOver),
+            colorFilter: ColorFilter.mode(
+              AppColors.backgroundOverlay,
+              BlendMode.srcOver,
+            ),
           ),
         ),
         child: SafeArea(
@@ -52,7 +61,7 @@ class GameScreen extends StatelessWidget {
                             Expanded(child: _BoardStage(state: state)),
                             const SizedBox(width: 16),
                             SizedBox(
-                              width: 360,
+                              width: AppDimensions.sidePanelWidth,
                               child: SingleChildScrollView(
                                 child: _SidePanel(
                                   state: state,
@@ -137,7 +146,7 @@ class _BoardArena extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const badgeHeight = 62.0;
+    const badgeHeight = AppDimensions.cornerBadgeHeight;
     return LayoutBuilder(
       builder: (context, constraints) {
         final heightCap = constraints.maxHeight.isFinite
@@ -145,11 +154,19 @@ class _BoardArena extends StatelessWidget {
             : constraints.maxWidth;
         final boardSize = math
             .min(constraints.maxWidth, heightCap)
-            .clamp(280.0, 620.0)
+            .clamp(
+              AppDimensions.boardSizeMin,
+              AppDimensions.boardSizeMax,
+            )
             .toDouble();
-        final badgeWidth = (boardSize * 0.43).clamp(136.0, 178.0).toDouble();
+        final badgeWidth = (boardSize * 0.43)
+            .clamp(
+              AppDimensions.badgeWidthMin,
+              AppDimensions.badgeWidthMax,
+            )
+            .toDouble();
         final arenaHeight = boardSize + badgeHeight;
-        final boardTop = badgeHeight * 0.56;
+        final boardTop = badgeHeight * AppDimensions.cornerBoardTopFactor;
 
         return SizedBox(
           height: arenaHeight,
@@ -237,15 +254,15 @@ class _CornerPlayerBadge extends StatelessWidget {
 
     final color = player.color.paint;
     final badge = AnimatedScale(
-      duration: const Duration(milliseconds: 180),
+      duration: AppDurations.normal,
       scale: isCurrent ? 1.04 : 1,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
+        duration: AppDurations.normal,
         width: width,
         padding: const EdgeInsets.all(7),
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: isCurrent ? 0.97 : 0.88),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
           border: Border.all(
             color: isCurrent ? color : Colors.white.withValues(alpha: 0.76),
             width: isCurrent ? 2 : 1,
@@ -293,7 +310,7 @@ class _CornerPlayerBadge extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: const Color(0xFF64748B),
+                          color: AppColors.slate500,
                           height: 1.05,
                         ),
                   ),
@@ -334,7 +351,7 @@ class _MobileActionDock extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.93),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
         border: Border.all(color: color.withValues(alpha: 0.2)),
         boxShadow: [
           BoxShadow(
@@ -382,7 +399,7 @@ class _MobileActionDock extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: const Color(0xFF64748B),
+                              color: AppColors.slate500,
                             ),
                       ),
                     ],
@@ -445,7 +462,8 @@ class _Header extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             ClipRRect(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius:
+                  BorderRadius.circular(AppDimensions.borderRadiusSmall),
               child: Image.asset(
                 'assets/branding/ludo_club_mark_v2.png',
                 width: 58,
@@ -469,7 +487,7 @@ class _Header extends StatelessWidget {
                   Text(
                     'Schlankes lokales Brettspiel',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: const Color(0xFF64748B),
+                          color: AppColors.slate500,
                         ),
                   ),
                 ],
@@ -614,7 +632,7 @@ class _StatusCard extends StatelessWidget {
               state.turnMessage,
               style: Theme.of(
                 context,
-              ).textTheme.bodyMedium?.copyWith(color: const Color(0xFF475569)),
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.slate600),
             ),
             if (state.phase == TurnPhase.waitingForMove) ...[
               const SizedBox(height: 14),
@@ -644,8 +662,10 @@ class _SetupCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Spieler-Setup',
-                style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'Spieler-Setup',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 12),
             for (final player in state.players) ...[
               _PlayerNameRow(
@@ -830,14 +850,16 @@ class _MoveLogCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Zugprotokoll',
-                style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'Zugprotokoll',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 12),
             if (state.moveLog.isEmpty)
               Text(
                 'Noch keine Züge.',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: const Color(0xFF64748B),
+                      color: AppColors.slate500,
                     ),
               )
             else
@@ -880,8 +902,8 @@ class _MoveHint extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
-        borderRadius: BorderRadius.circular(8),
+        color: AppColors.slate100,
+        borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
       ),
       child: Padding(
         padding: const EdgeInsets.all(12),

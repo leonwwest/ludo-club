@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
+import 'package:ludo_club/constants/game_constants.dart';
 import 'package:ludo_club/logic/ludo_rules.dart';
 import 'package:ludo_club/models/ludo_models.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -138,7 +139,7 @@ class GameController extends ChangeNotifier {
 
   void _rememberState() {
     _history.add(_state);
-    if (_history.length > 24) {
+    if (_history.length > GameConstants.undoHistoryLimit) {
       _history.removeAt(0);
     }
   }

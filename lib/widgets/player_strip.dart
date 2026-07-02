@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:ludo_club/constants/app_colors.dart';
+import 'package:ludo_club/constants/app_dimensions.dart';
+import 'package:ludo_club/constants/app_durations.dart';
 import 'package:ludo_club/logic/ludo_rules.dart';
 import 'package:ludo_club/models/ludo_models.dart';
 import 'package:ludo_club/theme/player_palette.dart';
@@ -38,14 +41,13 @@ class _PlayerProgressTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = player.color.paint;
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
+      duration: AppDurations.normal,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color:
-            isCurrent ? color.withValues(alpha: 0.1) : const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(8),
+        color: isCurrent ? color.withValues(alpha: 0.1) : AppColors.slate50,
+        borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
         border: Border.all(
-          color: isCurrent ? color : const Color(0xFFE2E8F0),
+          color: isCurrent ? color : AppColors.slate200,
           width: isCurrent ? 1.5 : 1,
         ),
       ),
@@ -78,7 +80,7 @@ class _PlayerProgressTile extends StatelessWidget {
                     Text(
                       player.color.colorLabel,
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: const Color(0xFF64748B),
+                            color: AppColors.slate500,
                           ),
                     ),
                   ],
@@ -89,7 +91,8 @@ class _PlayerProgressTile extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           ClipRRect(
-            borderRadius: BorderRadius.circular(999),
+            borderRadius:
+                BorderRadius.circular(AppDimensions.borderRadiusLarge),
             child: LinearProgressIndicator(
               minHeight: 8,
               value: player.finishedCount / LudoRules.piecesPerPlayer,
