@@ -358,7 +358,11 @@ class LudoGameState {
       players.map((player) => player.color).toList();
 
   static List<PlayerColor> colorsForPlayerCount(int playerCount) {
-    return switch (playerCount) {
+    final clamped = playerCount.clamp(
+      GameConstants.minPlayers,
+      GameConstants.maxPlayers,
+    );
+    return switch (clamped) {
       2 => const [PlayerColor.red, PlayerColor.yellow],
       3 => const [PlayerColor.red, PlayerColor.green, PlayerColor.yellow],
       _ => PlayerColor.values,
@@ -431,7 +435,8 @@ class LudoGameState {
     final moveLogJson = json['moveLog'];
     return LudoGameState(
       players: players.isEmpty ? fallback.players : players,
-      currentPlayerIndex: (json['currentPlayerIndex'] as int? ?? 0).clamp(0, 3),
+      currentPlayerIndex: (json['currentPlayerIndex'] as int? ?? 0)
+          .clamp(0, GameConstants.maxPlayers - 1),
       phase: TurnPhase.values.firstWhere(
         (phase) => phase.name == json['phase'],
         orElse: () => TurnPhase.waitingForRoll,

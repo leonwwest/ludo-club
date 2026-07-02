@@ -1,13 +1,25 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ludo_club/main.dart';
 import 'package:ludo_club/providers/game_controller.dart';
+import 'package:ludo_club/services/game_storage.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
+
   testWidgets('renders the rebuilt game screen', (tester) async {
+    final controller = GameController(
+      diceRoller: () => 6,
+      storage: GameStorage(debounceDelay: Duration.zero),
+    );
+    addTearDown(controller.dispose);
+
     await tester.pumpWidget(
-      ChangeNotifierProvider(
-        create: (_) => GameController(diceRoller: () => 6),
+      ChangeNotifierProvider.value(
+        value: controller,
         child: const LudoClubApp(),
       ),
     );

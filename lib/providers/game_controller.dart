@@ -1,27 +1,29 @@
-import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:ludo_club/constants/game_constants.dart';
 import 'package:ludo_club/logic/ludo_rules.dart';
 import 'package:ludo_club/models/ludo_models.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ludo_club/services/game_storage.dart';
 
 typedef DiceRoller = int Function();
 
 class GameController extends ChangeNotifier {
   GameController({
     DiceRoller? diceRoller,
+    Random? random,
     int initialPlayerCount = 4,
     LudoGameState? initialState,
-  })  : _diceRoller = diceRoller ?? _rollDie,
+    GameStorage? storage,
+  })  : _diceRoller = diceRoller ?? (() => _defaultRoller(random ?? Random())),
         _state = initialState ??
-            LudoGameState.newGame(playerCount: initialPlayerCount);
+            LudoGameState.newGame(playerCount: initialPlayerCount),
+        _storage = storage ?? GameStorage();
 
-  static const String _saveKey = 'ludo_club_saved_game_v1';
-  static final Random _random = Random();
+  static int _defaultRoller(Random random) => random.nextInt(6) + 1;
 
   final DiceRoller _diceRoller;
+  final GameStorage _storage;
   LudoGameState _state;
   final List<LudoGameState> _history = [];
 
@@ -55,7 +57,7 @@ class GameController extends ChangeNotifier {
       playerNames: playerNames ?? currentNames,
     );
     notifyListeners();
-    await _save();
+    await _storage.save(_state);
   }
 
   Future<void> updatePlayerName(PlayerColor color, String name) async {
@@ -73,7 +75,7 @@ class GameController extends ChangeNotifier {
           : _state.turnMessage,
     );
     notifyListeners();
-    await _save();
+    await _storage.save(_state);
   }
 
   Future<void> updateRules(RuleOptions rules) async {
@@ -87,7 +89,7 @@ class GameController extends ChangeNotifier {
           : 1,
     );
     notifyListeners();
-    await _save();
+    await _storage.save(_state);
   }
 
   Future<void> rollDice() async {
@@ -97,7 +99,7 @@ class GameController extends ChangeNotifier {
     _rememberState();
     _state = LudoRules.roll(_state, _diceRoller());
     notifyListeners();
-    await _save();
+    await _storage.save(_state);
   }
 
   Future<void> movePiece(LudoPiece piece) async {
@@ -107,7 +109,7 @@ class GameController extends ChangeNotifier {
     _rememberState();
     _state = LudoRules.movePiece(_state, piece);
     notifyListeners();
-    await _save();
+    await _storage.save(_state);
   }
 
   Future<void> movePieceById(PlayerColor color, int id) async {
@@ -119,8 +121,7 @@ class GameController extends ChangeNotifier {
   }
 
   Future<void> clearSavedGame() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_saveKey);
+    await _storage.clearSavedGame();
   }
 
   Future<void> undoLastAction() async {
@@ -129,12 +130,6 @@ class GameController extends ChangeNotifier {
     }
     _state = _history.removeLast();
     notifyListeners();
-    await _save();
-  }
-
-  Future<void> _save() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_saveKey, jsonEncode(_state.toJson()));
   }
 
   void _rememberState() {
@@ -145,17 +140,13 @@ class GameController extends ChangeNotifier {
   }
 
   static Future<LudoGameState?> loadSavedState() async {
-    final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString(_saveKey);
-    if (saved == null) {
-      return null;
-    }
-    final decoded = jsonDecode(saved);
-    if (decoded is! Map<String, Object?>) {
-      return null;
-    }
-    return LudoGameState.fromJson(decoded);
+    final storage = GameStorage();
+    return storage.loadSavedState();
   }
 
-  static int _rollDie() => _random.nextInt(6) + 1;
+  @override
+  void dispose() {
+    _storage.dispose();
+    super.dispose();
+  }
 }

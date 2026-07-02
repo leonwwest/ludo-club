@@ -1,6 +1,9 @@
+import 'dart:math';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ludo_club/models/ludo_models.dart';
 import 'package:ludo_club/providers/game_controller.dart';
+import 'package:ludo_club/services/game_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -9,8 +12,26 @@ void main() {
       SharedPreferences.setMockInitialValues({});
     });
 
+    GameStorage zeroDelayStorage() => GameStorage(debounceDelay: Duration.zero);
+
+    GameController createController({
+      DiceRoller? diceRoller,
+      Random? random,
+      int initialPlayerCount = 4,
+      GameStorage? storage,
+    }) {
+      final controller = GameController(
+        diceRoller: diceRoller,
+        random: random,
+        initialPlayerCount: initialPlayerCount,
+        storage: storage ?? zeroDelayStorage(),
+      );
+      addTearDown(controller.dispose);
+      return controller;
+    }
+
     test('starts a new game with the requested player count', () async {
-      final controller = GameController();
+      final controller = createController();
 
       await controller.newGame(playerCount: 2);
 
@@ -23,7 +44,7 @@ void main() {
     });
 
     test('advances when a player rolls without a legal move', () async {
-      final controller = GameController(
+      final controller = createController(
         diceRoller: () => 3,
         initialPlayerCount: 2,
       );
@@ -36,7 +57,7 @@ void main() {
     });
 
     test('exposes movable pieces after rolling a six', () async {
-      final controller = GameController(
+      final controller = createController(
         diceRoller: () => 6,
         initialPlayerCount: 2,
       );
@@ -48,7 +69,7 @@ void main() {
     });
 
     test('updates player names in the current state', () async {
-      final controller = GameController(initialPlayerCount: 2);
+      final controller = createController(initialPlayerCount: 2);
 
       await controller.updatePlayerName(PlayerColor.red, 'Mira');
 
@@ -84,7 +105,7 @@ void main() {
     });
 
     test('undo restores the state before the last action', () async {
-      final controller = GameController(
+      final controller = createController(
         diceRoller: () => 6,
         initialPlayerCount: 2,
       );
@@ -101,7 +122,7 @@ void main() {
     });
 
     test('exposes concrete move hints for movable pieces', () async {
-      final controller = GameController(
+      final controller = createController(
         diceRoller: () => 6,
         initialPlayerCount: 2,
       );
@@ -115,9 +136,11 @@ void main() {
     });
 
     test('persists state after rule and turn updates', () async {
-      final controller = GameController(
+      final storage = zeroDelayStorage();
+      final controller = createController(
         diceRoller: () => 6,
         initialPlayerCount: 2,
+        storage: storage,
       );
 
       await controller.updateRules(
@@ -129,8 +152,9 @@ void main() {
       );
       await controller.rollDice();
       await controller.movePiece(controller.movablePieces.first);
+      await storage.flush();
 
-      final restored = await GameController.loadSavedState();
+      final restored = await storage.loadSavedState();
 
       expect(restored, isNotNull);
       expect(restored!.rules.openRollRule, OpenRollRule.threeRolls);
@@ -142,21 +166,24 @@ void main() {
     });
 
     test('clearSavedGame removes the persisted state', () async {
-      final controller = GameController(
+      final storage = zeroDelayStorage();
+      final controller = createController(
         diceRoller: () => 6,
         initialPlayerCount: 2,
+        storage: storage,
       );
 
       await controller.rollDice();
-      expect(await GameController.loadSavedState(), isNotNull);
+      await storage.flush();
+      expect(await storage.loadSavedState(), isNotNull);
 
       await controller.clearSavedGame();
 
-      expect(await GameController.loadSavedState(), isNull);
+      expect(await storage.loadSavedState(), isNull);
     });
 
     test('undo history keeps the latest twenty-four snapshots', () async {
-      final controller = GameController(initialPlayerCount: 2);
+      final controller = createController(initialPlayerCount: 2);
 
       for (var index = 0; index < 30; index++) {
         await controller.updateRules(
@@ -174,7 +201,7 @@ void main() {
     });
 
     test('ignores move requests for non-movable pieces', () async {
-      final controller = GameController(
+      final controller = createController(
         diceRoller: () => 3,
         initialPlayerCount: 2,
       );
@@ -184,6 +211,33 @@ void main() {
 
       expect(controller.state, same(initialState));
       expect(controller.canUndo, isFalse);
+    });
+
+    test('throws ArgumentError for invalid player count', () {
+      expect(
+        () => GameController(initialPlayerCount: 5),
+        throwsArgumentError,
+      );
+      expect(
+        () => GameController(initialPlayerCount: 1),
+        throwsArgumentError,
+      );
+    });
+
+    test('supports seedable random for reproducible rolls', () async {
+      final controller1 = createController(
+        random: Random(42),
+        initialPlayerCount: 2,
+      );
+      final controller2 = createController(
+        random: Random(42),
+        initialPlayerCount: 2,
+      );
+
+      await controller1.rollDice();
+      await controller2.rollDice();
+
+      expect(controller1.state.diceValue, controller2.state.diceValue);
     });
   });
 }
