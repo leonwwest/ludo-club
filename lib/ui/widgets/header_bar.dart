@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:ludo_club/constants/app_colors.dart';
 import 'package:ludo_club/constants/app_dimensions.dart';
 import 'package:ludo_club/constants/assets.dart';
+import 'package:ludo_club/l10n/app_localizations.dart';
 
 class HeaderBar extends StatelessWidget {
   const HeaderBar({
@@ -23,6 +24,7 @@ class HeaderBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Wrap(
       spacing: 12,
       runSpacing: 12,
@@ -49,14 +51,14 @@ class HeaderBar extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Ludo Club',
+                    l10n.appTitle,
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                           fontWeight: FontWeight.w900,
                           letterSpacing: 0,
                         ),
                   ),
                   Text(
-                    'Schlankes lokales Brettspiel',
+                    l10n.appSubtitle,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: AppColors.slate500,
                         ),
@@ -84,15 +86,15 @@ class HeaderBar extends StatelessWidget {
             OutlinedButton.icon(
               onPressed: canUndo ? onUndo : null,
               icon: const Icon(Icons.undo),
-              label: const Text('Zurück'),
+              label: Text(l10n.undo),
             ),
             OutlinedButton.icon(
               onPressed: onRestart,
               icon: const Icon(Icons.refresh),
-              label: const Text('Neu starten'),
+              label: Text(l10n.newGame),
             ),
             IconButton.outlined(
-              tooltip: 'Speicherstand löschen',
+              tooltip: l10n.clearSave,
               onPressed: onClearSave,
               icon: const Icon(Icons.delete_outline),
             ),

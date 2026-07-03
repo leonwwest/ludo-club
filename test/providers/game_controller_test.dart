@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ludo_club/models/ludo_models.dart';
+import 'package:ludo_club/models/move_event.dart';
 import 'package:ludo_club/providers/game_controller.dart';
 import 'package:ludo_club/services/game_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -88,8 +89,17 @@ void main() {
         playerNames: const {PlayerColor.red: 'Mira'},
       ).copyWith(
         consecutiveSixes: 2,
-        moveLog: const [
-          MoveLogEntry(message: 'Mira: 6 mit Figur 1', color: PlayerColor.red),
+        moveLog: [
+          const MoveLogEntry(
+            event: MovePieceEvent(
+              player: PlayerColor.red,
+              pieceId: 0,
+              diceValue: 6,
+              capturedCount: 0,
+              finished: false,
+            ),
+            color: PlayerColor.red,
+          ),
         ],
       );
 
@@ -101,7 +111,11 @@ void main() {
       expect(restored.rules.threeSixesEndTurn, isTrue);
       expect(restored.rules.mustCapture, isTrue);
       expect(restored.consecutiveSixes, 2);
-      expect(restored.moveLog.single.message, 'Mira: 6 mit Figur 1');
+      expect(restored.moveLog.single.event, isA<MovePieceEvent>());
+      expect(
+        (restored.moveLog.single.event as MovePieceEvent).pieceId,
+        0,
+      );
     });
 
     test('undo restores the state before the last action', () async {
@@ -162,7 +176,7 @@ void main() {
       expect(restored.rules.mustCapture, isTrue);
       expect(restored.players.first.pieces.first.steps, 0);
       expect(restored.phase, TurnPhase.waitingForRoll);
-      expect(restored.moveLog.first.message, contains('Figur 1'));
+      expect(restored.moveLog.first.event, isA<MovePieceEvent>());
     });
 
     test('clearSavedGame removes the persisted state', () async {

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:ludo_club/constants/app_colors.dart';
 import 'package:ludo_club/constants/app_dimensions.dart';
 import 'package:ludo_club/constants/app_durations.dart';
+import 'package:ludo_club/l10n/app_localizations.dart';
 import 'package:ludo_club/models/ludo_models.dart';
 import 'package:ludo_club/theme/player_palette.dart';
 import 'package:ludo_club/widgets/ludo_board.dart';
@@ -179,7 +180,7 @@ class _CornerPlayerBadge extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${player.color.colorLabel}  ${player.finishedCount}/4',
+                    '${player.color.colorLabel}  ${AppLocalizations.of(context)!.finishedCount(player.finishedCount)}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(

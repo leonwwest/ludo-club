@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ludo_club/constants/app_colors.dart';
 import 'package:ludo_club/constants/app_dimensions.dart';
+import 'package:ludo_club/l10n/app_localizations.dart';
 import 'package:ludo_club/models/ludo_models.dart';
 import 'package:ludo_club/widgets/player_avatar.dart';
 
@@ -11,10 +12,11 @@ class StatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final currentColor = state.winner ?? state.currentPlayer.color;
     final title = state.phase == TurnPhase.gameOver
-        ? '${currentColor.label} gewinnt'
-        : '${state.currentPlayer.name} ist dran';
+        ? l10n.playerWins(currentColor.label)
+        : l10n.playerTurn(state.currentPlayer.name);
 
     return Card(
       child: Padding(
@@ -65,6 +67,7 @@ class MoveHint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return DecoratedBox(
       decoration: BoxDecoration(
         color: AppColors.slate100,
@@ -81,7 +84,7 @@ class MoveHint extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                'Eine markierte Figur antippen.',
+                l10n.tapToMove,
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             ),

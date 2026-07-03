@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ludo_club/logic/ludo_rules.dart';
 import 'package:ludo_club/models/ludo_models.dart';
+import 'package:ludo_club/models/move_event.dart';
 
 void main() {
   group('LudoRules', () {
@@ -109,7 +110,7 @@ void main() {
       expect(state.currentPlayer.color, PlayerColor.red);
       expect(state.phase, TurnPhase.waitingForRoll);
       expect(state.pendingOpenRolls, 2);
-      expect(state.moveLog.first.message, contains('kein Zug'));
+      expect(state.moveLog.first.event, isA<NoMoveEvent>());
     });
 
     test('can require a six to leave base before moving another piece', () {
@@ -215,7 +216,7 @@ void main() {
       expect(state.currentPlayer.color, PlayerColor.yellow);
       expect(state.phase, TurnPhase.waitingForRoll);
       expect(state.consecutiveSixes, 0);
-      expect(state.moveLog.first.message, contains('dritte 6'));
+      expect(state.moveLog.first.event, isA<ThreeSixesEvent>());
     });
 
     test('can force capturing moves when a capture is available', () {
@@ -329,7 +330,13 @@ void main() {
       var state = LudoGameState.newGame(playerCount: 2).copyWith(
         moveLog: [
           for (var i = 0; i < 8; i++)
-            MoveLogEntry(message: 'old $i', color: PlayerColor.red),
+            MoveLogEntry(
+              event: RollEvent(
+                player: PlayerColor.red,
+                diceValue: i,
+              ),
+              color: PlayerColor.red,
+            ),
         ],
         phase: TurnPhase.waitingForMove,
         diceValue: 6,
@@ -338,8 +345,15 @@ void main() {
       state = LudoRules.movePiece(state, state.currentPlayer.pieces.first);
 
       expect(state.moveLog, hasLength(8));
-      expect(state.moveLog.first.message, contains('Figur 1'));
-      expect(state.moveLog.last.message, 'old 6');
+      expect(state.moveLog.first.event, isA<MovePieceEvent>());
+      expect(
+        (state.moveLog.first.event as MovePieceEvent).pieceId,
+        0,
+      );
+      expect(
+        (state.moveLog.last.event as RollEvent).diceValue,
+        6,
+      );
     });
   });
 }

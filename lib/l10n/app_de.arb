@@ -1,0 +1,117 @@
+{
+  "@@locale": "de",
+  "appTitle": "Ludo Club",
+  "@appTitle": {},
+  "appSubtitle": "Schlankes lokales Brettspiel",
+  "@appSubtitle": {},
+  "newGame": "Neu starten",
+  "@newGame": {},
+  "undo": "Zurück",
+  "@undo": {},
+  "clearSave": "Speicherstand löschen",
+  "@clearSave": {},
+  "playerSetup": "Spieler-Setup",
+  "@playerSetup": {},
+  "rules": "Regeln",
+  "@rules": {},
+  "moveLog": "Zugprotokoll",
+  "@moveLog": {},
+  "noMovesYet": "Noch keine Züge.",
+  "@noMovesYet": {},
+  "players": "Spieler",
+  "@players": {},
+  "dice": "Würfel",
+  "@dice": {},
+  "gameOver": "Partie beendet",
+  "@gameOver": {},
+  "selectPiece": "Figur auswählen",
+  "@selectPiece": {},
+  "selectMove": "Zug auswählen",
+  "@selectMove": {},
+  "tapToMove": "Eine markierte Figur antippen.",
+  "@tapToMove": {},
+  "oneRoll": "1 Startwurf",
+  "@oneRoll": {},
+  "threeRolls": "3 Startwürfe",
+  "@threeRolls": {},
+  "mustLeaveBaseOnSix": "Bei 6 aus dem Haus ziehen",
+  "@mustLeaveBaseOnSix": {},
+  "blockOwnFields": "Eigene Felder blockieren",
+  "@blockOwnFields": {},
+  "extraTurnOnFinish": "Bonuswurf beim Ziel",
+  "@extraTurnOnFinish": {},
+  "extraTurnOnCapture": "Bonuswurf nach Schlag",
+  "@extraTurnOnCapture": {},
+  "threeSixesEndTurn": "Dritte 6 beendet den Zug",
+  "@threeSixesEndTurn": {},
+  "mustCapture": "Schlagzwang",
+  "@mustCapture": {},
+  "playerWins": "{name} gewinnt",
+  "@playerWins": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "playerTurn": "{name} ist dran",
+  "@playerTurn": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "playerRolls": "{name} würfelt",
+  "@playerRolls": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "finishedCount": "{count}/4",
+  "@finishedCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "moveLogRoll": "{name}: {dice}",
+  "@moveLogRoll": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "dice": {"type": "int"}
+    }
+  },
+  "moveLogNoMove": "{name}: {dice}, kein Zug",
+  "@moveLogNoMove": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "dice": {"type": "int"}
+    }
+  },
+  "moveLogThreeSixes": "{name}: dritte 6, Zug verfällt",
+  "@moveLogThreeSixes": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "moveLogMovePiece": "{name}: {dice} mit Figur {piece}{capture}{finish}",
+  "@moveLogMovePiece": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "dice": {"type": "int"},
+      "piece": {"type": "int"},
+      "capture": {"type": "String"},
+      "finish": {"type": "String"}
+    }
+  },
+  "moveLogCapture": ", schlägt {count}",
+  "@moveLogCapture": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "moveLogFinish": ", im Ziel",
+  "@moveLogFinish": {},
+  "moveLogWin": "{name} gewinnt die Partie!",
+  "@moveLogWin": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  }
+}

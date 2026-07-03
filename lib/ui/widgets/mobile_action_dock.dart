@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ludo_club/constants/app_colors.dart';
 import 'package:ludo_club/constants/app_dimensions.dart';
+import 'package:ludo_club/l10n/app_localizations.dart';
 import 'package:ludo_club/models/ludo_models.dart';
 import 'package:ludo_club/theme/player_palette.dart';
 import 'package:ludo_club/ui/widgets/board_arena.dart';
@@ -22,12 +23,13 @@ class MobileActionDock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final currentColor = state.winner ?? state.currentPlayer.color;
     final color = currentColor.paint;
     final canRoll = state.phase == TurnPhase.waitingForRoll;
     final title = state.phase == TurnPhase.gameOver
-        ? '${currentColor.label} gewinnt'
-        : '${state.currentPlayer.name} ist dran';
+        ? l10n.playerWins(currentColor.label)
+        : l10n.playerTurn(state.currentPlayer.name);
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -91,8 +93,8 @@ class MobileActionDock extends StatelessWidget {
                 icon: const Icon(Icons.casino_outlined),
                 label: Text(
                   canRoll
-                      ? '${state.currentPlayer.name} würfelt'
-                      : 'Figur auswählen',
+                      ? l10n.playerRolls(state.currentPlayer.name)
+                      : l10n.selectPiece,
                 ),
               ),
             ),

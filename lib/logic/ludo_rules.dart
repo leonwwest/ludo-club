@@ -1,5 +1,6 @@
 import 'package:ludo_club/constants/game_constants.dart';
 import 'package:ludo_club/models/ludo_models.dart';
+import 'package:ludo_club/models/move_event.dart';
 
 class LudoRules {
   const LudoRules._();
@@ -143,8 +144,7 @@ class LudoRules {
         rolled.copyWith(
           moveLog: _appendLog(
             state,
-            '${state.currentPlayer.name}: dritte 6, Zug verfällt',
-            state.currentPlayer.color,
+            ThreeSixesEvent(player: state.currentPlayer.color),
           ),
         ),
         diceValue: null,
@@ -166,8 +166,10 @@ class LudoRules {
             '${state.currentPlayer.name} würfelt $diceValue und darf nochmal (${remaining + 1}. Versuch).',
         moveLog: _appendLog(
           state,
-          '${state.currentPlayer.name}: $diceValue, kein Zug',
-          state.currentPlayer.color,
+          NoMoveEvent(
+            player: state.currentPlayer.color,
+            diceValue: diceValue,
+          ),
         ),
       );
     }
@@ -176,8 +178,10 @@ class LudoRules {
       rolled.copyWith(
         moveLog: _appendLog(
           state,
-          '${state.currentPlayer.name}: $diceValue, kein Zug',
-          state.currentPlayer.color,
+          NoMoveEvent(
+            player: state.currentPlayer.color,
+            diceValue: diceValue,
+          ),
         ),
       ),
       diceValue: diceValue,
@@ -236,8 +240,7 @@ class LudoRules {
         turnMessage: '${updatedMover.name} gewinnt die Partie.',
         moveLog: _appendLog(
           state,
-          _logMessage(updatedMover, summary, diceValue),
-          updatedMover.color,
+          WinEvent(player: updatedMover.color),
         ),
       );
     }
@@ -257,8 +260,13 @@ class LudoRules {
         turnMessage: '${updatedMover.name} $reason und ist nochmal dran.',
         moveLog: _appendLog(
           state,
-          _logMessage(updatedMover, summary, diceValue),
-          updatedMover.color,
+          MovePieceEvent(
+            player: updatedMover.color,
+            pieceId: piece.id,
+            diceValue: diceValue,
+            capturedCount: capturedPieces.length,
+            finished: finished,
+          ),
         ),
       );
     }
@@ -269,8 +277,13 @@ class LudoRules {
         moveSummary: summary,
         moveLog: _appendLog(
           state,
-          _logMessage(updatedMover, summary, diceValue),
-          updatedMover.color,
+          MovePieceEvent(
+            player: updatedMover.color,
+            pieceId: piece.id,
+            diceValue: diceValue,
+            capturedCount: capturedPieces.length,
+            finished: finished,
+          ),
         ),
       ),
       diceValue: null,
@@ -405,23 +418,11 @@ class LudoRules {
 
   static List<MoveLogEntry> _appendLog(
     LudoGameState state,
-    String message,
-    PlayerColor color,
+    MoveEvent event,
   ) {
     return [
-      MoveLogEntry(message: message, color: color),
+      MoveLogEntry(event: event, color: event.player),
       ...state.moveLog,
     ].take(GameConstants.moveLogCap).toList(growable: false);
-  }
-
-  static String _logMessage(
-    LudoPlayer player,
-    MoveSummary summary,
-    int diceValue,
-  ) {
-    final capture =
-        summary.didCapture ? ', schlägt ${summary.captured.length}' : '';
-    final finish = summary.finished ? ', im Ziel' : '';
-    return '${player.name}: $diceValue mit Figur ${summary.pieceId + 1}$capture$finish';
   }
 }

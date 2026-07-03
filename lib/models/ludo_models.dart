@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:ludo_club/constants/game_constants.dart';
+import 'package:ludo_club/models/move_event.dart';
 
 enum PlayerColor { red, green, yellow, blue }
 
@@ -250,18 +251,27 @@ class MoveSummary {
 
 @immutable
 class MoveLogEntry {
-  const MoveLogEntry({required this.message, required this.color});
+  const MoveLogEntry({required this.event, required this.color});
 
-  final String message;
+  final MoveEvent event;
   final PlayerColor color;
 
   Map<String, Object> toJson() {
-    return {'message': message, 'color': color.name};
+    return {
+      'event': event.toJson(),
+      'color': color.name,
+    };
   }
 
   factory MoveLogEntry.fromJson(Map<String, Object?> json) {
+    final eventJson = json['event'];
     return MoveLogEntry(
-      message: json['message'] as String? ?? '',
+      event: eventJson is Map<String, Object?>
+          ? MoveEvent.fromJson(eventJson)
+          : RollEvent(
+              player: _playerColorFromJson(json['color']),
+              diceValue: 0,
+            ),
       color: _playerColorFromJson(json['color']),
     );
   }

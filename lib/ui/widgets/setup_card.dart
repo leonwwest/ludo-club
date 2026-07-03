@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ludo_club/l10n/app_localizations.dart';
 import 'package:ludo_club/models/ludo_models.dart';
 import 'package:ludo_club/widgets/player_avatar.dart';
 
@@ -14,6 +15,7 @@ class SetupCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -21,7 +23,7 @@ class SetupCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Spieler-Setup',
+              l10n.playerSetup,
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 12),

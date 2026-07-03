@@ -4,9 +4,16 @@ version: 2.0.0+1
 environment:
   sdk: ">=3.6.0 <4.0.0"
 
+flutter_intl:
+  enabled: true
+  main_locale: de
+
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: any
   provider: ^6.1.5
   shared_preferences: ^2.5.5
 
@@ -17,6 +24,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  generate: true
   assets:
     - assets/avatars/
     - assets/branding/

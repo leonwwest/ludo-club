@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ludo_club/constants/app_colors.dart';
+import 'package:ludo_club/l10n/app_localizations.dart';
+import 'package:ludo_club/l10n/move_log_formatter.dart';
 import 'package:ludo_club/models/ludo_models.dart';
 import 'package:ludo_club/theme/player_palette.dart';
 
@@ -10,6 +12,7 @@ class MoveLogCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -17,13 +20,13 @@ class MoveLogCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Zugprotokoll',
+              l10n.moveLog,
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 12),
             if (state.moveLog.isEmpty)
               Text(
-                'Noch keine Züge.',
+                l10n.noMovesYet,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: AppColors.slate500,
                     ),
@@ -43,7 +46,7 @@ class MoveLogCard extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        entry.message,
+                        MoveLogFormatter.format(context, entry, state),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),

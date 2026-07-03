@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:ludo_club/constants/app_colors.dart';
 import 'package:ludo_club/constants/app_dimensions.dart';
 import 'package:ludo_club/constants/app_durations.dart';
+import 'package:ludo_club/constants/assets.dart';
+import 'package:ludo_club/l10n/app_localizations.dart';
 import 'package:ludo_club/models/ludo_models.dart';
 
 class DicePanel extends StatelessWidget {
@@ -12,6 +14,7 @@ class DicePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final canRoll = state.phase == TurnPhase.waitingForRoll;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -20,7 +23,7 @@ class DicePanel extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                state.phase == TurnPhase.gameOver ? 'Partie beendet' : 'Würfel',
+                state.phase == TurnPhase.gameOver ? l10n.gameOver : l10n.dice,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
             ),
@@ -42,14 +45,16 @@ class DicePanel extends StatelessWidget {
           icon: ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: Image.asset(
-              'assets/dice/roll_dice_v2.png',
+              AssetMapper.dice,
               width: 22,
               height: 22,
               fit: BoxFit.cover,
             ),
           ),
           label: Text(
-            canRoll ? '${state.currentPlayer.name} würfelt' : 'Zug auswählen',
+            canRoll
+                ? l10n.playerRolls(state.currentPlayer.name)
+                : l10n.selectMove,
           ),
         ),
       ],
@@ -67,9 +72,9 @@ class DiceFace extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     if (value == null) {
       return ClipRRect(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
         child: Image.asset(
-          'assets/dice/roll_dice_v2.png',
+          AssetMapper.dice,
           width: 64,
           height: 64,
           fit: BoxFit.cover,
