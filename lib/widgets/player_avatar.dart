@@ -8,25 +8,32 @@ class PlayerAvatar extends StatelessWidget {
     required this.color,
     this.size = 36,
     this.borderWidth = 2,
+    this.semanticLabel,
     super.key,
   });
 
   final PlayerColor color;
   final double size;
   final double borderWidth;
+  final String? semanticLabel;
 
   @override
   Widget build(BuildContext context) {
     final paint = color.paint;
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(color: paint, width: borderWidth),
-        image: DecorationImage(
-          image: AssetImage(AssetMapper.avatarFor(color)),
-          fit: BoxFit.cover,
+    return Semantics(
+      label: semanticLabel ?? color.label,
+      image: true,
+      excludeSemantics: true,
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: paint, width: borderWidth),
+          image: DecorationImage(
+            image: AssetImage(AssetMapper.avatarFor(color)),
+            fit: BoxFit.cover,
+          ),
         ),
       ),
     );

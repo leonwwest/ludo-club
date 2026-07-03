@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:ludo_club/constants/app_colors.dart';
 import 'package:ludo_club/constants/app_dimensions.dart';
@@ -22,67 +24,78 @@ class GameScreen extends StatelessWidget {
         : AppDimensions.pagePaddingNarrow;
 
     return Scaffold(
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage(AssetMapper.background),
-            fit: BoxFit.cover,
-            colorFilter: ColorFilter.mode(
-              AppColors.backgroundOverlay,
-              BlendMode.srcOver,
+      body: ExcludeSemantics(
+        child: DecoratedBox(
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage(AssetMapper.background),
+              fit: BoxFit.cover,
+              colorFilter: ColorFilter.mode(
+                AppColors.backgroundOverlay,
+                BlendMode.srcOver,
+              ),
             ),
           ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: EdgeInsets.all(pagePadding),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                HeaderBar(
-                  playerCount: controller.playerCount,
-                  canUndo: controller.canUndo,
-                  onPlayerCountChanged: (count) =>
+          child: SafeArea(
+            child: Padding(
+              padding: EdgeInsets.all(pagePadding),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  HeaderBar(
+                    playerCount: controller.playerCount,
+                    canUndo: controller.canUndo,
+                    onPlayerCountChanged: (count) => unawaited(
                       controller.newGame(playerCount: count),
-                  onRestart: () => controller.newGame(),
-                  onUndo: controller.undoLastAction,
-                  onClearSave: controller.clearSavedGame,
-                ),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: isWide
-                      ? Row(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Expanded(child: BoardStage(state: state)),
-                            const SizedBox(width: 16),
-                            SizedBox(
-                              width: AppDimensions.sidePanelWidth,
-                              child: SingleChildScrollView(
-                                child: SidePanel(
-                                  state: state,
-                                  onRoll: controller.rollDice,
-                                  onPlayerNameChanged:
-                                      controller.updatePlayerName,
-                                  onRulesChanged: controller.updateRules,
+                    ),
+                    onRestart: () => unawaited(controller.newGame()),
+                    onUndo: () => unawaited(controller.undoLastAction()),
+                    onClearSave: () => unawaited(controller.clearSavedGame()),
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: isWide
+                        ? Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(child: BoardStage(state: state)),
+                              const SizedBox(width: 16),
+                              SizedBox(
+                                width: AppDimensions.sidePanelWidth,
+                                child: SingleChildScrollView(
+                                  child: SidePanel(
+                                    state: state,
+                                    onRoll: () =>
+                                        unawaited(controller.rollDice()),
+                                    onPlayerNameChanged: (color, name) =>
+                                        unawaited(
+                                      controller.updatePlayerName(color, name),
+                                    ),
+                                    onRulesChanged: (rules) => unawaited(
+                                      controller.updateRules(rules),
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
-                        )
-                      : ListView(
-                          physics: const BouncingScrollPhysics(),
-                          children: [
-                            MobileGameLayout(
-                              state: state,
-                              onRoll: controller.rollDice,
-                              onPlayerNameChanged: controller.updatePlayerName,
-                              onRulesChanged: controller.updateRules,
-                            ),
-                          ],
-                        ),
-                ),
-              ],
+                            ],
+                          )
+                        : ListView(
+                            physics: const BouncingScrollPhysics(),
+                            children: [
+                              MobileGameLayout(
+                                state: state,
+                                onRoll: () => unawaited(controller.rollDice()),
+                                onPlayerNameChanged: (color, name) => unawaited(
+                                  controller.updatePlayerName(color, name),
+                                ),
+                                onRulesChanged: (rules) =>
+                                    unawaited(controller.updateRules(rules)),
+                              ),
+                            ],
+                          ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

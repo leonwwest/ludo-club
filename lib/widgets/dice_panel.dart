@@ -69,39 +69,45 @@ class DiceFace extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
     if (value == null) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
-        child: Image.asset(
-          AssetMapper.dice,
-          width: 64,
-          height: 64,
-          fit: BoxFit.cover,
+      return ExcludeSemantics(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
+          child: Image.asset(
+            AssetMapper.dice,
+            width: 64,
+            height: 64,
+            fit: BoxFit.cover,
+          ),
         ),
       );
     }
 
-    return Container(
-      width: 64,
-      height: 64,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
-        border: Border.all(color: colorScheme.outlineVariant),
-        boxShadow: const [
-          BoxShadow(
-            color: AppColors.shadowLight,
-            blurRadius: 18,
-            offset: Offset(0, 8),
+    return Semantics(
+      label: l10n.dice,
+      child: Container(
+        width: 64,
+        height: 64,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
+          border: Border.all(color: colorScheme.outlineVariant),
+          boxShadow: const [
+            BoxShadow(
+              color: AppColors.shadowLight,
+              blurRadius: 18,
+              offset: Offset(0, 8),
+            ),
+          ],
+        ),
+        child: CustomPaint(
+          painter: _DicePainter(
+            value: value,
+            pipColor: colorScheme.onSurface,
+            idleColor: colorScheme.outline,
           ),
-        ],
-      ),
-      child: CustomPaint(
-        painter: _DicePainter(
-          value: value,
-          pipColor: colorScheme.onSurface,
-          idleColor: colorScheme.outline,
         ),
       ),
     );

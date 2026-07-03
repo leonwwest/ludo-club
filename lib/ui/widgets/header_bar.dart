@@ -34,14 +34,16 @@ class HeaderBar extends StatelessWidget {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ClipRRect(
-              borderRadius:
-                  BorderRadius.circular(AppDimensions.borderRadiusSmall),
-              child: Image.asset(
-                AssetMapper.branding,
-                width: 58,
-                height: 58,
-                fit: BoxFit.cover,
+            ExcludeSemantics(
+              child: ClipRRect(
+                borderRadius:
+                    BorderRadius.circular(AppDimensions.borderRadiusSmall),
+                child: Image.asset(
+                  AssetMapper.branding,
+                  width: 58,
+                  height: 58,
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
             const SizedBox(width: 14),

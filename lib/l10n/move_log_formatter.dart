@@ -36,7 +36,7 @@ class MoveLogFormatter {
       NoMoveEvent(:final diceValue) =>
         l10n.moveLogNoMove(playerName, diceValue),
       ThreeSixesEvent() => l10n.moveLogThreeSixes(playerName),
-      ExtraRollEvent(:final diceValue, :final attempt) =>
+      ExtraRollEvent(:final diceValue) =>
         l10n.moveLogRoll(playerName, diceValue),
       MovePieceEvent(
         :final pieceId,
