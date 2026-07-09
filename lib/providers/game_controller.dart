@@ -191,6 +191,15 @@ class GameController extends ChangeNotifier {
     await movePiece(piece);
   }
 
+  Future<bool> performOnlyLegalMoveIfAvailable() async {
+    final candidates = movablePieces;
+    if (candidates.length != 1) {
+      return false;
+    }
+    await movePiece(candidates.single);
+    return true;
+  }
+
   Future<void> clearSavedGame() async {
     await _storage.clearSavedGame();
   }

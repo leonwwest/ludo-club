@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:ludo_club/constants/app_colors.dart';
 import 'package:ludo_club/constants/app_dimensions.dart';
+import 'package:ludo_club/constants/assets.dart';
 import 'package:ludo_club/l10n/app_localizations.dart';
 import 'package:ludo_club/models/ludo_models.dart';
 import 'package:ludo_club/theme/player_palette.dart';
 import 'package:ludo_club/ui/widgets/board_arena.dart';
-import 'package:ludo_club/ui/widgets/move_log_card.dart';
-import 'package:ludo_club/ui/widgets/rule_options_card.dart';
-import 'package:ludo_club/ui/widgets/setup_card.dart';
 import 'package:ludo_club/widgets/dice_panel.dart';
 import 'package:ludo_club/widgets/player_avatar.dart';
 
@@ -16,12 +14,18 @@ class MobileActionDock extends StatelessWidget {
     required this.state,
     required this.onRoll,
     required this.isBotTurn,
+    required this.onOpenSetup,
+    required this.onOpenRules,
+    required this.onOpenMoveLog,
     super.key,
   });
 
   final LudoGameState state;
   final VoidCallback onRoll;
   final bool isBotTurn;
+  final VoidCallback onOpenSetup;
+  final VoidCallback onOpenRules;
+  final VoidCallback onOpenMoveLog;
 
   @override
   Widget build(BuildContext context) {
@@ -36,11 +40,18 @@ class MobileActionDock extends StatelessWidget {
     final title = state.phase == TurnPhase.gameOver
         ? l10n.playerWins(currentColor.label)
         : l10n.playerTurn(state.currentPlayer.name);
+    final actionLabel = canRoll
+        ? l10n.playerRolls(state.currentPlayer.name)
+        : isBotTurn
+            ? '${state.currentPlayer.name} denkt ...'
+            : l10n.selectPiece;
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: AppColors.cardSurface,
-        borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
+        color: AppColors.headerPanel,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(AppDimensions.borderRadiusSmall),
+        ),
         border: Border.all(color: color.withValues(alpha: 0.32)),
         boxShadow: [
           BoxShadow(
@@ -51,17 +62,35 @@ class MobileActionDock extends StatelessWidget {
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
               children: [
-                PlayerAvatar(
-                  color: currentColor,
-                  avatarId: currentPlayer.avatarId,
-                  size: 48,
-                  borderWidth: 2.5,
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    PlayerAvatar(
+                      color: currentColor,
+                      avatarId: currentPlayer.avatarId,
+                      size: 48,
+                      borderWidth: 2.5,
+                    ),
+                    Positioned(
+                      right: -7,
+                      bottom: -6,
+                      child: Image.asset(
+                        state.phase == TurnPhase.gameOver
+                            ? AssetMapper.winnerTrophyBadge
+                            : AssetMapper.currentTurnBadge,
+                        width: 26,
+                        height: 26,
+                        filterQuality: FilterQuality.high,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -74,6 +103,7 @@ class MobileActionDock extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style:
                             Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: AppColors.paper,
                                   fontWeight: FontWeight.w900,
                                 ),
                       ),
@@ -82,7 +112,7 @@ class MobileActionDock extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.slate500,
+                              color: AppColors.paper.withValues(alpha: 0.7),
                             ),
                       ),
                     ],
@@ -92,24 +122,57 @@ class MobileActionDock extends StatelessWidget {
                 SizedBox(
                   width: 58,
                   height: 58,
-                  child: FittedBox(child: DiceFace(value: state.diceValue)),
+                  child: FittedBox(
+                    child: AnimatedDiceFace(value: state.diceValue),
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 48,
-              child: FilledButton.icon(
-                onPressed: canRoll ? onRoll : null,
-                icon: const Icon(Icons.casino_outlined),
-                label: Text(
-                  canRoll
-                      ? l10n.playerRolls(state.currentPlayer.name)
-                      : isBotTurn
-                          ? '${state.currentPlayer.name} denkt ...'
-                          : l10n.selectPiece,
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: AppDimensions.minTouchTarget,
+                    child: FilledButton.icon(
+                      onPressed: canRoll ? onRoll : null,
+                      icon: ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: Image.asset(
+                          AssetMapper.diceIdle,
+                          width: 22,
+                          height: 22,
+                          fit: BoxFit.cover,
+                          filterQuality: FilterQuality.high,
+                        ),
+                      ),
+                      label: Text(
+                        actionLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+                const SizedBox(width: 8),
+                _DockIconButton(
+                  tooltip: l10n.playerSetup,
+                  icon: Icons.group_outlined,
+                  onPressed: onOpenSetup,
+                ),
+                const SizedBox(width: 8),
+                _DockIconButton(
+                  tooltip: l10n.rules,
+                  icon: Icons.tune,
+                  onPressed: onOpenRules,
+                ),
+                const SizedBox(width: 8),
+                _DockIconButton(
+                  tooltip: l10n.moveLog,
+                  icon: Icons.format_list_bulleted,
+                  onPressed: onOpenMoveLog,
+                ),
+              ],
             ),
           ],
         ),
@@ -118,52 +181,49 @@ class MobileActionDock extends StatelessWidget {
   }
 }
 
+class _DockIconButton extends StatelessWidget {
+  const _DockIconButton({
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox.square(
+      dimension: AppDimensions.minTouchTarget,
+      child: IconButton.outlined(
+        tooltip: tooltip,
+        onPressed: onPressed,
+        style: IconButton.styleFrom(
+          backgroundColor: Colors.white.withValues(alpha: 0.08),
+          foregroundColor: AppColors.paper,
+          side: const BorderSide(color: AppColors.brassHairline),
+          shape: RoundedRectangleBorder(
+            borderRadius:
+                BorderRadius.circular(AppDimensions.borderRadiusSmall),
+          ),
+        ),
+        icon: Icon(icon),
+      ),
+    );
+  }
+}
+
 class MobileGameLayout extends StatelessWidget {
   const MobileGameLayout({
     required this.state,
-    required this.isBotTurn,
-    required this.onRoll,
-    required this.onPlayerNameChanged,
-    required this.onPlayerKindChanged,
-    required this.onPlayerAvatarChanged,
-    required this.onRulesChanged,
     super.key,
   });
 
   final LudoGameState state;
-  final bool isBotTurn;
-  final VoidCallback onRoll;
-  final void Function(PlayerColor color, String name) onPlayerNameChanged;
-  final void Function(PlayerColor color, PlayerKind kind) onPlayerKindChanged;
-  final void Function(PlayerColor color, PlayerAvatarId avatarId)
-      onPlayerAvatarChanged;
-  final ValueChanged<RuleOptions> onRulesChanged;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        BoardArena(state: state),
-        const SizedBox(height: AppDimensions.sectionSpacing),
-        MobileActionDock(
-          state: state,
-          isBotTurn: isBotTurn,
-          onRoll: onRoll,
-        ),
-        const SizedBox(height: AppDimensions.sectionSpacing),
-        SetupCard(
-          state: state,
-          onPlayerNameChanged: onPlayerNameChanged,
-          onPlayerKindChanged: onPlayerKindChanged,
-          onPlayerAvatarChanged: onPlayerAvatarChanged,
-        ),
-        const SizedBox(height: AppDimensions.sectionSpacing),
-        RuleOptionsCard(state: state, onRulesChanged: onRulesChanged),
-        const SizedBox(height: AppDimensions.sectionSpacing),
-        MoveLogCard(state: state),
-        const SizedBox(height: AppDimensions.sectionSpacing),
-      ],
-    );
+    return Center(child: BoardArena(state: state));
   }
 }

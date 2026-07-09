@@ -30,7 +30,10 @@ flutter:
     - assets/avatars/
     - assets/branding/
     - assets/backgrounds/
+    - assets/badges/
+    - assets/board/
     - assets/dice/
+    - assets/effects/
     - assets/pins/
     - assets/textures/
     - assets/audio/

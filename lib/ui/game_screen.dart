@@ -2,17 +2,21 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:ludo_club/constants/app_colors.dart';
 import 'package:ludo_club/constants/app_dimensions.dart';
+import 'package:ludo_club/constants/app_durations.dart';
 import 'package:ludo_club/constants/assets.dart';
+import 'package:ludo_club/l10n/app_localizations.dart';
 import 'package:ludo_club/models/ludo_models.dart';
 import 'package:ludo_club/providers/game_controller.dart';
 import 'package:ludo_club/services/game_feedback.dart';
 import 'package:ludo_club/theme/player_palette.dart';
 import 'package:ludo_club/ui/widgets/header_bar.dart';
 import 'package:ludo_club/ui/widgets/mobile_action_dock.dart';
+import 'package:ludo_club/ui/widgets/move_log_card.dart';
+import 'package:ludo_club/ui/widgets/rule_options_card.dart';
 import 'package:ludo_club/ui/widgets/side_panel.dart';
+import 'package:ludo_club/ui/widgets/setup_card.dart';
 import 'package:ludo_club/widgets/player_avatar.dart';
 import 'package:provider/provider.dart';
 
@@ -48,6 +52,12 @@ class _GameScreenState extends State<GameScreen> {
         : AppDimensions.pagePaddingNarrow;
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
+      bottomNavigationBar: isWide ||
+              _showLaunchPanel == true ||
+              state.phase == TurnPhase.gameOver
+          ? null
+          : _buildMobileDock(controller, state, isVisibleBotTurn),
       body: ExcludeSemantics(
         child: DecoratedBox(
           decoration: const BoxDecoration(
@@ -106,10 +116,7 @@ class _GameScreenState extends State<GameScreen> {
                                     state: state,
                                     isBotTurn: isVisibleBotTurn,
                                     onRoll: () => unawaited(
-                                      _runAction(
-                                        controller.rollDice,
-                                        FeedbackCue.roll,
-                                      ),
+                                      _rollForHuman(controller),
                                     ),
                                     onPlayerNameChanged: (color, name) =>
                                         unawaited(
@@ -135,36 +142,7 @@ class _GameScreenState extends State<GameScreen> {
                             ],
                           )
                         else
-                          ListView(
-                            physics: const BouncingScrollPhysics(),
-                            children: [
-                              MobileGameLayout(
-                                state: state,
-                                isBotTurn: isVisibleBotTurn,
-                                onRoll: () => unawaited(
-                                  _runAction(
-                                    controller.rollDice,
-                                    FeedbackCue.roll,
-                                  ),
-                                ),
-                                onPlayerNameChanged: (color, name) => unawaited(
-                                  controller.updatePlayerName(color, name),
-                                ),
-                                onPlayerKindChanged: (color, kind) => unawaited(
-                                  controller.updatePlayerKind(color, kind),
-                                ),
-                                onPlayerAvatarChanged: (color, avatarId) =>
-                                    unawaited(
-                                  controller.updatePlayerAvatar(
-                                    color,
-                                    avatarId,
-                                  ),
-                                ),
-                                onRulesChanged: (rules) =>
-                                    unawaited(controller.updateRules(rules)),
-                              ),
-                            ],
-                          ),
+                          MobileGameLayout(state: state),
                         if (_showLaunchPanel == true)
                           LaunchSetupOverlay(
                             state: state,
@@ -246,6 +224,154 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
+  Widget _buildMobileDock(
+    GameController controller,
+    LudoGameState state,
+    bool isVisibleBotTurn,
+  ) {
+    return SafeArea(
+      top: false,
+      child: MobileActionDock(
+        state: state,
+        isBotTurn: isVisibleBotTurn,
+        onRoll: () => unawaited(_rollForHuman(controller)),
+        onOpenSetup: _showSetupSheet,
+        onOpenRules: _showRulesSheet,
+        onOpenMoveLog: () => _showMoveLogSheet(),
+      ),
+    );
+  }
+
+  Future<void> _rollForHuman(GameController controller) async {
+    await controller.rollDice();
+    if (!mounted) {
+      return;
+    }
+    await Future<void>.delayed(AppDurations.slow);
+    if (!mounted || controller.isBotTurn) {
+      return;
+    }
+    await controller.performOnlyLegalMoveIfAvailable();
+  }
+
+  void _showSetupSheet() {
+    _playFeedback(FeedbackCue.tap);
+    _showMobileToolSheet(
+      title: AppLocalizations.of(context)!.playerSetup,
+      builder: (sheetContext) => Consumer<GameController>(
+        builder: (context, controller, _) {
+          return SetupCard(
+            state: controller.state,
+            onPlayerNameChanged: (color, name) => unawaited(
+              controller.updatePlayerName(color, name),
+            ),
+            onPlayerKindChanged: (color, kind) => unawaited(
+              controller.updatePlayerKind(color, kind),
+            ),
+            onPlayerAvatarChanged: (color, avatarId) => unawaited(
+              controller.updatePlayerAvatar(color, avatarId),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showRulesSheet() {
+    _playFeedback(FeedbackCue.tap);
+    _showMobileToolSheet(
+      title: AppLocalizations.of(context)!.rules,
+      builder: (sheetContext) => Consumer<GameController>(
+        builder: (context, controller, _) {
+          return RuleOptionsCard(
+            state: controller.state,
+            onRulesChanged: (rules) => unawaited(controller.updateRules(rules)),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showMoveLogSheet() {
+    _playFeedback(FeedbackCue.tap);
+    _showMobileToolSheet(
+      title: AppLocalizations.of(context)!.moveLog,
+      builder: (sheetContext) => Consumer<GameController>(
+        builder: (context, controller, _) {
+          return MoveLogCard(state: controller.state);
+        },
+      ),
+    );
+  }
+
+  void _showMobileToolSheet({
+    required String title,
+    required WidgetBuilder builder,
+  }) {
+    unawaited(
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        useSafeArea: true,
+        backgroundColor: AppColors.paper,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(AppDimensions.borderRadiusSmall),
+          ),
+        ),
+        builder: (sheetContext) {
+          return Padding(
+            padding: EdgeInsets.only(
+              left: 12,
+              right: 12,
+              top: 10,
+              bottom: MediaQuery.viewInsetsOf(sheetContext).bottom + 12,
+            ),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.86,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: Theme.of(sheetContext)
+                              .textTheme
+                              .titleLarge
+                              ?.copyWith(
+                                fontWeight: FontWeight.w900,
+                              ),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: MaterialLocalizations.of(sheetContext)
+                            .closeButtonTooltip,
+                        onPressed: () => Navigator.of(sheetContext).pop(),
+                        icon: const Icon(Icons.close),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Flexible(
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      child: builder(sheetContext),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Future<void> _runAction(
     Future<void> Function() action,
     FeedbackCue cue,
@@ -287,46 +413,9 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _playFeedback(FeedbackCue cue) {
-    switch (cue) {
-      case FeedbackCue.tap:
-        unawaited(GameFeedbackAudio.play(GameAudioCue.tap));
-        unawaited(HapticFeedback.selectionClick());
-        unawaited(SystemSound.play(SystemSoundType.click));
-        break;
-      case FeedbackCue.start:
-        unawaited(GameFeedbackAudio.play(GameAudioCue.tap));
-        unawaited(HapticFeedback.mediumImpact());
-        unawaited(SystemSound.play(SystemSoundType.click));
-        break;
-      case FeedbackCue.roll:
-        unawaited(GameFeedbackAudio.play(GameAudioCue.roll));
-        unawaited(HapticFeedback.lightImpact());
-        unawaited(SystemSound.play(SystemSoundType.click));
-        break;
-      case FeedbackCue.move:
-        unawaited(GameFeedbackAudio.play(GameAudioCue.move));
-        unawaited(HapticFeedback.selectionClick());
-        break;
-      case FeedbackCue.capture:
-        unawaited(GameFeedbackAudio.play(GameAudioCue.capture));
-        unawaited(HapticFeedback.heavyImpact());
-        unawaited(SystemSound.play(SystemSoundType.alert));
-        break;
-      case FeedbackCue.finish:
-        unawaited(GameFeedbackAudio.play(GameAudioCue.move));
-        unawaited(HapticFeedback.mediumImpact());
-        unawaited(SystemSound.play(SystemSoundType.click));
-        break;
-      case FeedbackCue.win:
-        unawaited(GameFeedbackAudio.play(GameAudioCue.win));
-        unawaited(HapticFeedback.heavyImpact());
-        unawaited(SystemSound.play(SystemSoundType.alert));
-        break;
-    }
+    unawaited(GameFeedback.play(cue));
   }
 }
-
-enum FeedbackCue { tap, start, roll, move, capture, finish, win }
 
 class LaunchSetupOverlay extends StatelessWidget {
   const LaunchSetupOverlay({
@@ -355,6 +444,14 @@ class LaunchSetupOverlay extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: AppColors.feltDeep.withValues(alpha: 0.78),
+          image: DecorationImage(
+            image: const AssetImage(AssetMapper.tableSkinNight),
+            fit: BoxFit.cover,
+            colorFilter: ColorFilter.mode(
+              AppColors.feltDeep.withValues(alpha: 0.62),
+              BlendMode.srcOver,
+            ),
+          ),
         ),
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -372,39 +469,7 @@ class LaunchSetupOverlay extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Row(
-                            children: [
-                              Image.asset(
-                                AssetMapper.branding,
-                                width: 58,
-                                height: 58,
-                              ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Partie einrichten',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .headlineSmall
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.w900,
-                                          ),
-                                    ),
-                                    Text(
-                                      'Spieler, Bots und Regeln festlegen.',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodyMedium
-                                          ?.copyWith(color: AppColors.slate600),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
+                          const _SetupHeroHeader(),
                           const SizedBox(height: 18),
                           SegmentedButton<int>(
                             segments: const [
@@ -474,6 +539,103 @@ class LaunchSetupOverlay extends StatelessWidget {
   }
 }
 
+class _SetupHeroHeader extends StatelessWidget {
+  const _SetupHeroHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
+      child: SizedBox(
+        height: 178,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.asset(
+              AssetMapper.setupHero,
+              fit: BoxFit.cover,
+              filterQuality: FilterQuality.high,
+            ),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    AppColors.ink.withValues(alpha: 0.08),
+                    AppColors.ink.withValues(alpha: 0.8),
+                  ],
+                ),
+              ),
+            ),
+            Positioned(
+              left: 14,
+              right: 14,
+              bottom: 12,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(
+                        AppDimensions.borderRadiusSmall,
+                      ),
+                      border: Border.all(color: AppColors.brassHairline),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(5),
+                      child: Image.asset(
+                        AssetMapper.branding,
+                        width: 46,
+                        height: 46,
+                        filterQuality: FilterQuality.high,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Partie einrichten',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(
+                                color: AppColors.paper,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0,
+                              ),
+                        ),
+                        Text(
+                          'Spieler, Bots und Regeln festlegen.',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: AppColors.paper.withValues(
+                                      alpha: 0.76,
+                                    ),
+                                  ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _SetupPlayerChip extends StatelessWidget {
   const _SetupPlayerChip({
     required this.player,
@@ -522,13 +684,19 @@ class _SetupPlayerChip extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(player.name),
                 const SizedBox(width: 8),
-                Icon(
-                  player.isBot
-                      ? Icons.smart_toy_outlined
-                      : Icons.person_outline,
-                  size: 18,
-                  color: player.color.paint,
-                ),
+                if (player.isBot)
+                  Image.asset(
+                    AssetMapper.botBadge,
+                    width: 22,
+                    height: 22,
+                    filterQuality: FilterQuality.high,
+                  )
+                else
+                  Icon(
+                    Icons.person_outline,
+                    size: 18,
+                    color: player.color.paint,
+                  ),
                 const SizedBox(width: 4),
                 Text(
                   player.isBot ? 'Bot' : 'Mensch',
@@ -573,10 +741,30 @@ class WinnerOverlay extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: AppColors.feltDeep.withValues(alpha: 0.52),
+          image: DecorationImage(
+            image: const AssetImage(AssetMapper.tableSkinClassic),
+            fit: BoxFit.cover,
+            colorFilter: ColorFilter.mode(
+              AppColors.feltDeep.withValues(alpha: 0.7),
+              BlendMode.srcOver,
+            ),
+          ),
         ),
         child: Stack(
           children: [
             Positioned.fill(child: WinCelebration(color: winner.color.paint)),
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Opacity(
+                  opacity: 0.42,
+                  child: Image.asset(
+                    AssetMapper.winnerConfetti,
+                    fit: BoxFit.cover,
+                    filterQuality: FilterQuality.high,
+                  ),
+                ),
+              ),
+            ),
             Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 500),
@@ -587,39 +775,9 @@ class WinnerOverlay extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Row(
-                          children: [
-                            PlayerAvatar(
-                              color: winner.color,
-                              avatarId: winner.avatarId,
-                              size: 72,
-                              borderWidth: 3,
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '${winner.name} gewinnt',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .headlineSmall
-                                        ?.copyWith(
-                                          fontWeight: FontWeight.w900,
-                                        ),
-                                  ),
-                                  Text(
-                                    '${state.moveLog.length} protokollierte Aktionen',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium
-                                        ?.copyWith(color: AppColors.slate600),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+                        _WinnerHeroHeader(
+                          winner: winner,
+                          actionCount: state.moveLog.length,
                         ),
                         const SizedBox(height: 16),
                         Wrap(
@@ -654,6 +812,96 @@ class WinnerOverlay extends StatelessWidget {
                     ),
                   ),
                 ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _WinnerHeroHeader extends StatelessWidget {
+  const _WinnerHeroHeader({
+    required this.winner,
+    required this.actionCount,
+  });
+
+  final LudoPlayer winner;
+  final int actionCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
+      child: SizedBox(
+        height: 112,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.asset(
+              AssetMapper.winnerRibbon,
+              fit: BoxFit.fill,
+              filterQuality: FilterQuality.high,
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      PlayerAvatar(
+                        color: winner.color,
+                        avatarId: winner.avatarId,
+                        size: 72,
+                        borderWidth: 3,
+                      ),
+                      Positioned(
+                        right: -11,
+                        bottom: -9,
+                        child: Image.asset(
+                          AssetMapper.winnerTrophyBadge,
+                          width: 42,
+                          height: 42,
+                          filterQuality: FilterQuality.high,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 18),
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${winner.name} gewinnt',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(
+                                color: AppColors.ink,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0,
+                              ),
+                        ),
+                        Text(
+                          '$actionCount protokollierte Aktionen',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: AppColors.brassDark,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

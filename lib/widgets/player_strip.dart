@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:ludo_club/constants/app_colors.dart';
 import 'package:ludo_club/constants/app_dimensions.dart';
 import 'package:ludo_club/constants/app_durations.dart';
+import 'package:ludo_club/constants/assets.dart';
 import 'package:ludo_club/l10n/app_localizations.dart';
 import 'package:ludo_club/logic/ludo_rules.dart';
 import 'package:ludo_club/models/ludo_models.dart';
@@ -87,10 +88,11 @@ class _PlayerProgressTile extends StatelessWidget {
               ),
               if (player.isBot) ...[
                 const SizedBox(width: 8),
-                Icon(
-                  Icons.smart_toy_outlined,
-                  size: 18,
-                  color: color,
+                Image.asset(
+                  AssetMapper.botBadge,
+                  width: 24,
+                  height: 24,
+                  filterQuality: FilterQuality.high,
                 ),
               ],
               const SizedBox(width: 8),

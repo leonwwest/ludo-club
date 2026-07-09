@@ -33,23 +33,7 @@ class DicePanel extends StatelessWidget {
                 style: Theme.of(context).textTheme.titleMedium,
               ),
             ),
-            AnimatedSwitcher(
-              duration: AppDurations.normal,
-              transitionBuilder: (child, animation) {
-                final curved = CurvedAnimation(
-                  parent: animation,
-                  curve: Curves.easeOutBack,
-                );
-                return RotationTransition(
-                  turns: Tween<double>(begin: -0.16, end: 0).animate(curved),
-                  child: ScaleTransition(scale: curved, child: child),
-                );
-              },
-              child: DiceFace(
-                key: ValueKey(state.diceValue ?? 0),
-                value: state.diceValue,
-              ),
-            ),
+            AnimatedDiceFace(value: state.diceValue),
           ],
         ),
         const SizedBox(height: 16),
@@ -58,7 +42,7 @@ class DicePanel extends StatelessWidget {
           icon: ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: Image.asset(
-              AssetMapper.dice,
+              AssetMapper.diceIdle,
               width: 22,
               height: 22,
               fit: BoxFit.cover,
@@ -77,6 +61,33 @@ class DicePanel extends StatelessWidget {
   }
 }
 
+class AnimatedDiceFace extends StatelessWidget {
+  const AnimatedDiceFace({required this.value, super.key});
+
+  final int? value;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: AppDurations.normal,
+      transitionBuilder: (child, animation) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutBack,
+        );
+        return RotationTransition(
+          turns: Tween<double>(begin: -0.16, end: 0).animate(curved),
+          child: ScaleTransition(scale: curved, child: child),
+        );
+      },
+      child: DiceFace(
+        key: ValueKey(value ?? 0),
+        value: value,
+      ),
+    );
+  }
+}
+
 class DiceFace extends StatelessWidget {
   const DiceFace({required this.value, super.key});
 
@@ -85,104 +96,52 @@ class DiceFace extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final colorScheme = Theme.of(context).colorScheme;
     if (value == null) {
-      return ExcludeSemantics(
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
-          child: Image.asset(
-            AssetMapper.dice,
-            width: 64,
-            height: 64,
-            fit: BoxFit.cover,
-          ),
-        ),
+      return const ExcludeSemantics(
+        child: _DiceAsset(path: AssetMapper.diceIdle),
       );
     }
 
     return Semantics(
       label: l10n.dice,
-      child: Container(
-        width: 64,
-        height: 64,
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFFFFFCF2),
-              Color(0xFFF0E3C4),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
-          border: Border.all(color: AppColors.brassHairline, width: 1.4),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.brass.withValues(alpha: 0.18),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
-            const BoxShadow(
-              color: AppColors.shadowLight,
-              blurRadius: 10,
-              offset: Offset(0, 3),
-            ),
-          ],
-        ),
-        child: CustomPaint(
-          painter: _DicePainter(
-            value: value,
-            pipColor: AppColors.ink,
-            idleColor: colorScheme.outline,
-          ),
-        ),
-      ),
+      child: _DiceAsset(path: AssetMapper.diceFace(value!)),
     );
   }
 }
 
-class _DicePainter extends CustomPainter {
-  const _DicePainter({
-    required this.value,
-    required this.pipColor,
-    required this.idleColor,
-  });
+class _DiceAsset extends StatelessWidget {
+  const _DiceAsset({required this.path});
 
-  final int? value;
-  final Color pipColor;
-  final Color idleColor;
+  final String path;
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = value == null ? idleColor : pipColor;
-    final radius = size.shortestSide * 0.055;
-    final center = Offset(size.width / 2, size.height / 2);
-    final left = Offset(size.width * 0.3, size.height * 0.3);
-    final right = Offset(size.width * 0.7, size.height * 0.7);
-    final topRight = Offset(size.width * 0.7, size.height * 0.3);
-    final bottomLeft = Offset(size.width * 0.3, size.height * 0.7);
-    final middleLeft = Offset(size.width * 0.3, size.height * 0.5);
-    final middleRight = Offset(size.width * 0.7, size.height * 0.5);
-
-    final pips = switch (value) {
-      1 => [center],
-      2 => [left, right],
-      3 => [left, center, right],
-      4 => [left, topRight, bottomLeft, right],
-      5 => [left, topRight, center, bottomLeft, right],
-      6 => [left, middleLeft, bottomLeft, topRight, middleRight, right],
-      _ => [center],
-    };
-
-    for (final pip in pips) {
-      canvas.drawCircle(pip, radius, paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _DicePainter oldDelegate) {
-    return oldDelegate.value != value ||
-        oldDelegate.pipColor != pipColor ||
-        oldDelegate.idleColor != idleColor;
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.brass.withValues(alpha: 0.18),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+          const BoxShadow(
+            color: AppColors.shadowLight,
+            blurRadius: 10,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
+        child: Image.asset(
+          path,
+          width: 64,
+          height: 64,
+          fit: BoxFit.cover,
+          filterQuality: FilterQuality.high,
+        ),
+      ),
+    );
   }
 }

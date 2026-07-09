@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ludo_club/constants/app_colors.dart';
 import 'package:ludo_club/constants/app_dimensions.dart';
+import 'package:ludo_club/constants/assets.dart';
 import 'package:ludo_club/l10n/app_localizations.dart';
 import 'package:ludo_club/models/ludo_models.dart';
 import 'package:ludo_club/widgets/player_avatar.dart';
@@ -30,11 +31,28 @@ class StatusCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                PlayerAvatar(
-                  color: currentColor,
-                  avatarId: currentPlayer.avatarId,
-                  size: 52,
-                  borderWidth: 3,
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    PlayerAvatar(
+                      color: currentColor,
+                      avatarId: currentPlayer.avatarId,
+                      size: 52,
+                      borderWidth: 3,
+                    ),
+                    Positioned(
+                      right: -8,
+                      bottom: -7,
+                      child: Image.asset(
+                        state.phase == TurnPhase.gameOver
+                            ? AssetMapper.winnerTrophyBadge
+                            : AssetMapper.currentTurnBadge,
+                        width: 28,
+                        height: 28,
+                        filterQuality: FilterQuality.high,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(width: 12),
                 Expanded(

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:ludo_club/constants/app_colors.dart';
 import 'package:ludo_club/constants/app_dimensions.dart';
 import 'package:ludo_club/constants/app_durations.dart';
+import 'package:ludo_club/constants/assets.dart';
 import 'package:ludo_club/l10n/app_localizations.dart';
 import 'package:ludo_club/models/ludo_models.dart';
 import 'package:ludo_club/theme/player_palette.dart';
@@ -21,12 +22,12 @@ class BoardArena extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final heightCap = constraints.maxHeight.isFinite
-            ? math.max(260.0, constraints.maxHeight - badgeHeight)
+            ? math.max(220.0, constraints.maxHeight - badgeHeight)
             : constraints.maxWidth;
-        final boardSize = math
-            .min(constraints.maxWidth, heightCap)
+        final rawBoardSize = math.min(constraints.maxWidth, heightCap);
+        final boardSize = rawBoardSize
             .clamp(
-              AppDimensions.boardSizeMin,
+              math.min(AppDimensions.boardSizeMin, rawBoardSize),
               AppDimensions.boardSizeMax,
             )
             .toDouble();
@@ -138,71 +139,91 @@ class _CornerPlayerBadge extends StatelessWidget {
     }
 
     final color = player.color.paint;
+    final content = AnimatedContainer(
+      duration: AppDurations.normal,
+      width: width,
+      padding: const EdgeInsets.all(7),
+      decoration: BoxDecoration(
+        color: isCurrent
+            ? AppColors.cardSurface
+            : AppColors.cardSurface.withValues(alpha: 0.9),
+        borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
+        border: Border.all(
+          color: isCurrent ? color : AppColors.brassHairline,
+          width: isCurrent ? 2 : 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: isCurrent ? 0.26 : 0.1),
+            blurRadius: isCurrent ? 18 : 10,
+            offset: const Offset(0, 7),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          PlayerAvatar(color: player.color, avatarId: player.avatarId),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  player.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        height: 1.05,
+                      ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${player.color.colorLabel}  ${AppLocalizations.of(context)!.finishedCount(player.finishedCount)}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: AppColors.slate500,
+                        height: 1.05,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
     final badge = AnimatedScale(
       duration: AppDurations.normal,
       scale: isCurrent ? 1.04 : 1,
-      child: AnimatedContainer(
-        duration: AppDurations.normal,
-        width: width,
-        padding: const EdgeInsets.all(7),
-        decoration: BoxDecoration(
-          color: isCurrent
-              ? AppColors.cardSurface
-              : AppColors.cardSurface.withValues(alpha: 0.9),
-          borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
-          border: Border.all(
-            color: isCurrent ? color : AppColors.brassHairline,
-            width: isCurrent ? 2 : 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: color.withValues(alpha: isCurrent ? 0.26 : 0.1),
-              blurRadius: isCurrent ? 18 : 10,
-              offset: const Offset(0, 7),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            PlayerAvatar(color: player.color, avatarId: player.avatarId),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    player.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          fontWeight: FontWeight.w900,
-                          height: 1.05,
-                        ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${player.color.colorLabel}  ${AppLocalizations.of(context)!.finishedCount(player.finishedCount)}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: AppColors.slate500,
-                          height: 1.05,
-                        ),
-                  ),
-                ],
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          content,
+          if (isCurrent)
+            Positioned(
+              top: -15,
+              right: -12,
+              child: Image.asset(
+                AssetMapper.currentTurnBadge,
+                width: 42,
+                height: 42,
+                filterQuality: FilterQuality.high,
               ),
             ),
-            if (player.isBot) ...[
-              const SizedBox(width: 6),
-              Icon(
-                Icons.smart_toy_outlined,
-                size: 16,
-                color: color,
+          if (player.isBot)
+            Positioned(
+              right: -8,
+              bottom: -9,
+              child: Image.asset(
+                AssetMapper.botBadge,
+                width: 30,
+                height: 30,
+                filterQuality: FilterQuality.high,
               ),
-            ],
-          ],
-        ),
+            ),
+        ],
       ),
     );
 

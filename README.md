@@ -12,6 +12,7 @@ audio, database, AI, or statistics layers.
 - Editable local player names, legal-move target explanations, undo, and a compact move log
 - Automatic local save/resume via shared preferences with an explicit clear-save action
 - Responsive 15x15 Ludo board rendered with Flutter canvas and widgets
+- Mobile-first play surface with sticky action dock, bottom-sheet setup/rules/log, larger touch targets, target taps, auto single-move turns, and haptic feedback
 - Generated brand mark, native/web app icons, avatars, dice art, and background texture
 - Single controller based on `ChangeNotifier`
 - Focused tests for rules, controller behavior, and app rendering
@@ -50,6 +51,17 @@ flutter analyze
 flutter test
 flutter run -d chrome
 ```
+
+## Device checks
+
+```sh
+flutter build ios --debug --no-codesign
+flutter build apk --debug
+```
+
+iPhone builds are portrait-first. Android builds require a local Android SDK
+and `ANDROID_HOME`; release distribution also needs a real release signing
+configuration instead of debug signing.
 
 ## Notes
 

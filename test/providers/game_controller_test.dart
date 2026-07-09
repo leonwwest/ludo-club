@@ -195,6 +195,53 @@ void main() {
       );
     });
 
+    test('performs the only legal move when exactly one exists', () async {
+      final baseState = LudoGameState.newGame(playerCount: 2);
+      final red = baseState.players.first;
+      final controller = createController(
+        diceRoller: () => 3,
+        initialState: baseState.copyWith(
+          players: [
+            red.copyWith(
+              pieces: [
+                red.pieces[0].copyWith(steps: 0),
+                red.pieces[1].copyWith(steps: 57),
+                red.pieces[2].copyWith(steps: 57),
+                red.pieces[3].copyWith(steps: 57),
+              ],
+            ),
+            baseState.players.last,
+          ],
+        ),
+      );
+
+      await controller.rollDice();
+      final moved = await controller.performOnlyLegalMoveIfAvailable();
+
+      expect(moved, isTrue);
+      expect(controller.state.players.first.pieces.first.steps, 3);
+      expect(controller.state.phase, TurnPhase.waitingForRoll);
+      expect(controller.state.currentPlayer.color, PlayerColor.yellow);
+    });
+
+    test('does not auto-move when multiple legal moves exist', () async {
+      final controller = createController(
+        diceRoller: () => 6,
+        initialPlayerCount: 2,
+      );
+
+      await controller.rollDice();
+      final moved = await controller.performOnlyLegalMoveIfAvailable();
+
+      expect(moved, isFalse);
+      expect(controller.movablePieces, hasLength(4));
+      expect(controller.state.phase, TurnPhase.waitingForMove);
+      expect(
+        controller.state.players.first.pieces.every((piece) => piece.isInBase),
+        isTrue,
+      );
+    });
+
     test('persists state after rule and turn updates', () async {
       final storage = zeroDelayStorage();
       final controller = createController(
