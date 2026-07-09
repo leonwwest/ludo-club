@@ -40,7 +40,7 @@ class LudoClubApp extends StatelessWidget {
         scaffoldBackgroundColor: AppColors.surface,
         colorScheme: ColorScheme.fromSeed(
           seedColor: AppColors.teal,
-          surface: Colors.white,
+          surface: AppColors.paper,
         ).copyWith(
           primary: AppColors.teal,
           secondary: AppColors.red,
@@ -52,17 +52,68 @@ class LudoClubApp extends StatelessWidget {
           displayColor: AppColors.ink,
         ),
         cardTheme: const CardThemeData(
+          color: AppColors.cardSurface,
           elevation: 0,
           margin: EdgeInsets.zero,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.all(
               Radius.circular(AppDimensions.borderRadiusSmall),
             ),
-            side: BorderSide(color: AppColors.slate200),
+            side: BorderSide(color: AppColors.brassHairline),
+          ),
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.teal,
+            foregroundColor: AppColors.paper,
+            disabledBackgroundColor: AppColors.slate300,
+            disabledForegroundColor: AppColors.slate600,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(
+                AppDimensions.borderRadiusSmall,
+              ),
+            ),
+          ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.ink,
+            side: const BorderSide(color: AppColors.brassHairline),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(
+                AppDimensions.borderRadiusSmall,
+              ),
+            ),
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: Colors.white.withValues(alpha: 0.7),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(
+              AppDimensions.borderRadiusSmall,
+            ),
+            borderSide: const BorderSide(color: AppColors.brass, width: 1.4),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(
+              AppDimensions.borderRadiusSmall,
+            ),
+            borderSide: const BorderSide(color: AppColors.brassHairline),
           ),
         ),
         segmentedButtonTheme: SegmentedButtonThemeData(
           style: ButtonStyle(
+            backgroundColor: WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.selected)) {
+                return AppColors.brass.withValues(alpha: 0.28);
+              }
+              return Colors.white.withValues(alpha: 0.62);
+            }),
+            foregroundColor: WidgetStateProperty.all(AppColors.ink),
+            side: WidgetStateProperty.all(
+              const BorderSide(color: AppColors.brassHairline),
+            ),
             shape: WidgetStateProperty.all(
               RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(

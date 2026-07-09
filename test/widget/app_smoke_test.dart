@@ -11,16 +11,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 Widget _wrappedApp(GameController controller) {
   return ChangeNotifierProvider.value(
     value: controller,
-    child: MaterialApp(
-      localizationsDelegates: const [
+    child: const MaterialApp(
+      localizationsDelegates: [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: AppLocalizations.supportedLocales,
-      locale: const Locale('de'),
-      home: const LudoClubApp(),
+      locale: Locale('de'),
+      home: LudoClubApp(),
     ),
   );
 }

@@ -19,13 +19,19 @@ void main() {
       DiceRoller? diceRoller,
       Random? random,
       int initialPlayerCount = 4,
+      LudoGameState? initialState,
       GameStorage? storage,
+      Duration botTurnDelay = const Duration(milliseconds: 720),
+      bool botAutomationEnabled = true,
     }) {
       final controller = GameController(
         diceRoller: diceRoller,
         random: random,
         initialPlayerCount: initialPlayerCount,
+        initialState: initialState,
         storage: storage ?? zeroDelayStorage(),
+        botTurnDelay: botTurnDelay,
+        botAutomationEnabled: botAutomationEnabled,
       );
       addTearDown(controller.dispose);
       return controller;
@@ -77,6 +83,42 @@ void main() {
       expect(controller.state.players.first.name, 'Mira');
     });
 
+    test('updates player kind in the current state', () async {
+      final controller = createController(initialPlayerCount: 2);
+
+      await controller.updatePlayerKind(PlayerColor.yellow, PlayerKind.bot);
+
+      expect(controller.state.players.last.kind, PlayerKind.bot);
+      expect(controller.state.players.last.isBot, isTrue);
+    });
+
+    test('updates player avatar in the current state', () async {
+      final controller = createController(initialPlayerCount: 2);
+
+      await controller.updatePlayerAvatar(
+        PlayerColor.yellow,
+        PlayerAvatarId.kiran,
+      );
+
+      expect(controller.state.players.last.avatarId, PlayerAvatarId.kiran);
+    });
+
+    test('new game preserves configured player avatars', () async {
+      final controller = createController(initialPlayerCount: 2);
+
+      await controller.updatePlayerAvatar(
+        PlayerColor.yellow,
+        PlayerAvatarId.kiran,
+      );
+      await controller.newGame();
+
+      expect(controller.state.players.last.avatarId, PlayerAvatarId.kiran);
+      expect(
+        controller.state.players.last.pieces.every((piece) => piece.isInBase),
+        isTrue,
+      );
+    });
+
     test('serializes and restores game state', () {
       final state = LudoGameState.newGame(
         playerCount: 2,
@@ -87,6 +129,8 @@ void main() {
           mustCapture: true,
         ),
         playerNames: const {PlayerColor.red: 'Mira'},
+        playerKinds: const {PlayerColor.yellow: PlayerKind.bot},
+        playerAvatars: const {PlayerColor.yellow: PlayerAvatarId.kiran},
       ).copyWith(
         consecutiveSixes: 2,
         moveLog: [
@@ -106,6 +150,8 @@ void main() {
       final restored = LudoGameState.fromJson(state.toJson());
 
       expect(restored.players.first.name, 'Mira');
+      expect(restored.players.last.kind, PlayerKind.bot);
+      expect(restored.players.last.avatarId, PlayerAvatarId.kiran);
       expect(restored.rules.blockOwnFields, isTrue);
       expect(restored.rules.extraTurnOnCapture, isFalse);
       expect(restored.rules.threeSixesEndTurn, isTrue);
@@ -177,6 +223,65 @@ void main() {
       expect(restored.players.first.pieces.first.steps, 0);
       expect(restored.phase, TurnPhase.waitingForRoll);
       expect(restored.moveLog.first.event, isA<MovePieceEvent>());
+    });
+
+    test('automatically plays bot turns', () async {
+      final rolls = [6, 3].iterator;
+      final controller = createController(
+        diceRoller: () {
+          if (rolls.moveNext()) {
+            return rolls.current;
+          }
+          return 2;
+        },
+        initialState: LudoGameState.newGame(
+          playerCount: 2,
+          playerKinds: const {PlayerColor.red: PlayerKind.bot},
+        ),
+        botTurnDelay: Duration.zero,
+      );
+
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(controller.state.currentPlayer.color, PlayerColor.yellow);
+      expect(controller.state.players.first.pieces.first.steps, 3);
+      expect(controller.state.moveLog.first.event, isA<MovePieceEvent>());
+    });
+
+    test('can pause bot automation until setup is started', () async {
+      final rolls = [6, 3].iterator;
+      final controller = createController(
+        diceRoller: () {
+          if (rolls.moveNext()) {
+            return rolls.current;
+          }
+          return 2;
+        },
+        initialState: LudoGameState.newGame(
+          playerCount: 2,
+          playerKinds: const {PlayerColor.red: PlayerKind.bot},
+        ),
+        botTurnDelay: Duration.zero,
+        botAutomationEnabled: false,
+      );
+
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(controller.state.currentPlayer.color, PlayerColor.red);
+      expect(controller.state.moveLog, isEmpty);
+
+      controller.setBotAutomationEnabled(true);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(controller.state.currentPlayer.color, PlayerColor.yellow);
+      expect(controller.state.moveLog.first.event, isA<MovePieceEvent>());
     });
 
     test('clearSavedGame removes the persisted state', () async {

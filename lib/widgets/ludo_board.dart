@@ -28,6 +28,7 @@ class LudoBoard extends StatelessWidget {
           final pieceSize = (cell * 1.08).clamp(28.0, 56.0).toDouble();
           final pieces =
               state.players.expand((player) => player.pieces).toList();
+          final canInteract = !controller.isBotTurn;
           final stackCounts = _stackCountsFor(pieces);
           final stackIndexes = <String, int>{};
           final moveTargets = {
@@ -38,14 +39,20 @@ class LudoBoard extends StatelessWidget {
 
           return DecoratedBox(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.feltDeep,
               borderRadius:
                   BorderRadius.circular(AppDimensions.borderRadiusSmall),
+              border: Border.all(color: AppColors.brass, width: 2),
               boxShadow: const [
                 BoxShadow(
                   color: AppColors.shadowBoard,
-                  blurRadius: 26,
-                  offset: Offset(0, 16),
+                  blurRadius: 32,
+                  offset: Offset(0, 18),
+                ),
+                BoxShadow(
+                  color: Color(0x331F1202),
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
                 ),
               ],
             ),
@@ -57,6 +64,19 @@ class LudoBoard extends StatelessWidget {
                 children: [
                   const Positioned.fill(
                     child: CustomPaint(painter: BoardPainter()),
+                  ),
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: Opacity(
+                        opacity: 0.18,
+                        child: Image.asset(
+                          AssetMapper.boardTexture,
+                          fit: BoxFit.cover,
+                          repeat: ImageRepeat.repeat,
+                          filterQuality: FilterQuality.low,
+                        ),
+                      ),
+                    ),
                   ),
                   for (final piece in pieces)
                     if (moveTargets['${piece.color.name}:${piece.id}']
@@ -77,6 +97,7 @@ class LudoBoard extends StatelessWidget {
                       pieceSize,
                       stackCounts,
                       stackIndexes,
+                      canInteract,
                     ),
                 ],
               ),
@@ -94,6 +115,7 @@ class LudoBoard extends StatelessWidget {
     double pieceSize,
     Map<String, int> stackCounts,
     Map<String, int> stackIndexes,
+    bool canInteract,
   ) {
     final key = _positionKey(piece);
     final stackCount = stackCounts[key] ?? 1;
@@ -107,7 +129,7 @@ class LudoBoard extends StatelessWidget {
         ? Offset.zero
         : BoardGeometry.stackJitter(stackIndex, stackCount, pieceSize);
     final offset = baseOffset + jitter;
-    final isMovable = controller.isMovable(piece);
+    final isMovable = canInteract && controller.isMovable(piece);
     final moveHint = controller.moveHintFor(piece);
 
     return AnimatedPositioned(

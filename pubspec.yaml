@@ -9,6 +9,7 @@ flutter_intl:
   main_locale: de
 
 dependencies:
+  audioplayers: ^6.7.1
   flutter:
     sdk: flutter
   flutter_localizations:
@@ -31,3 +32,5 @@ flutter:
     - assets/backgrounds/
     - assets/dice/
     - assets/pins/
+    - assets/textures/
+    - assets/audio/

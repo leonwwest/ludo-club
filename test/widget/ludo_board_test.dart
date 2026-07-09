@@ -56,7 +56,17 @@ void main() {
     );
 
     expect(find.byType(LudoBoard), findsOneWidget);
-    expect(find.byType(Image), findsNWidgets(16));
+    expect(
+      find.byWidgetPredicate((widget) {
+        if (widget is! Image || widget.image is! AssetImage) {
+          return false;
+        }
+        return (widget.image as AssetImage).assetName.startsWith(
+              'assets/pins/',
+            );
+      }),
+      findsNWidgets(16),
+    );
   });
 
   testWidgets('shows target halos and move hints after a playable roll',

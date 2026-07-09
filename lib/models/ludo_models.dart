@@ -4,6 +4,10 @@ import 'package:ludo_club/models/move_event.dart';
 
 enum PlayerColor { red, green, yellow, blue }
 
+enum PlayerKind { human, bot }
+
+enum PlayerAvatarId { sisiliya, flora, abdul, kiran }
+
 extension PlayerColorMetadata on PlayerColor {
   String get label {
     return switch (this) {
@@ -38,6 +42,17 @@ extension PlayerColorMetadata on PlayerColor {
       PlayerColor.green => 'Grün',
       PlayerColor.yellow => 'Gelb',
       PlayerColor.blue => 'Blau',
+    };
+  }
+}
+
+extension PlayerAvatarMetadata on PlayerAvatarId {
+  String get label {
+    return switch (this) {
+      PlayerAvatarId.sisiliya => 'Sisiliya',
+      PlayerAvatarId.flora => 'Flora',
+      PlayerAvatarId.abdul => 'Abdul',
+      PlayerAvatarId.kiran => 'Kiran',
     };
   }
 }
@@ -155,20 +170,33 @@ class LudoPlayer {
     required this.color,
     required this.name,
     required List<LudoPiece> pieces,
-  }) : pieces = List.unmodifiable(pieces);
+    this.kind = PlayerKind.human,
+    PlayerAvatarId? avatarId,
+  })  : avatarId = avatarId ?? _defaultAvatarFor(color),
+        pieces = List.unmodifiable(pieces);
 
   final PlayerColor color;
   final String name;
   final List<LudoPiece> pieces;
+  final PlayerKind kind;
+  final PlayerAvatarId avatarId;
 
   int get finishedCount => pieces.where((piece) => piece.isFinished).length;
   bool get hasWon => finishedCount == pieces.length;
+  bool get isBot => kind == PlayerKind.bot;
 
-  LudoPlayer copyWith({String? name, List<LudoPiece>? pieces}) {
+  LudoPlayer copyWith({
+    String? name,
+    List<LudoPiece>? pieces,
+    PlayerKind? kind,
+    PlayerAvatarId? avatarId,
+  }) {
     return LudoPlayer(
       color: color,
       name: name ?? this.name,
       pieces: pieces ?? this.pieces,
+      kind: kind ?? this.kind,
+      avatarId: avatarId ?? this.avatarId,
     );
   }
 
@@ -176,6 +204,8 @@ class LudoPlayer {
     return {
       'color': color.name,
       'name': name,
+      'kind': kind.name,
+      'avatarId': avatarId.name,
       'pieces': [for (final piece in pieces) piece.toJson()],
     };
   }
@@ -186,6 +216,11 @@ class LudoPlayer {
       color: _playerColorFromJson(json['color']),
       name:
           json['name'] as String? ?? _playerColorFromJson(json['color']).label,
+      kind: _playerKindFromJson(json['kind']),
+      avatarId: _playerAvatarFromJson(
+        json['avatarId'],
+        color: _playerColorFromJson(json['color']),
+      ),
       pieces: piecesJson is List
           ? [
               for (final piece in piecesJson)
@@ -298,6 +333,8 @@ class LudoGameState {
     int playerCount = 4,
     RuleOptions rules = const RuleOptions(),
     Map<PlayerColor, String> playerNames = const {},
+    Map<PlayerColor, PlayerKind> playerKinds = const {},
+    Map<PlayerColor, PlayerAvatarId> playerAvatars = const {},
   }) {
     if (playerCount < GameConstants.minPlayers ||
         playerCount > GameConstants.maxPlayers) {
@@ -314,6 +351,8 @@ class LudoGameState {
             name: playerNames[color]?.trim().isNotEmpty == true
                 ? playerNames[color]!.trim()
                 : color.label,
+            kind: playerKinds[color] ?? PlayerKind.human,
+            avatarId: playerAvatars[color] ?? _defaultAvatarFor(color),
             pieces: [
               for (var id = 0; id < 4; id++)
                 LudoPiece(color: color, id: id, steps: -1),
@@ -465,4 +504,30 @@ PlayerColor _playerColorFromJson(Object? value) {
     (color) => color.name == value,
     orElse: () => PlayerColor.red,
   );
+}
+
+PlayerKind _playerKindFromJson(Object? value) {
+  return PlayerKind.values.firstWhere(
+    (kind) => kind.name == value,
+    orElse: () => PlayerKind.human,
+  );
+}
+
+PlayerAvatarId _playerAvatarFromJson(
+  Object? value, {
+  required PlayerColor color,
+}) {
+  return PlayerAvatarId.values.firstWhere(
+    (avatar) => avatar.name == value,
+    orElse: () => _defaultAvatarFor(color),
+  );
+}
+
+PlayerAvatarId _defaultAvatarFor(PlayerColor color) {
+  return switch (color) {
+    PlayerColor.red => PlayerAvatarId.sisiliya,
+    PlayerColor.green => PlayerAvatarId.flora,
+    PlayerColor.yellow => PlayerAvatarId.abdul,
+    PlayerColor.blue => PlayerAvatarId.kiran,
+  };
 }

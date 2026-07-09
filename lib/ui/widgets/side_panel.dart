@@ -12,15 +12,22 @@ import 'package:ludo_club/widgets/player_strip.dart';
 class SidePanel extends StatelessWidget {
   const SidePanel({
     required this.state,
+    required this.isBotTurn,
     required this.onRoll,
     required this.onPlayerNameChanged,
+    required this.onPlayerKindChanged,
+    required this.onPlayerAvatarChanged,
     required this.onRulesChanged,
     super.key,
   });
 
   final LudoGameState state;
+  final bool isBotTurn;
   final VoidCallback onRoll;
   final void Function(PlayerColor color, String name) onPlayerNameChanged;
+  final void Function(PlayerColor color, PlayerKind kind) onPlayerKindChanged;
+  final void Function(PlayerColor color, PlayerAvatarId avatarId)
+      onPlayerAvatarChanged;
   final ValueChanged<RuleOptions> onRulesChanged;
 
   @override
@@ -33,7 +40,11 @@ class SidePanel extends StatelessWidget {
         Card(
           child: Padding(
             padding: const EdgeInsets.all(16),
-            child: DicePanel(state: state, onRoll: onRoll),
+            child: DicePanel(
+              state: state,
+              isBotTurn: isBotTurn,
+              onRoll: onRoll,
+            ),
           ),
         ),
         const SizedBox(height: AppDimensions.sectionSpacing),
@@ -44,7 +55,12 @@ class SidePanel extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppDimensions.sectionSpacing),
-        SetupCard(state: state, onPlayerNameChanged: onPlayerNameChanged),
+        SetupCard(
+          state: state,
+          onPlayerNameChanged: onPlayerNameChanged,
+          onPlayerKindChanged: onPlayerKindChanged,
+          onPlayerAvatarChanged: onPlayerAvatarChanged,
+        ),
         const SizedBox(height: AppDimensions.sectionSpacing),
         RuleOptionsCard(state: state, onRulesChanged: onRulesChanged),
         const SizedBox(height: AppDimensions.sectionSpacing),

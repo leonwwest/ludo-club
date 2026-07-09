@@ -146,10 +146,12 @@ class _CornerPlayerBadge extends StatelessWidget {
         width: width,
         padding: const EdgeInsets.all(7),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: isCurrent ? 0.97 : 0.88),
+          color: isCurrent
+              ? AppColors.cardSurface
+              : AppColors.cardSurface.withValues(alpha: 0.9),
           borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
           border: Border.all(
-            color: isCurrent ? color : Colors.white.withValues(alpha: 0.76),
+            color: isCurrent ? color : AppColors.brassHairline,
             width: isCurrent ? 2 : 1,
           ),
           boxShadow: [
@@ -162,7 +164,7 @@ class _CornerPlayerBadge extends StatelessWidget {
         ),
         child: Row(
           children: [
-            PlayerAvatar(color: player.color),
+            PlayerAvatar(color: player.color, avatarId: player.avatarId),
             const SizedBox(width: 8),
             Expanded(
               child: Column(
@@ -191,6 +193,14 @@ class _CornerPlayerBadge extends StatelessWidget {
                 ],
               ),
             ),
+            if (player.isBot) ...[
+              const SizedBox(width: 6),
+              Icon(
+                Icons.smart_toy_outlined,
+                size: 16,
+                color: color,
+              ),
+            ],
           ],
         ),
       ),

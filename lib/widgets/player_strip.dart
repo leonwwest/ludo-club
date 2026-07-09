@@ -48,10 +48,12 @@ class _PlayerProgressTile extends StatelessWidget {
       duration: AppDurations.normal,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isCurrent ? color.withValues(alpha: 0.1) : AppColors.slate50,
+        color: isCurrent
+            ? color.withValues(alpha: 0.12)
+            : AppColors.paper.withValues(alpha: 0.72),
         borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
         border: Border.all(
-          color: isCurrent ? color : AppColors.slate200,
+          color: isCurrent ? color : AppColors.brassHairline,
           width: isCurrent ? 1.5 : 1,
         ),
       ),
@@ -60,7 +62,11 @@ class _PlayerProgressTile extends StatelessWidget {
         children: [
           Row(
             children: [
-              PlayerAvatar(color: player.color, size: 34),
+              PlayerAvatar(
+                color: player.color,
+                avatarId: player.avatarId,
+                size: 34,
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -79,6 +85,15 @@ class _PlayerProgressTile extends StatelessWidget {
                   ],
                 ),
               ),
+              if (player.isBot) ...[
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.smart_toy_outlined,
+                  size: 18,
+                  color: color,
+                ),
+              ],
+              const SizedBox(width: 8),
               Text(l10n.finishedCount(player.finishedCount)),
             ],
           ),

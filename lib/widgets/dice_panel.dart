@@ -7,15 +7,21 @@ import 'package:ludo_club/l10n/app_localizations.dart';
 import 'package:ludo_club/models/ludo_models.dart';
 
 class DicePanel extends StatelessWidget {
-  const DicePanel({required this.state, required this.onRoll, super.key});
+  const DicePanel({
+    required this.state,
+    required this.onRoll,
+    required this.isBotTurn,
+    super.key,
+  });
 
   final LudoGameState state;
   final VoidCallback onRoll;
+  final bool isBotTurn;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final canRoll = state.phase == TurnPhase.waitingForRoll;
+    final canRoll = state.phase == TurnPhase.waitingForRoll && !isBotTurn;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -30,7 +36,14 @@ class DicePanel extends StatelessWidget {
             AnimatedSwitcher(
               duration: AppDurations.normal,
               transitionBuilder: (child, animation) {
-                return ScaleTransition(scale: animation, child: child);
+                final curved = CurvedAnimation(
+                  parent: animation,
+                  curve: Curves.easeOutBack,
+                );
+                return RotationTransition(
+                  turns: Tween<double>(begin: -0.16, end: 0).animate(curved),
+                  child: ScaleTransition(scale: curved, child: child),
+                );
               },
               child: DiceFace(
                 key: ValueKey(state.diceValue ?? 0),
@@ -54,7 +67,9 @@ class DicePanel extends StatelessWidget {
           label: Text(
             canRoll
                 ? l10n.playerRolls(state.currentPlayer.name)
-                : l10n.selectMove,
+                : isBotTurn
+                    ? '${state.currentPlayer.name} denkt ...'
+                    : l10n.selectMove,
           ),
         ),
       ],
@@ -91,21 +106,33 @@ class DiceFace extends StatelessWidget {
         width: 64,
         height: 64,
         decoration: BoxDecoration(
-          color: Colors.white,
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFFFFFCF2),
+              Color(0xFFF0E3C4),
+            ],
+          ),
           borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
-          border: Border.all(color: colorScheme.outlineVariant),
-          boxShadow: const [
+          border: Border.all(color: AppColors.brassHairline, width: 1.4),
+          boxShadow: [
             BoxShadow(
+              color: AppColors.brass.withValues(alpha: 0.18),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+            const BoxShadow(
               color: AppColors.shadowLight,
-              blurRadius: 18,
-              offset: Offset(0, 8),
+              blurRadius: 10,
+              offset: Offset(0, 3),
             ),
           ],
         ),
         child: CustomPaint(
           painter: _DicePainter(
             value: value,
-            pipColor: colorScheme.onSurface,
+            pipColor: AppColors.ink,
             idleColor: colorScheme.outline,
           ),
         ),

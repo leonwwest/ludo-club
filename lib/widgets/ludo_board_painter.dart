@@ -15,12 +15,33 @@ class BoardPainter extends CustomPainter {
     final board = Offset.zero & size;
     final cell = size.shortestSide / BoardGeometry.gridSize;
 
-    canvas.drawRect(board, Paint()..color = Colors.white);
+    _drawBoardBase(canvas, board);
     _drawPlayerQuadrants(canvas, cell);
     _drawTrack(canvas, cell);
     _drawHomeLanes(canvas, cell);
     _drawCenter(canvas, cell);
     _drawGridBorders(canvas, size, cell);
+  }
+
+  void _drawBoardBase(Canvas canvas, Rect board) {
+    canvas.drawRect(
+      board,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.boardCell,
+            AppColors.boardCellAlt,
+          ],
+        ).createShader(board),
+    );
+    canvas.drawRect(
+      board,
+      Paint()
+        ..color = AppColors.felt.withValues(alpha: 0.08)
+        ..style = PaintingStyle.fill,
+    );
   }
 
   void _drawPlayerQuadrants(Canvas canvas, double cell) {
@@ -56,8 +77,29 @@ class BoardPainter extends CustomPainter {
     Rect rect,
     double cell,
   ) {
-    final paint = Paint()..color = color.paint;
-    canvas.drawRect(rect, paint);
+    final quadrantRect = rect.deflate(cell * 0.06);
+    final quadrant = RRect.fromRectAndRadius(
+      quadrantRect,
+      Radius.circular(cell * 0.2),
+    );
+    final highlight = Color.lerp(color.paint, Colors.white, 0.08)!;
+    final shade = Color.lerp(color.paint, AppColors.ink, 0.18)!;
+    canvas.drawRRect(
+      quadrant,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [highlight, color.paint, shade],
+        ).createShader(quadrantRect),
+    );
+    canvas.drawRRect(
+      quadrant,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = cell * 0.055
+        ..color = AppColors.brass.withValues(alpha: 0.5),
+    );
 
     final inset = cell * 0.85;
     final homeRect = rect.deflate(inset);
@@ -68,15 +110,21 @@ class BoardPainter extends CustomPainter {
     canvas.drawRRect(
       homeRRect,
       Paint()
-        ..color = Colors.white
-        ..style = PaintingStyle.fill,
+        ..shader = const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.paper,
+            AppColors.boardCellAlt,
+          ],
+        ).createShader(homeRect),
     );
     canvas.drawRRect(
       homeRRect,
       Paint()
-        ..color = AppColors.slate800.withValues(alpha: 0.22)
+        ..color = AppColors.brassDark.withValues(alpha: 0.36)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = cell * 0.05,
+        ..strokeWidth = cell * 0.055,
     );
 
     final slotOffsets = [
@@ -99,35 +147,49 @@ class BoardPainter extends CustomPainter {
     ];
     for (final offset in slotOffsets) {
       canvas.drawCircle(
+        offset + Offset(0, cell * 0.05),
+        cell * 0.41,
+        Paint()..color = AppColors.ink.withValues(alpha: 0.12),
+      );
+      canvas.drawCircle(
         offset,
-        cell * 0.38,
-        Paint()..color = AppColors.gray200,
+        cell * 0.39,
+        Paint()
+          ..shader = RadialGradient(
+            colors: [
+              Color.lerp(color.paint, AppColors.paper, 0.84)!,
+              Color.lerp(color.paint, AppColors.paper, 0.62)!,
+            ],
+          ).createShader(
+            Rect.fromCircle(center: offset, radius: cell * 0.39),
+          ),
+      );
+      canvas.drawCircle(
+        offset,
+        cell * 0.39,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = cell * 0.035
+          ..color = color.paint.withValues(alpha: 0.42),
       );
     }
   }
 
   void _drawTrack(Canvas canvas, double cell) {
-    final border = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = cell * 0.035
-      ..color = AppColors.slate600.withValues(alpha: 0.55);
-
     for (var index = 0; index < LudoRules.trackLength; index++) {
       final point = BoardGeometry.trackCell(index);
       final rect = _cellRect(point.row, point.col, cell);
       final startColor = BoardGeometry.startColorFor(index);
       final isSafe = LudoRules.safeFields.contains(index);
-      final fill = startColor?.paint ??
-          (isSafe ? AppColors.slate50 : const Color(0xFFFFFFFF));
-      canvas.drawRect(rect, Paint()..color = fill);
-      canvas.drawRect(rect, border);
+      final fill = _trackFill(startColor, isSafe);
+      _drawTile(canvas, rect, fill, cell);
 
       if (isSafe) {
         _drawStar(
           canvas,
           rect.center,
           cell * 0.28,
-          startColor?.paint ?? AppColors.slate300,
+          startColor?.paint ?? AppColors.brass,
         );
       }
     }
@@ -138,17 +200,17 @@ class BoardPainter extends CustomPainter {
       for (var lane = 0; lane < 5; lane++) {
         final point = BoardGeometry.homeLaneCell(color, lane);
         final rect = _cellRect(point.row, point.col, cell);
-        canvas.drawRect(
+        final fill = Color.lerp(
+          color.paint,
+          AppColors.boardCell,
+          lane == 4 ? 0.12 : 0.24,
+        )!;
+        _drawTile(
+          canvas,
           rect,
-          Paint()
-            ..color = color.paint.withValues(alpha: lane == 4 ? 0.95 : 0.86),
-        );
-        canvas.drawRect(
-          rect,
-          Paint()
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = cell * 0.035
-            ..color = AppColors.slate600.withValues(alpha: 0.45),
+          fill,
+          cell,
+          borderColor: color.paint.withValues(alpha: 0.52),
         );
       }
     }
@@ -180,34 +242,109 @@ class BoardPainter extends CustomPainter {
       ),
     ];
 
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(centerRect, Radius.circular(cell * 0.14)),
+      Paint()..color = AppColors.ink.withValues(alpha: 0.12),
+    );
+
     for (final (color, a, b) in triangles) {
       final path = Path()
         ..moveTo(center.dx, center.dy)
         ..lineTo(a.dx, a.dy)
         ..lineTo(b.dx, b.dy)
         ..close();
-      canvas.drawPath(path, Paint()..color = color.paint);
+      canvas.drawPath(
+        path,
+        Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color.lerp(color.paint, AppColors.paper, 0.1)!,
+              Color.lerp(color.paint, AppColors.ink, 0.12)!,
+            ],
+          ).createShader(centerRect),
+      );
     }
 
-    canvas.drawRect(
-      centerRect,
+    canvas.drawCircle(
+      center,
+      cell * 0.42,
+      Paint()
+        ..shader = RadialGradient(
+          colors: [
+            AppColors.paper,
+            AppColors.brass.withValues(alpha: 0.88),
+          ],
+        ).createShader(Rect.fromCircle(center: center, radius: cell * 0.42)),
+    );
+    _drawStar(canvas, center, cell * 0.24, AppColors.brassDark);
+
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(centerRect, Radius.circular(cell * 0.14)),
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = cell * 0.05
-        ..color = AppColors.ink.withValues(alpha: 0.62),
+        ..strokeWidth = cell * 0.055
+        ..color = AppColors.brassDark.withValues(alpha: 0.62),
     );
   }
 
   void _drawGridBorders(Canvas canvas, Size size, double cell) {
-    final border = Paint()
+    final outerBorder = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = cell * 0.06
-      ..color = AppColors.ink.withValues(alpha: 0.75);
-    canvas.drawRect(Offset.zero & size, border);
+      ..strokeWidth = cell * 0.085
+      ..color = AppColors.ink.withValues(alpha: 0.72);
+    final innerBorder = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = cell * 0.035
+      ..color = AppColors.brass.withValues(alpha: 0.78);
+    canvas.drawRect(Offset.zero & size, outerBorder);
+    canvas.drawRect((Offset.zero & size).deflate(cell * 0.06), innerBorder);
   }
 
   Rect _cellRect(int row, int col, double cell) {
     return Rect.fromLTWH(col * cell, row * cell, cell, cell);
+  }
+
+  void _drawTile(
+    Canvas canvas,
+    Rect rect,
+    Color fill,
+    double cell, {
+    Color? borderColor,
+  }) {
+    final tile = rect.deflate(cell * 0.026);
+    final rrect = RRect.fromRectAndRadius(
+      tile,
+      Radius.circular(cell * 0.085),
+    );
+    canvas.drawRRect(
+      rrect,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color.lerp(fill, Colors.white, 0.12)!,
+            fill,
+            Color.lerp(fill, AppColors.ink, 0.06)!,
+          ],
+        ).createShader(tile),
+    );
+    canvas.drawRRect(
+      rrect,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = cell * 0.026
+        ..color = borderColor ?? AppColors.brassDark.withValues(alpha: 0.28),
+    );
+  }
+
+  Color _trackFill(PlayerColor? startColor, bool isSafe) {
+    if (startColor != null) {
+      return Color.lerp(startColor.paint, AppColors.boardCell, 0.28)!;
+    }
+    return isSafe ? AppColors.safeCell : AppColors.boardCell;
   }
 
   void _drawStar(Canvas canvas, Offset center, double radius, Color color) {

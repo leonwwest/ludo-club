@@ -15,27 +15,33 @@ class MobileActionDock extends StatelessWidget {
   const MobileActionDock({
     required this.state,
     required this.onRoll,
+    required this.isBotTurn,
     super.key,
   });
 
   final LudoGameState state;
   final VoidCallback onRoll;
+  final bool isBotTurn;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final currentColor = state.winner ?? state.currentPlayer.color;
+    final currentPlayer = state.players.firstWhere(
+      (player) => player.color == currentColor,
+      orElse: () => state.currentPlayer,
+    );
     final color = currentColor.paint;
-    final canRoll = state.phase == TurnPhase.waitingForRoll;
+    final canRoll = state.phase == TurnPhase.waitingForRoll && !isBotTurn;
     final title = state.phase == TurnPhase.gameOver
         ? l10n.playerWins(currentColor.label)
         : l10n.playerTurn(state.currentPlayer.name);
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.93),
+        color: AppColors.cardSurface,
         borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
+        border: Border.all(color: color.withValues(alpha: 0.32)),
         boxShadow: [
           BoxShadow(
             color: color.withValues(alpha: 0.14),
@@ -51,7 +57,12 @@ class MobileActionDock extends StatelessWidget {
           children: [
             Row(
               children: [
-                PlayerAvatar(color: currentColor, size: 48, borderWidth: 2.5),
+                PlayerAvatar(
+                  color: currentColor,
+                  avatarId: currentPlayer.avatarId,
+                  size: 48,
+                  borderWidth: 2.5,
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
@@ -94,7 +105,9 @@ class MobileActionDock extends StatelessWidget {
                 label: Text(
                   canRoll
                       ? l10n.playerRolls(state.currentPlayer.name)
-                      : l10n.selectPiece,
+                      : isBotTurn
+                          ? '${state.currentPlayer.name} denkt ...'
+                          : l10n.selectPiece,
                 ),
               ),
             ),
@@ -108,15 +121,22 @@ class MobileActionDock extends StatelessWidget {
 class MobileGameLayout extends StatelessWidget {
   const MobileGameLayout({
     required this.state,
+    required this.isBotTurn,
     required this.onRoll,
     required this.onPlayerNameChanged,
+    required this.onPlayerKindChanged,
+    required this.onPlayerAvatarChanged,
     required this.onRulesChanged,
     super.key,
   });
 
   final LudoGameState state;
+  final bool isBotTurn;
   final VoidCallback onRoll;
   final void Function(PlayerColor color, String name) onPlayerNameChanged;
+  final void Function(PlayerColor color, PlayerKind kind) onPlayerKindChanged;
+  final void Function(PlayerColor color, PlayerAvatarId avatarId)
+      onPlayerAvatarChanged;
   final ValueChanged<RuleOptions> onRulesChanged;
 
   @override
@@ -126,9 +146,18 @@ class MobileGameLayout extends StatelessWidget {
       children: [
         BoardArena(state: state),
         const SizedBox(height: AppDimensions.sectionSpacing),
-        MobileActionDock(state: state, onRoll: onRoll),
+        MobileActionDock(
+          state: state,
+          isBotTurn: isBotTurn,
+          onRoll: onRoll,
+        ),
         const SizedBox(height: AppDimensions.sectionSpacing),
-        SetupCard(state: state, onPlayerNameChanged: onPlayerNameChanged),
+        SetupCard(
+          state: state,
+          onPlayerNameChanged: onPlayerNameChanged,
+          onPlayerKindChanged: onPlayerKindChanged,
+          onPlayerAvatarChanged: onPlayerAvatarChanged,
+        ),
         const SizedBox(height: AppDimensions.sectionSpacing),
         RuleOptionsCard(state: state, onRulesChanged: onRulesChanged),
         const SizedBox(height: AppDimensions.sectionSpacing),

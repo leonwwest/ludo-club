@@ -40,31 +40,47 @@ void main() {
     });
 
     test('homeLaneCell returns correct cells for yellow', () {
-      expect(BoardGeometry.homeLaneCell(PlayerColor.yellow, 0),
-          const GridCell(7, 1));
-      expect(BoardGeometry.homeLaneCell(PlayerColor.yellow, 4),
-          const GridCell(7, 5));
+      expect(
+        BoardGeometry.homeLaneCell(PlayerColor.yellow, 0),
+        const GridCell(7, 1),
+      );
+      expect(
+        BoardGeometry.homeLaneCell(PlayerColor.yellow, 4),
+        const GridCell(7, 5),
+      );
     });
 
     test('homeLaneCell returns correct cells for red', () {
       expect(
-          BoardGeometry.homeLaneCell(PlayerColor.red, 0), const GridCell(1, 7));
+        BoardGeometry.homeLaneCell(PlayerColor.red, 0),
+        const GridCell(1, 7),
+      );
       expect(
-          BoardGeometry.homeLaneCell(PlayerColor.red, 4), const GridCell(5, 7));
+        BoardGeometry.homeLaneCell(PlayerColor.red, 4),
+        const GridCell(5, 7),
+      );
     });
 
     test('homeLaneCell returns correct cells for green', () {
-      expect(BoardGeometry.homeLaneCell(PlayerColor.green, 0),
-          const GridCell(7, 13));
-      expect(BoardGeometry.homeLaneCell(PlayerColor.green, 4),
-          const GridCell(7, 9));
+      expect(
+        BoardGeometry.homeLaneCell(PlayerColor.green, 0),
+        const GridCell(7, 13),
+      );
+      expect(
+        BoardGeometry.homeLaneCell(PlayerColor.green, 4),
+        const GridCell(7, 9),
+      );
     });
 
     test('homeLaneCell returns correct cells for blue', () {
-      expect(BoardGeometry.homeLaneCell(PlayerColor.blue, 0),
-          const GridCell(13, 7));
-      expect(BoardGeometry.homeLaneCell(PlayerColor.blue, 4),
-          const GridCell(9, 7));
+      expect(
+        BoardGeometry.homeLaneCell(PlayerColor.blue, 0),
+        const GridCell(13, 7),
+      );
+      expect(
+        BoardGeometry.homeLaneCell(PlayerColor.blue, 4),
+        const GridCell(9, 7),
+      );
     });
 
     test('positionFor returns base offset for base pieces', () {

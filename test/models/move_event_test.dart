@@ -94,8 +94,8 @@ void main() {
 
   group('MoveLogEntry serialization', () {
     test('round-trips through JSON with MovePieceEvent', () {
-      final entry = MoveLogEntry(
-        event: const MovePieceEvent(
+      const entry = MoveLogEntry(
+        event: MovePieceEvent(
           player: PlayerColor.green,
           pieceId: 1,
           diceValue: 6,
@@ -114,7 +114,7 @@ void main() {
     });
 
     test('falls back to RollEvent when event JSON is missing', () {
-      final restored = MoveLogEntry.fromJson({
+      final restored = MoveLogEntry.fromJson(const {
         'color': 'red',
       });
 

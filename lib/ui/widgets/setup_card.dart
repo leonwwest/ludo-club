@@ -1,17 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:ludo_club/constants/app_colors.dart';
+import 'package:ludo_club/constants/app_dimensions.dart';
 import 'package:ludo_club/l10n/app_localizations.dart';
 import 'package:ludo_club/models/ludo_models.dart';
+import 'package:ludo_club/theme/player_palette.dart';
 import 'package:ludo_club/widgets/player_avatar.dart';
 
 class SetupCard extends StatelessWidget {
   const SetupCard({
     required this.state,
     required this.onPlayerNameChanged,
+    required this.onPlayerKindChanged,
+    required this.onPlayerAvatarChanged,
     super.key,
   });
 
   final LudoGameState state;
   final void Function(PlayerColor color, String name) onPlayerNameChanged;
+  final void Function(PlayerColor color, PlayerKind kind) onPlayerKindChanged;
+  final void Function(PlayerColor color, PlayerAvatarId avatarId)
+      onPlayerAvatarChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -31,6 +39,10 @@ class SetupCard extends StatelessWidget {
               PlayerNameRow(
                 player: player,
                 onSubmitted: (name) => onPlayerNameChanged(player.color, name),
+                onKindChanged: (kind) =>
+                    onPlayerKindChanged(player.color, kind),
+                onAvatarChanged: (avatarId) =>
+                    onPlayerAvatarChanged(player.color, avatarId),
               ),
               const SizedBox(height: 10),
             ],
@@ -45,11 +57,15 @@ class PlayerNameRow extends StatefulWidget {
   const PlayerNameRow({
     required this.player,
     required this.onSubmitted,
+    required this.onKindChanged,
+    required this.onAvatarChanged,
     super.key,
   });
 
   final LudoPlayer player;
   final ValueChanged<String> onSubmitted;
+  final ValueChanged<PlayerKind> onKindChanged;
+  final ValueChanged<PlayerAvatarId> onAvatarChanged;
 
   @override
   State<PlayerNameRow> createState() => _PlayerNameRowState();
@@ -81,24 +97,143 @@ class _PlayerNameRowState extends State<PlayerNameRow> {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        PlayerAvatar(color: widget.player.color, size: 30),
-        const SizedBox(width: 10),
-        Expanded(
-          child: TextField(
-            controller: _controller,
-            textInputAction: TextInputAction.done,
-            decoration: InputDecoration(
-              isDense: true,
-              labelText: widget.player.color.colorLabel,
-              border: const OutlineInputBorder(),
+    final color = widget.player.color.paint;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
+        border: Border.all(color: color.withValues(alpha: 0.24)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                PlayerAvatar(
+                  color: widget.player.color,
+                  avatarId: widget.player.avatarId,
+                  size: 34,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    controller: _controller,
+                    textInputAction: TextInputAction.done,
+                    decoration: InputDecoration(
+                      isDense: true,
+                      labelText: widget.player.color.colorLabel,
+                    ),
+                    onSubmitted: widget.onSubmitted,
+                    onEditingComplete: () =>
+                        widget.onSubmitted(_controller.text),
+                  ),
+                ),
+              ],
             ),
-            onSubmitted: widget.onSubmitted,
-            onEditingComplete: () => widget.onSubmitted(_controller.text),
+            const SizedBox(height: 10),
+            SegmentedButton<PlayerKind>(
+              style: ButtonStyle(
+                visualDensity: VisualDensity.compact,
+                backgroundColor: WidgetStateProperty.resolveWith((states) {
+                  if (states.contains(WidgetState.selected)) {
+                    return color.withValues(alpha: 0.18);
+                  }
+                  return AppColors.paper.withValues(alpha: 0.72);
+                }),
+              ),
+              segments: const [
+                ButtonSegment(
+                  value: PlayerKind.human,
+                  icon: Icon(Icons.person_outline),
+                  label: Text('Mensch'),
+                ),
+                ButtonSegment(
+                  value: PlayerKind.bot,
+                  icon: Icon(Icons.smart_toy_outlined),
+                  label: Text('Bot'),
+                ),
+              ],
+              selected: {widget.player.kind},
+              onSelectionChanged: (selection) =>
+                  widget.onKindChanged(selection.first),
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final avatarId in PlayerAvatarId.values)
+                  _AvatarChoice(
+                    color: widget.player.color,
+                    avatarId: avatarId,
+                    selected: widget.player.avatarId == avatarId,
+                    onSelected: () => widget.onAvatarChanged(avatarId),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AvatarChoice extends StatelessWidget {
+  const _AvatarChoice({
+    required this.color,
+    required this.avatarId,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final PlayerColor color;
+  final PlayerAvatarId avatarId;
+  final bool selected;
+  final VoidCallback onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final paint = color.paint;
+    return Tooltip(
+      message: avatarId.label,
+      child: Semantics(
+        button: true,
+        selected: selected,
+        label: avatarId.label,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: onSelected,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 160),
+              width: 42,
+              height: 42,
+              padding: EdgeInsets.all(selected ? 2 : 4),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: selected
+                    ? paint.withValues(alpha: 0.16)
+                    : AppColors.paper.withValues(alpha: 0.72),
+                border: Border.all(
+                  color: selected
+                      ? paint
+                      : AppColors.slate300.withValues(alpha: 0.7),
+                  width: selected ? 2 : 1,
+                ),
+              ),
+              child: PlayerAvatar(
+                color: color,
+                avatarId: avatarId,
+                size: selected ? 34 : 32,
+                borderWidth: selected ? 2 : 1.2,
+                semanticLabel: avatarId.label,
+              ),
+            ),
           ),
         ),
-      ],
+      ),
     );
   }
 }

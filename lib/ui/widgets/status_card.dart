@@ -14,6 +14,10 @@ class StatusCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final currentColor = state.winner ?? state.currentPlayer.color;
+    final currentPlayer = state.players.firstWhere(
+      (player) => player.color == currentColor,
+      orElse: () => state.currentPlayer,
+    );
     final title = state.phase == TurnPhase.gameOver
         ? l10n.playerWins(currentColor.label)
         : l10n.playerTurn(state.currentPlayer.name);
@@ -28,6 +32,7 @@ class StatusCard extends StatelessWidget {
               children: [
                 PlayerAvatar(
                   color: currentColor,
+                  avatarId: currentPlayer.avatarId,
                   size: 52,
                   borderWidth: 3,
                 ),
@@ -70,16 +75,17 @@ class MoveHint extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: AppColors.slate100,
+        color: AppColors.boardCellAlt.withValues(alpha: 0.86),
         borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
+        border: Border.all(color: AppColors.brassHairline),
       ),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Row(
           children: [
-            Icon(
+            const Icon(
               Icons.touch_app_outlined,
-              color: Theme.of(context).colorScheme.primary,
+              color: AppColors.brassDark,
             ),
             const SizedBox(width: 10),
             Expanded(
