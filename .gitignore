@@ -35,6 +35,7 @@ migrate_working_dir/
 /build/
 /build
 /output/
+/lib/l10n/app_localizations*.dart
 
 # Symbolication related
 app.*.symbols
