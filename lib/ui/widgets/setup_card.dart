@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:ludo_club/constants/app_colors.dart';
 import 'package:ludo_club/constants/app_dimensions.dart';
 import 'package:ludo_club/l10n/app_localizations.dart';
+import 'package:ludo_club/l10n/player_color_localizations.dart';
 import 'package:ludo_club/models/ludo_models.dart';
+import 'package:ludo_club/services/app_settings.dart';
 import 'package:ludo_club/theme/player_palette.dart';
 import 'package:ludo_club/widgets/player_avatar.dart';
 
@@ -12,6 +14,7 @@ class SetupCard extends StatelessWidget {
     required this.onPlayerNameChanged,
     required this.onPlayerKindChanged,
     required this.onPlayerAvatarChanged,
+    required this.onBotDifficultyChanged,
     super.key,
   });
 
@@ -20,6 +23,8 @@ class SetupCard extends StatelessWidget {
   final void Function(PlayerColor color, PlayerKind kind) onPlayerKindChanged;
   final void Function(PlayerColor color, PlayerAvatarId avatarId)
       onPlayerAvatarChanged;
+  final void Function(PlayerColor color, BotDifficulty difficulty)
+      onBotDifficultyChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -43,6 +48,8 @@ class SetupCard extends StatelessWidget {
                     onPlayerKindChanged(player.color, kind),
                 onAvatarChanged: (avatarId) =>
                     onPlayerAvatarChanged(player.color, avatarId),
+                onBotDifficultyChanged: (difficulty) =>
+                    onBotDifficultyChanged(player.color, difficulty),
               ),
               const SizedBox(height: 10),
             ],
@@ -59,6 +66,7 @@ class PlayerNameRow extends StatefulWidget {
     required this.onSubmitted,
     required this.onKindChanged,
     required this.onAvatarChanged,
+    required this.onBotDifficultyChanged,
     super.key,
   });
 
@@ -66,6 +74,7 @@ class PlayerNameRow extends StatefulWidget {
   final ValueChanged<String> onSubmitted;
   final ValueChanged<PlayerKind> onKindChanged;
   final ValueChanged<PlayerAvatarId> onAvatarChanged;
+  final ValueChanged<BotDifficulty> onBotDifficultyChanged;
 
   @override
   State<PlayerNameRow> createState() => _PlayerNameRowState();
@@ -97,6 +106,7 @@ class _PlayerNameRowState extends State<PlayerNameRow> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final color = widget.player.color.paint;
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -114,6 +124,7 @@ class _PlayerNameRowState extends State<PlayerNameRow> {
                   color: widget.player.color,
                   avatarId: widget.player.avatarId,
                   size: 34,
+                  semanticLabel: widget.player.name,
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -122,7 +133,10 @@ class _PlayerNameRowState extends State<PlayerNameRow> {
                     textInputAction: TextInputAction.done,
                     decoration: InputDecoration(
                       isDense: true,
-                      labelText: widget.player.color.colorLabel,
+                      labelText: localizedPlayerColor(
+                        l10n,
+                        widget.player.color,
+                      ),
                     ),
                     onSubmitted: widget.onSubmitted,
                     onEditingComplete: () =>
@@ -142,22 +156,53 @@ class _PlayerNameRowState extends State<PlayerNameRow> {
                   return AppColors.paper.withValues(alpha: 0.72);
                 }),
               ),
-              segments: const [
+              segments: [
                 ButtonSegment(
                   value: PlayerKind.human,
-                  icon: Icon(Icons.person_outline),
-                  label: Text('Mensch'),
+                  icon: const Icon(Icons.person_outline),
+                  label: Text(l10n.human),
                 ),
                 ButtonSegment(
                   value: PlayerKind.bot,
-                  icon: Icon(Icons.smart_toy_outlined),
-                  label: Text('Bot'),
+                  icon: const Icon(Icons.smart_toy_outlined),
+                  label: Text(l10n.bot),
                 ),
               ],
               selected: {widget.player.kind},
               onSelectionChanged: (selection) =>
                   widget.onKindChanged(selection.first),
             ),
+            if (widget.player.isBot) ...[
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  l10n.botDifficulty,
+                  style: Theme.of(context).textTheme.labelMedium,
+                ),
+              ),
+              const SizedBox(height: 6),
+              SegmentedButton<BotDifficulty>(
+                showSelectedIcon: false,
+                segments: [
+                  ButtonSegment(
+                    value: BotDifficulty.easy,
+                    label: Text(l10n.botDifficultyEasy),
+                  ),
+                  ButtonSegment(
+                    value: BotDifficulty.normal,
+                    label: Text(l10n.botDifficultyNormal),
+                  ),
+                  ButtonSegment(
+                    value: BotDifficulty.hard,
+                    label: Text(l10n.botDifficultyHard),
+                  ),
+                ],
+                selected: {widget.player.botDifficulty},
+                onSelectionChanged: (selection) =>
+                    widget.onBotDifficultyChanged(selection.first),
+              ),
+            ],
             const SizedBox(height: 10),
             Wrap(
               spacing: 8,
@@ -207,7 +252,10 @@ class _AvatarChoice extends StatelessWidget {
             customBorder: const CircleBorder(),
             onTap: onSelected,
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 160),
+              duration: AppMotionSettings.duration(
+                context,
+                const Duration(milliseconds: 160),
+              ),
               width: 42,
               height: 42,
               padding: EdgeInsets.all(selected ? 2 : 4),

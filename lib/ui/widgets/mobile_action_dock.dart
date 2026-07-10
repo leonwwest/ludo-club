@@ -3,6 +3,7 @@ import 'package:ludo_club/constants/app_colors.dart';
 import 'package:ludo_club/constants/app_dimensions.dart';
 import 'package:ludo_club/constants/assets.dart';
 import 'package:ludo_club/l10n/app_localizations.dart';
+import 'package:ludo_club/l10n/turn_status_formatter.dart';
 import 'package:ludo_club/models/ludo_models.dart';
 import 'package:ludo_club/theme/player_palette.dart';
 import 'package:ludo_club/ui/widgets/board_arena.dart';
@@ -14,18 +15,24 @@ class MobileActionDock extends StatelessWidget {
     required this.state,
     required this.onRoll,
     required this.isBotTurn,
+    required this.isRemoteTurn,
+    required this.isWaitingForPlayers,
     required this.onOpenSetup,
     required this.onOpenRules,
     required this.onOpenMoveLog,
+    required this.onOpenStats,
     super.key,
   });
 
   final LudoGameState state;
   final VoidCallback onRoll;
   final bool isBotTurn;
-  final VoidCallback onOpenSetup;
+  final bool isRemoteTurn;
+  final bool isWaitingForPlayers;
+  final VoidCallback? onOpenSetup;
   final VoidCallback onOpenRules;
   final VoidCallback onOpenMoveLog;
+  final VoidCallback onOpenStats;
 
   @override
   Widget build(BuildContext context) {
@@ -36,15 +43,20 @@ class MobileActionDock extends StatelessWidget {
       orElse: () => state.currentPlayer,
     );
     final color = currentColor.paint;
-    final canRoll = state.phase == TurnPhase.waitingForRoll && !isBotTurn;
+    final canRoll =
+        state.phase == TurnPhase.waitingForRoll && !isBotTurn && !isRemoteTurn;
     final title = state.phase == TurnPhase.gameOver
-        ? l10n.playerWins(currentColor.label)
+        ? l10n.playerWins(currentPlayer.name)
         : l10n.playerTurn(state.currentPlayer.name);
     final actionLabel = canRoll
         ? l10n.playerRolls(state.currentPlayer.name)
-        : isBotTurn
-            ? '${state.currentPlayer.name} denkt ...'
-            : l10n.selectPiece;
+        : isRemoteTurn
+            ? isWaitingForPlayers
+                ? l10n.waitingForRoomPlayers
+                : l10n.waitingForRemotePlayer(state.currentPlayer.name)
+            : isBotTurn
+                ? l10n.botThinking(state.currentPlayer.name)
+                : l10n.tapHighlightedPiece;
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -77,6 +89,7 @@ class MobileActionDock extends StatelessWidget {
                       avatarId: currentPlayer.avatarId,
                       size: 48,
                       borderWidth: 2.5,
+                      semanticLabel: currentPlayer.name,
                     ),
                     Positioned(
                       right: -7,
@@ -108,7 +121,7 @@ class MobileActionDock extends StatelessWidget {
                                 ),
                       ),
                       Text(
-                        state.turnMessage,
+                        TurnStatusFormatter.format(context, state),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -129,12 +142,10 @@ class MobileActionDock extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: SizedBox(
-                    height: AppDimensions.minTouchTarget,
-                    child: FilledButton.icon(
+            SizedBox(
+              height: AppDimensions.minTouchTarget,
+              child: canRoll
+                  ? FilledButton.icon(
                       onPressed: canRoll ? onRoll : null,
                       icon: ClipRRect(
                         borderRadius: BorderRadius.circular(4),
@@ -151,28 +162,97 @@ class MobileActionDock extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
+                    )
+                  : Semantics(
+                      liveRegion: true,
+                      label: actionLabel,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.09),
+                          borderRadius: BorderRadius.circular(
+                            AppDimensions.borderRadiusSmall,
+                          ),
+                          border: Border.all(
+                            color: color.withValues(alpha: 0.34),
+                          ),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                isRemoteTurn
+                                    ? Icons.public
+                                    : isBotTurn
+                                        ? Icons.smart_toy_outlined
+                                        : Icons.touch_app_outlined,
+                                color: AppColors.paper,
+                              ),
+                              const SizedBox(width: 9),
+                              Flexible(
+                                child: Text(
+                                  actionLabel,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelLarge
+                                      ?.copyWith(
+                                        color: AppColors.paper,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                _DockIconButton(
-                  tooltip: l10n.playerSetup,
-                  icon: Icons.group_outlined,
-                  onPressed: onOpenSetup,
-                ),
-                const SizedBox(width: 8),
-                _DockIconButton(
-                  tooltip: l10n.rules,
-                  icon: Icons.tune,
-                  onPressed: onOpenRules,
-                ),
-                const SizedBox(width: 8),
-                _DockIconButton(
-                  tooltip: l10n.moveLog,
-                  icon: Icons.format_list_bulleted,
-                  onPressed: onOpenMoveLog,
-                ),
-              ],
+            ),
+            const SizedBox(height: 8),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final itemWidth = (constraints.maxWidth - 8) / 2;
+                return Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    SizedBox(
+                      width: itemWidth,
+                      child: _DockToolButton(
+                        label: l10n.players,
+                        icon: Icons.group_outlined,
+                        onPressed: onOpenSetup,
+                      ),
+                    ),
+                    SizedBox(
+                      width: itemWidth,
+                      child: _DockToolButton(
+                        label: l10n.statistics,
+                        icon: Icons.bar_chart_outlined,
+                        onPressed: onOpenStats,
+                      ),
+                    ),
+                    SizedBox(
+                      width: itemWidth,
+                      child: _DockToolButton(
+                        label: l10n.rules,
+                        icon: Icons.tune,
+                        onPressed: onOpenRules,
+                      ),
+                    ),
+                    SizedBox(
+                      width: itemWidth,
+                      child: _DockToolButton(
+                        label: l10n.moveLog,
+                        icon: Icons.format_list_bulleted,
+                        onPressed: onOpenMoveLog,
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ],
         ),
@@ -181,34 +261,39 @@ class MobileActionDock extends StatelessWidget {
   }
 }
 
-class _DockIconButton extends StatelessWidget {
-  const _DockIconButton({
-    required this.tooltip,
+class _DockToolButton extends StatelessWidget {
+  const _DockToolButton({
+    required this.label,
     required this.icon,
     required this.onPressed,
   });
 
-  final String tooltip;
+  final String label;
   final IconData icon;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox.square(
-      dimension: AppDimensions.minTouchTarget,
-      child: IconButton.outlined(
-        tooltip: tooltip,
+    return SizedBox(
+      height: AppDimensions.minTouchTarget,
+      child: OutlinedButton.icon(
         onPressed: onPressed,
-        style: IconButton.styleFrom(
+        style: OutlinedButton.styleFrom(
           backgroundColor: Colors.white.withValues(alpha: 0.08),
           foregroundColor: AppColors.paper,
+          padding: const EdgeInsets.symmetric(horizontal: 8),
           side: const BorderSide(color: AppColors.brassHairline),
           shape: RoundedRectangleBorder(
             borderRadius:
                 BorderRadius.circular(AppDimensions.borderRadiusSmall),
           ),
         ),
-        icon: Icon(icon),
+        icon: Icon(icon, size: 19),
+        label: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
       ),
     );
   }

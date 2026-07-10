@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "ludo_club" "\0"
+            VALUE "CompanyName", "Ludo Club" "\0"
+            VALUE "FileDescription", "Ludo Club" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "ludo_club" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2025 com.example. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 Ludo Club. All rights reserved." "\0"
             VALUE "OriginalFilename", "ludo_club.exe" "\0"
-            VALUE "ProductName", "ludo_club" "\0"
+            VALUE "ProductName", "Ludo Club" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

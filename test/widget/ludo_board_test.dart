@@ -23,7 +23,7 @@ void main() {
       diceRoller: diceRoller,
       initialPlayerCount: initialPlayerCount,
       initialState: initialState,
-      storage: GameStorage(debounceDelay: Duration.zero),
+      storage: GameStorage(),
     );
     addTearDown(controller.dispose);
     return controller;

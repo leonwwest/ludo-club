@@ -13,13 +13,14 @@ void main() {
       SharedPreferences.setMockInitialValues({});
     });
 
-    GameStorage zeroDelayStorage() => GameStorage(debounceDelay: Duration.zero);
+    GameStorage zeroDelayStorage() => GameStorage();
 
     GameController createController({
       DiceRoller? diceRoller,
       Random? random,
       int initialPlayerCount = 4,
       LudoGameState? initialState,
+      List<LudoGameState> initialHistory = const [],
       GameStorage? storage,
       Duration botTurnDelay = const Duration(milliseconds: 720),
       bool botAutomationEnabled = true,
@@ -29,6 +30,7 @@ void main() {
         random: random,
         initialPlayerCount: initialPlayerCount,
         initialState: initialState,
+        initialHistory: initialHistory,
         storage: storage ?? zeroDelayStorage(),
         botTurnDelay: botTurnDelay,
         botAutomationEnabled: botAutomationEnabled,
@@ -90,6 +92,27 @@ void main() {
 
       expect(controller.state.players.last.kind, PlayerKind.bot);
       expect(controller.state.players.last.isBot, isTrue);
+    });
+
+    test('updates and persists bot difficulty', () async {
+      final storage = zeroDelayStorage();
+      final controller = createController(
+        initialPlayerCount: 2,
+        storage: storage,
+      );
+
+      await controller.updateBotDifficulty(
+        PlayerColor.yellow,
+        BotDifficulty.hard,
+      );
+      await controller.flushStorage();
+
+      expect(
+        controller.state.players.last.botDifficulty,
+        BotDifficulty.hard,
+      );
+      final restored = await storage.loadSavedState();
+      expect(restored?.players.last.botDifficulty, BotDifficulty.hard);
     });
 
     test('updates player avatar in the current state', () async {
@@ -181,6 +204,49 @@ void main() {
       expect(controller.state.diceValue, isNull);
     });
 
+    test('undo persists the restored state', () async {
+      final storage = zeroDelayStorage();
+      final controller = createController(
+        diceRoller: () => 6,
+        initialPlayerCount: 2,
+        storage: storage,
+      );
+
+      await controller.rollDice();
+      expect((await storage.loadSavedState())?.stats.rolls, 1);
+
+      await controller.undoLastAction();
+      await controller.flushStorage();
+      final restored = await storage.loadSavedState();
+
+      expect(restored?.phase, TurnPhase.waitingForRoll);
+      expect(restored?.diceValue, isNull);
+      expect(restored?.stats.rolls, 0);
+    });
+
+    test('undo history survives an application restart', () async {
+      final storage = zeroDelayStorage();
+      final controller = createController(
+        diceRoller: () => 6,
+        initialPlayerCount: 2,
+        storage: storage,
+      );
+      await controller.rollDice();
+      await controller.flushStorage();
+
+      final savedGame = await storage.loadSavedGame();
+      final restoredController = createController(
+        initialState: savedGame!.state,
+        initialHistory: savedGame.history,
+      );
+
+      expect(restoredController.canUndo, isTrue);
+      await restoredController.undoLastAction();
+      expect(restoredController.state.phase, TurnPhase.waitingForRoll);
+      expect(restoredController.state.diceValue, isNull);
+      expect(restoredController.canUndo, isFalse);
+    });
+
     test('exposes concrete move hints for movable pieces', () async {
       final controller = createController(
         diceRoller: () => 6,
@@ -270,6 +336,39 @@ void main() {
       expect(restored.players.first.pieces.first.steps, 0);
       expect(restored.phase, TurnPhase.waitingForRoll);
       expect(restored.moveLog.first.event, isA<MovePieceEvent>());
+    });
+
+    test('locks rule changes after the match has started', () async {
+      final controller = createController(
+        diceRoller: () => 3,
+        initialPlayerCount: 2,
+      );
+      expect(controller.canEditRules, isTrue);
+
+      await controller.rollDice();
+      expect(controller.canEditRules, isFalse);
+      final rulesAfterRoll = controller.state.rules;
+
+      await controller.updateRules(
+        rulesAfterRoll.copyWith(doublePieceBlockades: true),
+      );
+
+      expect(controller.state.rules.doublePieceBlockades, isFalse);
+    });
+
+    test('flushStorage writes a pending debounced save', () async {
+      final storage = GameStorage(debounceDelay: const Duration(days: 1));
+      final controller = createController(
+        initialPlayerCount: 2,
+        storage: storage,
+      );
+
+      final update = controller.updatePlayerName(PlayerColor.red, 'Mira');
+      await Future<void>.delayed(Duration.zero);
+      await controller.flushStorage();
+      await update;
+
+      expect((await storage.loadSavedState())?.players.first.name, 'Mira');
     });
 
     test('automatically plays bot turns', () async {

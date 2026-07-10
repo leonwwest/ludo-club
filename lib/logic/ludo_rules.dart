@@ -75,6 +75,9 @@ class LudoRules {
         _isOwnFieldBlocked(state, piece, target)) {
       return null;
     }
+    if (_pathIsBlockedByDoublePieceBlockade(state, piece, target)) {
+      return null;
+    }
     if (state.rules.mustCapture &&
         _currentPlayerHasCapture(state, diceValue) &&
         _capturedPiecesFor(state, piece, target).isEmpty) {
@@ -136,6 +139,7 @@ class LudoRules {
       consecutiveSixes: consecutiveSixes,
       moveSummary: null,
       turnMessage: '${state.currentPlayer.name} würfelt $diceValue.',
+      stats: state.stats.recordRoll(state.currentPlayer.color, diceValue),
     );
 
     if (state.rules.threeSixesEndTurn &&
@@ -155,6 +159,22 @@ class LudoRules {
 
     if (movablePieces(rolled).isNotEmpty) {
       return rolled;
+    }
+
+    if (diceValue == 6 && state.rules.extraTurnOnSixNoMove) {
+      return rolled.copyWith(
+        phase: TurnPhase.waitingForRoll,
+        diceValue: null,
+        turnMessage:
+            '${state.currentPlayer.name} kann die 6 nicht ziehen und würfelt nochmal.',
+        moveLog: _appendLog(
+          state,
+          NoMoveEvent(
+            player: state.currentPlayer.color,
+            diceValue: diceValue,
+          ),
+        ),
+      );
     }
 
     if (_canUseAnotherOpenRoll(rolled)) {
@@ -230,13 +250,19 @@ class LudoRules {
       extraTurn: extraTurn,
       finished: finished,
     );
+    var updatedStats = state.stats.recordMove(
+      piece.color,
+      capturedCount: capturedPieces.length,
+    );
 
     if (winner != null) {
+      updatedStats = updatedStats.recordWin(winner);
       return state.copyWith(
         players: updatedPlayers,
         phase: TurnPhase.gameOver,
         winner: winner,
         moveSummary: summary,
+        stats: updatedStats,
         turnMessage: '${updatedMover.name} gewinnt die Partie.',
         moveLog: _appendLog(
           state,
@@ -257,6 +283,7 @@ class LudoRules {
         diceValue: null,
         pendingOpenRolls: _pendingOpenRollsFor(updatedMover, state.rules),
         moveSummary: summary,
+        stats: updatedStats,
         turnMessage: '${updatedMover.name} $reason und ist nochmal dran.',
         moveLog: _appendLog(
           state,
@@ -275,6 +302,7 @@ class LudoRules {
       state.copyWith(
         players: updatedPlayers,
         moveSummary: summary,
+        stats: updatedStats,
         moveLog: _appendLog(
           state,
           MovePieceEvent(
@@ -305,11 +333,24 @@ class LudoRules {
       return const [];
     }
 
-    return state.players
+    final captured = state.players
         .where((player) => player.color != movingPiece.color)
         .expand((player) => player.pieces)
         .where((piece) => globalIndexOf(piece) == targetGlobalIndex)
         .toList(growable: false);
+    final targetHasBlockade = state.players
+        .where((player) => player.color != movingPiece.color)
+        .any(
+          (player) =>
+              player.pieces
+                  .where((piece) => globalIndexOf(piece) == targetGlobalIndex)
+                  .length >=
+              2,
+        );
+    if (state.rules.doublePieceBlockades && targetHasBlockade) {
+      return const [];
+    }
+    return captured;
   }
 
   static List<LudoPlayer> _playersAfterMove(
@@ -385,6 +426,32 @@ class LudoRules {
     });
   }
 
+  static bool _pathIsBlockedByDoublePieceBlockade(
+    LudoGameState state,
+    LudoPiece movingPiece,
+    int targetSteps,
+  ) {
+    if (!state.rules.doublePieceBlockades || targetSteps < 0) {
+      return false;
+    }
+
+    final firstStep = movingPiece.isInBase ? 0 : movingPiece.steps + 1;
+    final lastTrackStep =
+        targetSteps < trackLength ? targetSteps : trackLength - 1;
+    for (var step = firstStep; step <= lastTrackStep; step++) {
+      final globalIndex = globalIndexFor(movingPiece.color, step);
+      for (final player in state.players) {
+        final occupantCount = player.pieces.where((piece) {
+          return globalIndexOf(piece) == globalIndex;
+        }).length;
+        if (occupantCount >= 2) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   static bool _currentPlayerHasCapture(LudoGameState state, int diceValue) {
     for (final piece in state.currentPlayer.pieces) {
       if (_baseRuleBlocksPiece(state, piece, diceValue)) {
@@ -396,6 +463,9 @@ class LudoRules {
       }
       if (state.rules.blockOwnFields &&
           _isOwnFieldBlocked(state, piece, target)) {
+        continue;
+      }
+      if (_pathIsBlockedByDoublePieceBlockade(state, piece, target)) {
         continue;
       }
       if (_capturedPiecesFor(state, piece, target).isNotEmpty) {

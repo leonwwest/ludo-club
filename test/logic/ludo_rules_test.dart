@@ -97,6 +97,11 @@ void main() {
 
       expect(state.phase, TurnPhase.gameOver);
       expect(state.winner, PlayerColor.red);
+      expect(state.stats.moves, 1);
+      expect(state.stats.actions, 1);
+      expect(state.stats.winsFor(PlayerColor.red), 1);
+      expect(state.stats.history, hasLength(1));
+      expect(state.stats.history.single.winner, PlayerColor.red);
     });
 
     test('allows three opening rolls when that rule is enabled', () {
@@ -266,6 +271,186 @@ void main() {
 
       expect(state.moveSummary?.didCapture, isTrue);
       expect(state.currentPlayer.color, PlayerColor.yellow);
+    });
+
+    test('a six with no legal move grants another roll by default', () {
+      final initial = LudoGameState.newGame(playerCount: 2);
+      final red = initial.players.first;
+      final state = initial.copyWith(
+        players: [
+          red.copyWith(
+            pieces: [
+              red.pieces[0].copyWith(steps: 52),
+              red.pieces[1].copyWith(steps: 53),
+              red.pieces[2].copyWith(steps: 54),
+              red.pieces[3].copyWith(steps: 55),
+            ],
+          ),
+          initial.players.last,
+        ],
+      );
+
+      final rolled = LudoRules.roll(state, 6);
+
+      expect(rolled.currentPlayer.color, PlayerColor.red);
+      expect(rolled.phase, TurnPhase.waitingForRoll);
+      expect(rolled.diceValue, isNull);
+      expect(rolled.stats.rolls, 1);
+      expect(rolled.stats.sixes, 1);
+      expect(rolled.turnMessage, contains('würfelt nochmal'));
+    });
+
+    test('six without a legal move can advance when bonus is disabled', () {
+      final initial = LudoGameState.newGame(
+        playerCount: 2,
+        rules: const RuleOptions(extraTurnOnSixNoMove: false),
+      );
+      final red = initial.players.first;
+      final state = initial.copyWith(
+        players: [
+          red.copyWith(
+            pieces: [
+              red.pieces[0].copyWith(steps: 52),
+              red.pieces[1].copyWith(steps: 53),
+              red.pieces[2].copyWith(steps: 54),
+              red.pieces[3].copyWith(steps: 55),
+            ],
+          ),
+          initial.players.last,
+        ],
+      );
+
+      final rolled = LudoRules.roll(state, 6);
+
+      expect(rolled.currentPlayer.color, PlayerColor.yellow);
+      expect(rolled.phase, TurnPhase.waitingForRoll);
+    });
+
+    test('double-piece blockade cannot be crossed or captured', () {
+      final initial = LudoGameState.newGame(
+        playerCount: 2,
+        rules: const RuleOptions(doublePieceBlockades: true),
+      );
+      final red = initial.players.first;
+      final yellow = initial.players.last;
+      final state = initial.copyWith(
+        phase: TurnPhase.waitingForMove,
+        diceValue: 5,
+        players: [
+          red.copyWith(
+            pieces: [
+              red.pieces.first.copyWith(steps: 0),
+              ...red.pieces.skip(1),
+            ],
+          ),
+          yellow.copyWith(
+            pieces: [
+              yellow.pieces[0].copyWith(steps: 17),
+              yellow.pieces[1].copyWith(steps: 17),
+              ...yellow.pieces.skip(2),
+            ],
+          ),
+        ],
+      );
+
+      expect(
+        LudoRules.canMove(state, state.currentPlayer.pieces.first),
+        isFalse,
+      );
+
+      final landingState = state.copyWith(diceValue: 4);
+      expect(
+        LudoRules.canMove(
+          landingState,
+          landingState.currentPlayer.pieces.first,
+        ),
+        isFalse,
+      );
+    });
+
+    test('own pieces can form a blockade but cannot cross one', () {
+      final initial = LudoGameState.newGame(
+        playerCount: 2,
+        rules: const RuleOptions(doublePieceBlockades: true),
+      );
+      final red = initial.players.first;
+      var state = initial.copyWith(
+        phase: TurnPhase.waitingForMove,
+        diceValue: 4,
+        players: [
+          red.copyWith(
+            pieces: [
+              red.pieces[0].copyWith(steps: 0),
+              red.pieces[1].copyWith(steps: 4),
+              ...red.pieces.skip(2),
+            ],
+          ),
+          initial.players.last,
+        ],
+      );
+
+      expect(
+        LudoRules.canMove(state, state.currentPlayer.pieces.first),
+        isTrue,
+      );
+      state = LudoRules.movePiece(state, state.currentPlayer.pieces.first);
+      expect(
+        state.players.first.pieces.where((piece) => piece.steps == 4),
+        hasLength(2),
+      );
+
+      final blocked = state.copyWith(
+        currentPlayerIndex: 0,
+        phase: TurnPhase.waitingForMove,
+        diceValue: 5,
+        players: [
+          state.players.first.copyWith(
+            pieces: [
+              state.players.first.pieces[0].copyWith(steps: 0),
+              state.players.first.pieces[1].copyWith(steps: 4),
+              state.players.first.pieces[2].copyWith(steps: 4),
+              state.players.first.pieces[3],
+            ],
+          ),
+          state.players.last,
+        ],
+      );
+      expect(
+        LudoRules.canMove(blocked, blocked.currentPlayer.pieces.first),
+        isFalse,
+      );
+    });
+
+    test('legacy rules can capture multiple stacked pieces', () {
+      final initial = LudoGameState.newGame(playerCount: 2);
+      final red = initial.players.first;
+      final yellow = initial.players.last;
+      var state = initial.copyWith(
+        phase: TurnPhase.waitingForMove,
+        diceValue: 4,
+        players: [
+          red.copyWith(
+            pieces: [
+              red.pieces.first.copyWith(steps: 0),
+              ...red.pieces.skip(1),
+            ],
+          ),
+          yellow.copyWith(
+            pieces: [
+              yellow.pieces[0].copyWith(steps: 17),
+              yellow.pieces[1].copyWith(steps: 17),
+              ...yellow.pieces.skip(2),
+            ],
+          ),
+        ],
+      );
+
+      state = LudoRules.movePiece(state, state.currentPlayer.pieces.first);
+
+      expect(state.moveSummary?.captured, hasLength(2));
+      expect(state.stats.captures, 2);
+      expect(state.players.last.pieces[0].isInBase, isTrue);
+      expect(state.players.last.pieces[1].isInBase, isTrue);
     });
 
     test('ignores must-capture when the only capture lands on a safe field',

@@ -9,14 +9,19 @@ import 'package:ludo_club/constants/assets.dart';
 import 'package:ludo_club/l10n/app_localizations.dart';
 import 'package:ludo_club/models/ludo_models.dart';
 import 'package:ludo_club/providers/game_controller.dart';
+import 'package:ludo_club/services/app_settings.dart';
 import 'package:ludo_club/services/game_feedback.dart';
 import 'package:ludo_club/theme/player_palette.dart';
 import 'package:ludo_club/ui/widgets/header_bar.dart';
 import 'package:ludo_club/ui/widgets/mobile_action_dock.dart';
 import 'package:ludo_club/ui/widgets/move_log_card.dart';
+import 'package:ludo_club/ui/widgets/online_room_sheet.dart';
 import 'package:ludo_club/ui/widgets/rule_options_card.dart';
 import 'package:ludo_club/ui/widgets/side_panel.dart';
 import 'package:ludo_club/ui/widgets/setup_card.dart';
+import 'package:ludo_club/ui/widgets/settings_card.dart';
+import 'package:ludo_club/ui/widgets/stats_card.dart';
+import 'package:ludo_club/ui/widgets/tutorial_overlay.dart';
 import 'package:ludo_club/widgets/player_avatar.dart';
 import 'package:provider/provider.dart';
 
@@ -27,23 +32,53 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> {
+class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   bool? _showLaunchPanel;
+  int? _tutorialStep;
+  bool _tutorialScheduled = false;
   PlayerColor? _announcedWinner;
   int? _lastDiceValue;
   MoveSummary? _lastMoveSummary;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!mounted) return;
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      unawaited(context.read<GameController>().flushStorage());
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final controller = context.watch<GameController>();
+    final settings = context.watch<AppSettingsController>();
     final state = controller.state;
     _showLaunchPanel ??= !controller.hasMoveLog &&
         state.diceValue == null &&
         state.phase == TurnPhase.waitingForRoll;
-    final botAutomationActive = _showLaunchPanel != true;
+    final botAutomationActive =
+        _showLaunchPanel != true && _tutorialStep == null;
     final isVisibleBotTurn = botAutomationActive && controller.isBotTurn;
+    final isVisibleRemoteTurn = botAutomationActive && controller.isRemoteTurn;
+    final isWaitingForOnlinePlayers =
+        botAutomationActive && controller.isWaitingForOnlinePlayers;
     controller.setBotAutomationEnabled(botAutomationActive);
     _handleFeedback(state);
+    _scheduleTutorialForResumedGame(settings, state);
 
     final isWide =
         MediaQuery.sizeOf(context).width >= AppDimensions.responsiveBreakpoint;
@@ -55,154 +90,220 @@ class _GameScreenState extends State<GameScreen> {
       resizeToAvoidBottomInset: true,
       bottomNavigationBar: isWide ||
               _showLaunchPanel == true ||
+              _tutorialStep != null ||
               state.phase == TurnPhase.gameOver
           ? null
-          : _buildMobileDock(controller, state, isVisibleBotTurn),
-      body: ExcludeSemantics(
-        child: DecoratedBox(
-          decoration: const BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage(AssetMapper.background),
-              fit: BoxFit.cover,
-              colorFilter: ColorFilter.mode(
-                AppColors.backgroundOverlay,
-                BlendMode.srcOver,
-              ),
+          : _buildMobileDock(
+              controller,
+              state,
+              isVisibleBotTurn,
+              isVisibleRemoteTurn,
+              isWaitingForOnlinePlayers,
+            ),
+      body: DecoratedBox(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage(AssetMapper.background),
+            fit: BoxFit.cover,
+            colorFilter: ColorFilter.mode(
+              AppColors.backgroundOverlay,
+              BlendMode.srcOver,
             ),
           ),
-          child: SafeArea(
-            child: Padding(
-              padding: EdgeInsets.all(pagePadding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  HeaderBar(
-                    playerCount: controller.playerCount,
-                    canUndo: controller.canUndo,
-                    onPlayerCountChanged: (count) => unawaited(
-                      _runAction(
-                        () => controller.newGame(playerCount: count),
-                        FeedbackCue.tap,
-                      ),
-                    ),
-                    onRestart: () => unawaited(_restartFromHeader(controller)),
-                    onUndo: () => unawaited(
-                      _runAction(
-                        controller.undoLastAction,
-                        FeedbackCue.tap,
-                      ),
-                    ),
-                    onClearSave: () => unawaited(
-                      _runAction(
-                        controller.clearSavedGame,
-                        FeedbackCue.tap,
-                      ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: EdgeInsets.all(pagePadding),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                HeaderBar(
+                  playerCount: controller.playerCount,
+                  canUndo: controller.canUndo,
+                  onNewGame: () => unawaited(_requestNewGameSetup(controller)),
+                  onUndo: () => unawaited(
+                    _runAction(
+                      controller.undoLastAction,
+                      FeedbackCue.tap,
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: Stack(
-                      children: [
-                        if (isWide)
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Expanded(child: BoardStage(state: state)),
-                              const SizedBox(width: 16),
-                              SizedBox(
-                                width: AppDimensions.sidePanelWidth,
-                                child: SingleChildScrollView(
-                                  child: SidePanel(
-                                    state: state,
-                                    isBotTurn: isVisibleBotTurn,
-                                    onRoll: () => unawaited(
-                                      _rollForHuman(controller),
-                                    ),
-                                    onPlayerNameChanged: (color, name) =>
-                                        unawaited(
-                                      controller.updatePlayerName(color, name),
-                                    ),
-                                    onPlayerKindChanged: (color, kind) =>
-                                        unawaited(
-                                      controller.updatePlayerKind(color, kind),
-                                    ),
-                                    onPlayerAvatarChanged: (color, avatarId) =>
-                                        unawaited(
-                                      controller.updatePlayerAvatar(
-                                        color,
-                                        avatarId,
-                                      ),
-                                    ),
-                                    onRulesChanged: (rules) => unawaited(
-                                      controller.updateRules(rules),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          )
-                        else
-                          MobileGameLayout(state: state),
-                        if (_showLaunchPanel == true)
-                          LaunchSetupOverlay(
-                            state: state,
-                            onPlayerCountChanged: (count) => unawaited(
-                              _runAction(
-                                () => controller.newGame(playerCount: count),
-                                FeedbackCue.tap,
-                              ),
-                            ),
-                            onPlayerKindChanged: (color, kind) => unawaited(
-                              controller.updatePlayerKind(color, kind),
-                            ),
-                            onPlayerAvatarChanged: (color, avatarId) =>
-                                unawaited(
-                              controller.updatePlayerAvatar(color, avatarId),
-                            ),
-                            onClassicPreset: () => unawaited(
-                              _runAction(
-                                () => controller.updateRules(
-                                  const RuleOptions(),
-                                ),
-                                FeedbackCue.tap,
-                              ),
-                            ),
-                            onClubPreset: () => unawaited(
-                              _runAction(
-                                () => controller.updateRules(
-                                  const RuleOptions(
-                                    openRollRule: OpenRollRule.threeRolls,
-                                    extraTurnOnFinish: true,
-                                    threeSixesEndTurn: true,
-                                  ),
-                                ),
-                                FeedbackCue.tap,
-                              ),
-                            ),
-                            onStart: () {
-                              _playFeedback(FeedbackCue.start);
-                              setState(() => _showLaunchPanel = false);
-                              controller.setBotAutomationEnabled(true);
-                            },
-                          ),
-                        if (state.phase == TurnPhase.gameOver)
-                          WinnerOverlay(
-                            state: state,
-                            onRematch: () => unawaited(
-                              _runAction(
-                                controller.newGame,
-                                FeedbackCue.start,
-                              ),
-                            ),
-                            onSetup: () => unawaited(
-                              _openSetupForNewGame(controller),
-                            ),
-                          ),
-                      ],
+                  onClearSave: () =>
+                      unawaited(_confirmClearSavedGame(controller)),
+                  onOpenSettings: _showSettingsSheet,
+                  onOpenStats: _showStatsSheet,
+                ),
+                if (controller.isOnlineMatch) ...[
+                  const SizedBox(height: 8),
+                  OnlineRoomStatusBar(
+                    snapshot: controller.onlineRoomSnapshot,
+                    status: controller.onlineRoomStatus,
+                    errorMessage: controller.onlineRoomError,
+                    onLeave: () => unawaited(
+                      _leaveOnlineRoom(controller, showSetup: true),
                     ),
                   ),
                 ],
-              ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: Stack(
+                    children: [
+                      ExcludeSemantics(
+                        excluding: _showLaunchPanel == true ||
+                            state.phase == TurnPhase.gameOver ||
+                            _tutorialStep != null,
+                        child: isWide
+                            ? Row(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Expanded(child: BoardStage(state: state)),
+                                  const SizedBox(width: 16),
+                                  SizedBox(
+                                    width: AppDimensions.sidePanelWidth,
+                                    child: SingleChildScrollView(
+                                      child: SidePanel(
+                                        state: state,
+                                        isBotTurn: isVisibleBotTurn,
+                                        isRemoteTurn: isVisibleRemoteTurn,
+                                        isWaitingForPlayers:
+                                            isWaitingForOnlinePlayers,
+                                        isOnlineMatch: controller.isOnlineMatch,
+                                        canEditRules: controller.canEditRules,
+                                        onRoll: () => unawaited(
+                                          _rollForHuman(controller),
+                                        ),
+                                        onPlayerNameChanged: (color, name) =>
+                                            unawaited(
+                                          controller.updatePlayerName(
+                                            color,
+                                            name,
+                                          ),
+                                        ),
+                                        onPlayerKindChanged: (color, kind) =>
+                                            unawaited(
+                                          controller.updatePlayerKind(
+                                            color,
+                                            kind,
+                                          ),
+                                        ),
+                                        onPlayerAvatarChanged:
+                                            (color, avatarId) => unawaited(
+                                          controller.updatePlayerAvatar(
+                                            color,
+                                            avatarId,
+                                          ),
+                                        ),
+                                        onBotDifficultyChanged:
+                                            (color, difficulty) => unawaited(
+                                          controller.updateBotDifficulty(
+                                            color,
+                                            difficulty,
+                                          ),
+                                        ),
+                                        onRulesChanged: (rules) => unawaited(
+                                          controller.updateRules(rules),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : MobileGameLayout(state: state),
+                      ),
+                      if (_showLaunchPanel == true)
+                        LaunchSetupOverlay(
+                          state: state,
+                          onPlayerCountChanged: (count) => unawaited(
+                            _runAction(
+                              () => controller.newGame(playerCount: count),
+                              FeedbackCue.tap,
+                            ),
+                          ),
+                          onPlayerKindChanged: (color, kind) => unawaited(
+                            controller.updatePlayerKind(color, kind),
+                          ),
+                          onPlayerNameChanged: (color, name) => unawaited(
+                            controller.updatePlayerName(color, name),
+                          ),
+                          onPlayerAvatarChanged: (color, avatarId) => unawaited(
+                            controller.updatePlayerAvatar(color, avatarId),
+                          ),
+                          onBotDifficultyChanged: (color, difficulty) =>
+                              unawaited(
+                            controller.updateBotDifficulty(
+                              color,
+                              difficulty,
+                            ),
+                          ),
+                          onClassicPreset: () => unawaited(
+                            _runAction(
+                              () => controller.updateRules(
+                                const RuleOptions(),
+                              ),
+                              FeedbackCue.tap,
+                            ),
+                          ),
+                          onClubPreset: () => unawaited(
+                            _runAction(
+                              () => controller.updateRules(
+                                const RuleOptions(
+                                  openRollRule: OpenRollRule.threeRolls,
+                                  extraTurnOnFinish: true,
+                                  threeSixesEndTurn: true,
+                                ),
+                              ),
+                              FeedbackCue.tap,
+                            ),
+                          ),
+                          onCustomRules: _showRulesSheet,
+                          onOnlineRoom: () => _showOnlineRoomSheet(controller),
+                          onStart: () {
+                            _playFeedback(FeedbackCue.start);
+                            setState(() {
+                              _showLaunchPanel = false;
+                              _tutorialScheduled = true;
+                              if (!settings.tutorialCompleted) {
+                                _tutorialStep = 0;
+                              }
+                            });
+                            controller.setBotAutomationEnabled(true);
+                          },
+                        ),
+                      if (_tutorialStep case final int step)
+                        TutorialOverlay(
+                          step: step,
+                          onBack: step == 0
+                              ? null
+                              : () => setState(
+                                    () => _tutorialStep = step - 1,
+                                  ),
+                          onNext: () => _advanceTutorial(settings, step),
+                          onSkip: () => _finishTutorial(settings),
+                        ),
+                      if (state.phase == TurnPhase.gameOver)
+                        WinnerOverlay(
+                          state: state,
+                          canRematch: !controller.isOnlineMatch ||
+                              controller.canRestartOnlineMatch,
+                          reduceMotion: AppMotionSettings.shouldReduce(context),
+                          onRematch: () => unawaited(
+                            _runAction(
+                              controller.newGame,
+                              FeedbackCue.start,
+                            ),
+                          ),
+                          onSetup: () => unawaited(
+                            controller.isOnlineMatch
+                                ? _leaveOnlineRoom(
+                                    controller,
+                                    showSetup: true,
+                                  )
+                                : _openSetupForNewGame(controller),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -210,34 +311,170 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  Future<void> _restartFromHeader(GameController controller) async {
-    await _runAction(controller.newGame, FeedbackCue.start);
-    if (mounted) {
-      setState(() => _showLaunchPanel = false);
+  Future<void> _requestNewGameSetup(GameController controller) async {
+    final l10n = AppLocalizations.of(context)!;
+    final hasActiveGame = !controller.canEditRules ||
+        controller.hasMoveLog ||
+        controller.state.diceValue != null;
+    if (hasActiveGame) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(l10n.newGameConfirmTitle),
+          content: Text(l10n.newGameConfirmBody),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(l10n.cancelAction),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(l10n.continueAction),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+    }
+    if (controller.isOnlineMatch) {
+      await controller.leaveOnlineRoom();
+      if (!mounted) return;
+    }
+    await _openSetupForNewGame(controller);
+  }
+
+  void _showOnlineRoomSheet(GameController controller) {
+    _playFeedback(FeedbackCue.tap);
+    unawaited(
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        isDismissible: false,
+        enableDrag: false,
+        useSafeArea: true,
+        backgroundColor: AppColors.paper,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(AppDimensions.borderRadiusSmall),
+          ),
+        ),
+        builder: (sheetContext) => OnlineRoomSheet(
+          initialState: controller.state,
+          onAttached: controller.attachOnlineRoom,
+          onOpenGame: () {
+            if (mounted) {
+              setState(() {
+                _showLaunchPanel = false;
+                _tutorialStep = null;
+              });
+            }
+          },
+          onLeave: controller.leaveOnlineRoom,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _leaveOnlineRoom(
+    GameController controller, {
+    required bool showSetup,
+  }) async {
+    await controller.leaveOnlineRoom();
+    if (mounted && showSetup) {
+      setState(() {
+        _showLaunchPanel = true;
+        _tutorialStep = null;
+      });
     }
   }
 
   Future<void> _openSetupForNewGame(GameController controller) async {
     await _runAction(controller.newGame, FeedbackCue.start);
     if (mounted) {
-      setState(() => _showLaunchPanel = true);
+      setState(() {
+        _showLaunchPanel = true;
+        _tutorialStep = null;
+      });
     }
+  }
+
+  Future<void> _confirmClearSavedGame(GameController controller) async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.clearSaveConfirmTitle),
+        content: Text(l10n.clearSaveConfirmBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.cancelAction),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.deleteAction),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    await _runAction(controller.clearSavedGame, FeedbackCue.tap);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(l10n.savedGameCleared)));
+  }
+
+  void _scheduleTutorialForResumedGame(
+    AppSettingsController settings,
+    LudoGameState state,
+  ) {
+    if (_tutorialScheduled ||
+        settings.tutorialCompleted ||
+        _showLaunchPanel == true ||
+        state.phase == TurnPhase.gameOver) {
+      return;
+    }
+    _tutorialScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !settings.tutorialCompleted) {
+        setState(() => _tutorialStep = 0);
+      }
+    });
+  }
+
+  void _advanceTutorial(AppSettingsController settings, int step) {
+    if (step >= TutorialOverlay.stepCount - 1) {
+      _finishTutorial(settings);
+      return;
+    }
+    setState(() => _tutorialStep = step + 1);
+  }
+
+  void _finishTutorial(AppSettingsController settings) {
+    unawaited(settings.completeTutorial());
+    setState(() => _tutorialStep = null);
   }
 
   Widget _buildMobileDock(
     GameController controller,
     LudoGameState state,
     bool isVisibleBotTurn,
+    bool isVisibleRemoteTurn,
+    bool isWaitingForOnlinePlayers,
   ) {
     return SafeArea(
       top: false,
       child: MobileActionDock(
         state: state,
         isBotTurn: isVisibleBotTurn,
+        isRemoteTurn: isVisibleRemoteTurn,
+        isWaitingForPlayers: isWaitingForOnlinePlayers,
         onRoll: () => unawaited(_rollForHuman(controller)),
-        onOpenSetup: _showSetupSheet,
+        onOpenSetup: controller.isOnlineMatch ? null : _showSetupSheet,
         onOpenRules: _showRulesSheet,
         onOpenMoveLog: () => _showMoveLogSheet(),
+        onOpenStats: _showStatsSheet,
       ),
     );
   }
@@ -271,6 +508,9 @@ class _GameScreenState extends State<GameScreen> {
             onPlayerAvatarChanged: (color, avatarId) => unawaited(
               controller.updatePlayerAvatar(color, avatarId),
             ),
+            onBotDifficultyChanged: (color, difficulty) => unawaited(
+              controller.updateBotDifficulty(color, difficulty),
+            ),
           );
         },
       ),
@@ -285,6 +525,7 @@ class _GameScreenState extends State<GameScreen> {
         builder: (context, controller, _) {
           return RuleOptionsCard(
             state: controller.state,
+            enabled: controller.canEditRules,
             onRulesChanged: (rules) => unawaited(controller.updateRules(rules)),
           );
         },
@@ -299,6 +540,41 @@ class _GameScreenState extends State<GameScreen> {
       builder: (sheetContext) => Consumer<GameController>(
         builder: (context, controller, _) {
           return MoveLogCard(state: controller.state);
+        },
+      ),
+    );
+  }
+
+  void _showStatsSheet() {
+    _playFeedback(FeedbackCue.tap);
+    _showMobileToolSheet(
+      title: AppLocalizations.of(context)!.statistics,
+      builder: (sheetContext) => Consumer<GameController>(
+        builder: (context, controller, _) {
+          return StatsCard(state: controller.state);
+        },
+      ),
+    );
+  }
+
+  void _showSettingsSheet() {
+    _playFeedback(FeedbackCue.tap);
+    _showMobileToolSheet(
+      title: AppLocalizations.of(context)!.settings,
+      builder: (sheetContext) => Consumer<AppSettingsController>(
+        builder: (context, settings, _) {
+          return SettingsCard(
+            settings: settings,
+            onReplayTutorial: () {
+              Navigator.of(sheetContext).pop();
+              unawaited(settings.resetTutorial());
+              setState(() {
+                _showLaunchPanel = false;
+                _tutorialScheduled = true;
+                _tutorialStep = 0;
+              });
+            },
+          );
         },
       ),
     );
@@ -421,25 +697,35 @@ class LaunchSetupOverlay extends StatelessWidget {
   const LaunchSetupOverlay({
     required this.state,
     required this.onPlayerCountChanged,
+    required this.onPlayerNameChanged,
     required this.onPlayerKindChanged,
     required this.onPlayerAvatarChanged,
+    required this.onBotDifficultyChanged,
     required this.onClassicPreset,
     required this.onClubPreset,
+    required this.onCustomRules,
+    required this.onOnlineRoom,
     required this.onStart,
     super.key,
   });
 
   final LudoGameState state;
   final ValueChanged<int> onPlayerCountChanged;
+  final void Function(PlayerColor color, String name) onPlayerNameChanged;
   final void Function(PlayerColor color, PlayerKind kind) onPlayerKindChanged;
   final void Function(PlayerColor color, PlayerAvatarId avatarId)
       onPlayerAvatarChanged;
+  final void Function(PlayerColor color, BotDifficulty difficulty)
+      onBotDifficultyChanged;
   final VoidCallback onClassicPreset;
   final VoidCallback onClubPreset;
+  final VoidCallback onCustomRules;
+  final VoidCallback onOnlineRoom;
   final VoidCallback onStart;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Positioned.fill(
       child: DecoratedBox(
         decoration: BoxDecoration(
@@ -472,58 +758,65 @@ class LaunchSetupOverlay extends StatelessWidget {
                           const _SetupHeroHeader(),
                           const SizedBox(height: 18),
                           SegmentedButton<int>(
-                            segments: const [
-                              ButtonSegment(value: 2, label: Text('2 Spieler')),
-                              ButtonSegment(value: 3, label: Text('3 Spieler')),
-                              ButtonSegment(value: 4, label: Text('4 Spieler')),
+                            segments: [
+                              ButtonSegment(
+                                value: 2,
+                                label: Text(l10n.playerCountLabel(2)),
+                              ),
+                              ButtonSegment(
+                                value: 3,
+                                label: Text(l10n.playerCountLabel(3)),
+                              ),
+                              ButtonSegment(
+                                value: 4,
+                                label: Text(l10n.playerCountLabel(4)),
+                              ),
                             ],
                             selected: {state.players.length},
                             onSelectionChanged: (selection) =>
                                 onPlayerCountChanged(selection.first),
                           ),
                           const SizedBox(height: 16),
-                          Wrap(
-                            spacing: 10,
-                            runSpacing: 10,
-                            children: [
-                              for (final player in state.players)
-                                _SetupPlayerChip(
-                                  player: player,
-                                  onToggleKind: () => onPlayerKindChanged(
-                                    player.color,
-                                    player.isBot
-                                        ? PlayerKind.human
-                                        : PlayerKind.bot,
-                                  ),
-                                  onCycleAvatar: () => onPlayerAvatarChanged(
-                                    player.color,
-                                    _nextAvatar(player.avatarId),
-                                  ),
-                                ),
-                            ],
+                          SetupCard(
+                            state: state,
+                            onPlayerNameChanged: onPlayerNameChanged,
+                            onPlayerKindChanged: onPlayerKindChanged,
+                            onPlayerAvatarChanged: onPlayerAvatarChanged,
+                            onBotDifficultyChanged: onBotDifficultyChanged,
                           ),
                           const SizedBox(height: 16),
-                          Wrap(
-                            spacing: 10,
-                            runSpacing: 10,
-                            children: [
-                              OutlinedButton.icon(
-                                onPressed: onClassicPreset,
-                                icon: const Icon(Icons.table_bar_outlined),
-                                label: const Text('Klassisch'),
-                              ),
-                              OutlinedButton.icon(
-                                onPressed: onClubPreset,
-                                icon: const Icon(Icons.auto_awesome_outlined),
-                                label: const Text('Club-Preset'),
-                              ),
-                            ],
+                          _PresetChoice(
+                            icon: Icons.table_bar_outlined,
+                            title: l10n.classicPreset,
+                            description: l10n.classicPresetDescription,
+                            selected: _usesClassicPreset(state.rules),
+                            onTap: onClassicPreset,
+                          ),
+                          const SizedBox(height: 10),
+                          _PresetChoice(
+                            icon: Icons.auto_awesome_outlined,
+                            title: l10n.clubPreset,
+                            description: l10n.clubPresetDescription,
+                            selected: _usesClubPreset(state.rules),
+                            onTap: onClubPreset,
+                          ),
+                          const SizedBox(height: 10),
+                          OutlinedButton.icon(
+                            onPressed: onCustomRules,
+                            icon: const Icon(Icons.tune),
+                            label: Text(l10n.customRules),
+                          ),
+                          const SizedBox(height: 10),
+                          OutlinedButton.icon(
+                            onPressed: onOnlineRoom,
+                            icon: const Icon(Icons.public),
+                            label: Text(l10n.onlineRoom),
                           ),
                           const SizedBox(height: 16),
                           FilledButton.icon(
                             onPressed: onStart,
                             icon: const Icon(Icons.play_arrow_rounded),
-                            label: const Text('Partie starten'),
+                            label: Text(l10n.startGame),
                           ),
                         ],
                       ),
@@ -544,6 +837,7 @@ class _SetupHeroHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return ClipRRect(
       borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
       child: SizedBox(
@@ -600,7 +894,7 @@ class _SetupHeroHeader extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Partie einrichten',
+                          l10n.setupTitle,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context)
@@ -613,7 +907,7 @@ class _SetupHeroHeader extends StatelessWidget {
                               ),
                         ),
                         Text(
-                          'Spieler, Bots und Regeln festlegen.',
+                          l10n.setupSubtitle,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style:
@@ -636,73 +930,99 @@ class _SetupHeroHeader extends StatelessWidget {
   }
 }
 
-class _SetupPlayerChip extends StatelessWidget {
-  const _SetupPlayerChip({
-    required this.player,
-    required this.onToggleKind,
-    required this.onCycleAvatar,
+bool _usesClassicPreset(RuleOptions rules) {
+  return rules.openRollRule == OpenRollRule.oneRoll &&
+      !rules.extraTurnOnFinish &&
+      !rules.threeSixesEndTurn &&
+      rules.extraTurnOnCapture &&
+      rules.extraTurnOnSixNoMove &&
+      !rules.doublePieceBlockades;
+}
+
+bool _usesClubPreset(RuleOptions rules) {
+  return rules.openRollRule == OpenRollRule.threeRolls &&
+      rules.extraTurnOnFinish &&
+      rules.threeSixesEndTurn;
+}
+
+class _PresetChoice extends StatelessWidget {
+  const _PresetChoice({
+    required this.icon,
+    required this.title,
+    required this.description,
+    required this.selected,
+    required this.onTap,
   });
 
-  final LudoPlayer player;
-  final VoidCallback onToggleKind;
-  final VoidCallback onCycleAvatar;
+  final IconData icon;
+  final String title;
+  final String description;
+  final bool selected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppDimensions.borderRadiusLarge),
-        onTap: onToggleKind,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: player.color.paint.withValues(alpha: 0.08),
-            borderRadius:
-                BorderRadius.circular(AppDimensions.borderRadiusLarge),
-            border: Border.all(
-              color: player.color.paint.withValues(alpha: 0.28),
+    final l10n = AppLocalizations.of(context)!;
+    final accent = selected ? AppColors.brass : AppColors.slate500;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: selected ? '$title, ${l10n.selectedLabel}' : title,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
+          onTap: onTap,
+          child: AnimatedContainer(
+            duration: AppMotionSettings.duration(
+              context,
+              const Duration(milliseconds: 180),
             ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            padding: const EdgeInsets.all(13),
+            decoration: BoxDecoration(
+              color: selected
+                  ? AppColors.brass.withValues(alpha: 0.13)
+                  : Colors.white.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(
+                AppDimensions.borderRadiusSmall,
+              ),
+              border: Border.all(
+                color: selected ? AppColors.brass : AppColors.brassHairline,
+                width: selected ? 1.5 : 1,
+              ),
+            ),
             child: Row(
-              mainAxisSize: MainAxisSize.min,
               children: [
-                Tooltip(
-                  message: 'Avatar wechseln',
-                  child: InkResponse(
-                    radius: 24,
-                    customBorder: const CircleBorder(),
-                    onTap: onCycleAvatar,
-                    child: PlayerAvatar(
-                      color: player.color,
-                      avatarId: player.avatarId,
-                      size: 30,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(player.name),
-                const SizedBox(width: 8),
-                if (player.isBot)
-                  Image.asset(
-                    AssetMapper.botBadge,
-                    width: 22,
-                    height: 22,
-                    filterQuality: FilterQuality.high,
-                  )
-                else
-                  Icon(
-                    Icons.person_outline,
-                    size: 18,
-                    color: player.color.paint,
-                  ),
-                const SizedBox(width: 4),
-                Text(
-                  player.isBot ? 'Bot' : 'Mensch',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: AppColors.slate600,
+                Icon(icon, color: accent),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              title,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleSmall
+                                  ?.copyWith(fontWeight: FontWeight.w900),
+                            ),
+                          ),
+                          if (selected)
+                            Icon(Icons.check_circle, color: accent, size: 20),
+                        ],
                       ),
+                      const SizedBox(height: 3),
+                      Text(
+                        description,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppColors.slate600,
+                            ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -713,26 +1033,25 @@ class _SetupPlayerChip extends StatelessWidget {
   }
 }
 
-PlayerAvatarId _nextAvatar(PlayerAvatarId current) {
-  final values = PlayerAvatarId.values;
-  final nextIndex = (values.indexOf(current) + 1) % values.length;
-  return values[nextIndex];
-}
-
 class WinnerOverlay extends StatelessWidget {
   const WinnerOverlay({
     required this.state,
     required this.onRematch,
     required this.onSetup,
+    required this.canRematch,
+    required this.reduceMotion,
     super.key,
   });
 
   final LudoGameState state;
   final VoidCallback onRematch;
   final VoidCallback onSetup;
+  final bool canRematch;
+  final bool reduceMotion;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final winner = state.players.firstWhere(
       (player) => player.color == state.winner,
       orElse: () => state.currentPlayer,
@@ -752,7 +1071,12 @@ class WinnerOverlay extends StatelessWidget {
         ),
         child: Stack(
           children: [
-            Positioned.fill(child: WinCelebration(color: winner.color.paint)),
+            Positioned.fill(
+              child: WinCelebration(
+                color: winner.color.paint,
+                reduceMotion: reduceMotion,
+              ),
+            ),
             Positioned.fill(
               child: IgnorePointer(
                 child: Opacity(
@@ -793,9 +1117,9 @@ class WinnerOverlay extends StatelessWidget {
                           children: [
                             Expanded(
                               child: FilledButton.icon(
-                                onPressed: onRematch,
+                                onPressed: canRematch ? onRematch : null,
                                 icon: const Icon(Icons.refresh),
-                                label: const Text('Revanche'),
+                                label: Text(l10n.rematch),
                               ),
                             ),
                             const SizedBox(width: 10),
@@ -803,11 +1127,19 @@ class WinnerOverlay extends StatelessWidget {
                               child: OutlinedButton.icon(
                                 onPressed: onSetup,
                                 icon: const Icon(Icons.tune),
-                                label: const Text('Setup'),
+                                label: Text(l10n.setup),
                               ),
                             ),
                           ],
                         ),
+                        if (!canRematch) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            l10n.onlineHostRestartOnly,
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -876,7 +1208,7 @@ class _WinnerHeroHeader extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '${winner.name} gewinnt',
+                          AppLocalizations.of(context)!.playerWins(winner.name),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context)
@@ -889,7 +1221,8 @@ class _WinnerHeroHeader extends StatelessWidget {
                               ),
                         ),
                         Text(
-                          '$actionCount protokollierte Aktionen',
+                          AppLocalizations.of(context)!
+                              .winnerActionCount(actionCount),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style:
@@ -935,7 +1268,9 @@ class _WinnerStat extends StatelessWidget {
               size: 30,
             ),
             const SizedBox(width: 8),
-            Text('${player.name}: ${player.finishedCount}/4'),
+            Text(
+              '${player.name}: ${AppLocalizations.of(context)!.finishedCount(player.finishedCount)}',
+            ),
           ],
         ),
       ),
@@ -944,9 +1279,14 @@ class _WinnerStat extends StatelessWidget {
 }
 
 class WinCelebration extends StatefulWidget {
-  const WinCelebration({required this.color, super.key});
+  const WinCelebration({
+    required this.color,
+    required this.reduceMotion,
+    super.key,
+  });
 
   final Color color;
+  final bool reduceMotion;
 
   @override
   State<WinCelebration> createState() => _WinCelebrationState();
@@ -962,7 +1302,23 @@ class _WinCelebrationState extends State<WinCelebration>
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1800),
-    )..repeat();
+    );
+    if (!widget.reduceMotion) {
+      _controller.repeat();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant WinCelebration oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.reduceMotion == widget.reduceMotion) {
+      return;
+    }
+    if (widget.reduceMotion) {
+      _controller.stop(canceled: false);
+    } else {
+      _controller.repeat();
+    }
   }
 
   @override
@@ -973,6 +1329,16 @@ class _WinCelebrationState extends State<WinCelebration>
 
   @override
   Widget build(BuildContext context) {
+    if (widget.reduceMotion) {
+      return IgnorePointer(
+        child: CustomPaint(
+          painter: _WinCelebrationPainter(
+            progress: 0.4,
+            color: widget.color,
+          ),
+        ),
+      );
+    }
     return IgnorePointer(
       child: AnimatedBuilder(
         animation: _controller,

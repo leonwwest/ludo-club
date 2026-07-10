@@ -35,24 +35,18 @@ abstract final class GameFeedbackHaptics {
       switch (cue) {
         case FeedbackCue.tap:
           await HapticFeedback.selectionClick();
-          await SystemSound.play(SystemSoundType.click);
         case FeedbackCue.start:
           await HapticFeedback.mediumImpact();
-          await SystemSound.play(SystemSoundType.click);
         case FeedbackCue.roll:
           await HapticFeedback.lightImpact();
-          await SystemSound.play(SystemSoundType.click);
         case FeedbackCue.move:
           await HapticFeedback.selectionClick();
         case FeedbackCue.capture:
           await HapticFeedback.heavyImpact();
-          await SystemSound.play(SystemSoundType.alert);
         case FeedbackCue.finish:
           await HapticFeedback.mediumImpact();
-          await SystemSound.play(SystemSoundType.click);
         case FeedbackCue.win:
           await HapticFeedback.heavyImpact();
-          await SystemSound.play(SystemSoundType.alert);
       }
     } catch (_) {
       // Some platforms and tests do not expose haptics/system sounds.
@@ -61,9 +55,24 @@ abstract final class GameFeedbackHaptics {
 }
 
 abstract final class GameFeedback {
+  static bool _soundEnabled = true;
+  static bool _hapticsEnabled = true;
+
+  static void configure({
+    required bool soundEnabled,
+    required bool hapticsEnabled,
+  }) {
+    _soundEnabled = soundEnabled;
+    _hapticsEnabled = hapticsEnabled;
+  }
+
   static Future<void> play(FeedbackCue cue) async {
-    await GameFeedbackHaptics.play(cue);
-    await GameFeedbackAudio.play(_audioCueFor(cue));
+    if (_hapticsEnabled) {
+      await GameFeedbackHaptics.play(cue);
+    }
+    if (_soundEnabled) {
+      await GameFeedbackAudio.play(_audioCueFor(cue));
+    }
   }
 
   static GameAudioCue _audioCueFor(FeedbackCue cue) {

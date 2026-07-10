@@ -1,9 +1,22 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+val releaseSigningFile = rootProject.file("key.properties")
+val releaseSigning = Properties()
+
+if (releaseSigningFile.exists()) {
+    releaseSigningFile.inputStream().use(releaseSigning::load)
+}
+
+fun releaseSigningValue(name: String): String =
+    releaseSigning.getProperty(name)?.takeIf { it.isNotBlank() }
+        ?: error("Missing '$name' in ${releaseSigningFile.path}")
 
 android {
     namespace = "club.ludo.app"
@@ -27,9 +40,23 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (releaseSigningFile.exists()) {
+            create("release") {
+                keyAlias = releaseSigningValue("keyAlias")
+                keyPassword = releaseSigningValue("keyPassword")
+                storeFile = rootProject.file(releaseSigningValue("storeFile"))
+                storePassword = releaseSigningValue("storePassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // Keep release builds unsigned unless a real release signing config is added.
+            // Never fall back to the debug key for a distributable build.
+            if (releaseSigningFile.exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 }

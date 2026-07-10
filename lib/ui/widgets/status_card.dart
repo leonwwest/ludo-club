@@ -3,6 +3,7 @@ import 'package:ludo_club/constants/app_colors.dart';
 import 'package:ludo_club/constants/app_dimensions.dart';
 import 'package:ludo_club/constants/assets.dart';
 import 'package:ludo_club/l10n/app_localizations.dart';
+import 'package:ludo_club/l10n/turn_status_formatter.dart';
 import 'package:ludo_club/models/ludo_models.dart';
 import 'package:ludo_club/widgets/player_avatar.dart';
 
@@ -20,7 +21,7 @@ class StatusCard extends StatelessWidget {
       orElse: () => state.currentPlayer,
     );
     final title = state.phase == TurnPhase.gameOver
-        ? l10n.playerWins(currentColor.label)
+        ? l10n.playerWins(currentPlayer.name)
         : l10n.playerTurn(state.currentPlayer.name);
 
     return Card(
@@ -39,6 +40,7 @@ class StatusCard extends StatelessWidget {
                       avatarId: currentPlayer.avatarId,
                       size: 52,
                       borderWidth: 3,
+                      semanticLabel: currentPlayer.name,
                     ),
                     Positioned(
                       right: -8,
@@ -67,7 +69,7 @@ class StatusCard extends StatelessWidget {
             ),
             const SizedBox(height: 14),
             Text(
-              state.turnMessage,
+              TurnStatusFormatter.format(context, state),
               style: Theme.of(
                 context,
               ).textTheme.bodyMedium?.copyWith(color: AppColors.slate600),

@@ -6,7 +6,9 @@ import 'package:ludo_club/constants/app_dimensions.dart';
 import 'package:ludo_club/constants/app_durations.dart';
 import 'package:ludo_club/constants/assets.dart';
 import 'package:ludo_club/l10n/app_localizations.dart';
+import 'package:ludo_club/l10n/player_color_localizations.dart';
 import 'package:ludo_club/models/ludo_models.dart';
+import 'package:ludo_club/services/app_settings.dart';
 import 'package:ludo_club/theme/player_palette.dart';
 import 'package:ludo_club/widgets/ludo_board.dart';
 import 'package:ludo_club/widgets/player_avatar.dart';
@@ -140,7 +142,7 @@ class _CornerPlayerBadge extends StatelessWidget {
 
     final color = player.color.paint;
     final content = AnimatedContainer(
-      duration: AppDurations.normal,
+      duration: AppMotionSettings.duration(context, AppDurations.normal),
       width: width,
       padding: const EdgeInsets.all(7),
       decoration: BoxDecoration(
@@ -162,7 +164,11 @@ class _CornerPlayerBadge extends StatelessWidget {
       ),
       child: Row(
         children: [
-          PlayerAvatar(color: player.color, avatarId: player.avatarId),
+          PlayerAvatar(
+            color: player.color,
+            avatarId: player.avatarId,
+            semanticLabel: player.name,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -180,7 +186,7 @@ class _CornerPlayerBadge extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${player.color.colorLabel}  ${AppLocalizations.of(context)!.finishedCount(player.finishedCount)}',
+                  '${localizedPlayerColor(AppLocalizations.of(context)!, player.color)}  ${AppLocalizations.of(context)!.finishedCount(player.finishedCount)}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
@@ -195,7 +201,7 @@ class _CornerPlayerBadge extends StatelessWidget {
       ),
     );
     final badge = AnimatedScale(
-      duration: AppDurations.normal,
+      duration: AppMotionSettings.duration(context, AppDurations.normal),
       scale: isCurrent ? 1.04 : 1,
       child: Stack(
         clipBehavior: Clip.none,

@@ -46,6 +46,10 @@
   "@threeSixesEndTurn": {},
   "mustCapture": "Schlagzwang",
   "@mustCapture": {},
+  "extraTurnOnSixNoMove": "Bonuswurf bei 6 ohne Zug",
+  "@extraTurnOnSixNoMove": {},
+  "doublePieceBlockades": "Doppelfiguren bilden Blockaden",
+  "@doublePieceBlockades": {},
   "playerWins": "{name} gewinnt",
   "@playerWins": {
     "placeholders": {
@@ -113,5 +117,209 @@
     "placeholders": {
       "name": {"type": "String"}
     }
-  }
+  },
+  "settings": "Einstellungen",
+  "playerCountLabel": "{count} Spieler",
+  "@playerCountLabel": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "newGameSetup": "Neue Partie",
+  "newGameConfirmTitle": "Neue Partie einrichten?",
+  "newGameConfirmBody": "Die laufende Partie wird beendet. Du kannst danach Spieler, Bots und Regeln neu wählen.",
+  "continueAction": "Weiter",
+  "cancelAction": "Abbrechen",
+  "deleteAction": "Löschen",
+  "clearSaveConfirmTitle": "Speicherstand löschen?",
+  "clearSaveConfirmBody": "Die aktuelle Partie bleibt geöffnet, wird aber erst bei der nächsten Aktion wieder gespeichert.",
+  "savedGameCleared": "Speicherstand gelöscht.",
+  "setupTitle": "Partie einrichten",
+  "setupSubtitle": "Spieler, Bots und Regeln festlegen.",
+  "classicPreset": "Klassisch",
+  "classicPresetDescription": "Ein Startwurf, Bonuswurf nach einer 6 oder einem Schlag.",
+  "clubPreset": "Club-Preset",
+  "clubPresetDescription": "Drei Startwürfe, Bonus im Ziel, dritte 6 beendet den Zug.",
+  "customRules": "Regeln anpassen",
+  "selectedLabel": "Ausgewählt",
+  "startGame": "Partie starten",
+  "rematch": "Revanche",
+  "setup": "Setup",
+  "human": "Mensch",
+  "bot": "Bot",
+  "avatar": "Avatar",
+  "editPlayer": "Spieler bearbeiten",
+  "botDifficulty": "Bot-Stärke",
+  "botDifficultyEasy": "Locker",
+  "botDifficultyNormal": "Normal",
+  "botDifficultyHard": "Stark",
+  "botThinking": "{name} denkt …",
+  "@botThinking": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "tapHighlightedPiece": "Markierte Figur auf dem Brett antippen",
+  "gameBoard": "Spielbrett",
+  "diceValue": "Würfel: {value}",
+  "@diceValue": {
+    "placeholders": {
+      "value": {"type": "int"}
+    }
+  },
+  "playerPiece": "{name}, Figur {piece}",
+  "@playerPiece": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "piece": {"type": "int"}
+    }
+  },
+  "rulesLockedTitle": "Regeln für diese Partie gesperrt",
+  "rulesLockedBody": "Regeländerungen sind nur vor dem ersten Wurf möglich.",
+  "settingsTitle": "Spielkomfort",
+  "sound": "Spielton",
+  "soundSubtitle": "Würfel-, Zug- und Siegesklänge abspielen.",
+  "haptics": "Haptisches Feedback",
+  "hapticsSubtitle": "Aktionen auf unterstützten Geräten spürbar machen.",
+  "reduceMotion": "Bewegung reduzieren",
+  "reduceMotionSubtitle": "Würfel-, Figuren- und Siegesanimationen verkürzen.",
+  "language": "Sprache",
+  "systemLanguage": "System",
+  "germanLanguage": "Deutsch",
+  "englishLanguage": "English",
+  "tutorialReplay": "Kurzanleitung erneut zeigen",
+  "tutorialTitle": "In drei Schritten startklar",
+  "tutorialRollTitle": "1. Würfeln",
+  "tutorialRollBody": "Der große grüne Button startet deinen Zug. Der aktuelle Spieler bleibt immer sichtbar.",
+  "tutorialMoveTitle": "2. Figur bewegen",
+  "tutorialMoveBody": "Leuchtende Figuren und Zielringe zeigen erlaubte Züge. Tippe direkt auf Figur oder Ziel.",
+  "tutorialSafeTitle": "3. Sicher spielen",
+  "tutorialSafeBody": "Sterne sind sichere Felder. Mit Zurück kannst du den letzten Schritt korrigieren.",
+  "tutorialSkip": "Überspringen",
+  "tutorialBack": "Zurück",
+  "tutorialNext": "Weiter",
+  "tutorialDone": "Losspielen",
+  "winnerActionCount": "{count} protokollierte Aktionen",
+  "@winnerActionCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "statistics": "Statistik",
+  "currentMatch": "Aktuelle Partie",
+  "matchHistory": "Letzte Partien",
+  "noMatchHistory": "Noch keine beendete Partie.",
+  "wins": "{count} Siege",
+  "@wins": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "rolls": "Würfe",
+  "moves": "Züge",
+  "captures": "Schläge",
+  "sixes": "Sechsen",
+  "matchDuration": "{minutes}:{seconds} Min.",
+  "@matchDuration": {
+    "placeholders": {
+      "minutes": {"type": "int"},
+      "seconds": {"type": "String"}
+    }
+  },
+  "historyEntry": "{name} · {date}",
+  "@historyEntry": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "date": {"type": "String"}
+    }
+  },
+  "onlineRoom": "Privater Online-Raum",
+  "onlineRoomSubtitle": "Mit einem Raumcode gemeinsam auf verschiedenen Geräten spielen.",
+  "createRoom": "Raum erstellen",
+  "joinRoom": "Raum beitreten",
+  "serverAddress": "Raum-Server",
+  "playerName": "Dein Name",
+  "roomCode": "Raumcode",
+  "roomCodeValue": "Raumcode: {code}",
+  "@roomCodeValue": {
+    "placeholders": {
+      "code": {"type": "String"}
+    }
+  },
+  "roomCodeHint": "z. B. ABC234",
+  "onlineWaiting": "{connected} von {requiredPlayers} Spielern verbunden",
+  "@onlineWaiting": {
+    "placeholders": {
+      "connected": {"type": "int"},
+      "requiredPlayers": {"type": "int"}
+    }
+  },
+  "onlineConnecting": "Verbindung wird aufgebaut …",
+  "onlineReconnecting": "Verbindung wird wiederhergestellt …",
+  "onlineReady": "Online-Partie bereit",
+  "onlineLeave": "Online-Raum verlassen",
+  "onlineCopyCode": "Raumcode kopieren",
+  "onlineCodeCopied": "Raumcode kopiert.",
+  "onlineServerHelp": "Lokal: ws://127.0.0.1:8080/ws. Für andere Geräte eine erreichbare WSS-Adresse verwenden.",
+  "waitingForRemotePlayer": "Warte auf {name} …",
+  "@waitingForRemotePlayer": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "waitingForRoomPlayers": "Warte auf weitere Spieler …",
+  "onlineHostRestartOnly": "Nur der Host kann die Online-Partie neu starten.",
+  "invalidServerAddress": "Gib eine gültige WS-, WSS-, HTTP- oder HTTPS-Serveradresse ein.",
+  "invalidRoomCode": "Gib den vollständigen sechsstelligen Raumcode ein.",
+  "playerRolled": "{name} würfelt {value}.",
+  "@playerRolled": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "value": {"type": "int"}
+    }
+  },
+  "colorRed": "Rot",
+  "colorGreen": "Grün",
+  "colorYellow": "Gelb",
+  "colorBlue": "Blau",
+  "onlineConnectionError": "Die Online-Verbindung wurde unterbrochen.",
+  "onlineHost": "Raum-Host",
+  "moveHintCapture": "Figur {piece} schlägt {colors}.",
+  "@moveHintCapture": {
+    "placeholders": {
+      "piece": {"type": "int"},
+      "colors": {"type": "String"}
+    }
+  },
+  "moveHintFinish": "Figur {piece} erreicht das Ziel.",
+  "@moveHintFinish": {
+    "placeholders": {
+      "piece": {"type": "int"}
+    }
+  },
+  "moveHintEnter": "Figur {piece} kommt ins Spiel.",
+  "@moveHintEnter": {
+    "placeholders": {
+      "piece": {"type": "int"}
+    }
+  },
+  "moveHintHome": "Figur {piece} zieht in die Zielgasse.",
+  "@moveHintHome": {
+    "placeholders": {
+      "piece": {"type": "int"}
+    }
+  },
+  "moveHintField": "Figur {piece} zieht auf Feld {field}.",
+  "@moveHintField": {
+    "placeholders": {
+      "piece": {"type": "int"},
+      "field": {"type": "int"}
+    }
+  },
+  "onlineErrorRoomNotFound": "Dieser Raum wurde nicht gefunden.",
+  "onlineErrorRoomFull": "Dieser Raum ist bereits voll.",
+  "onlineErrorActionRejected": "Diese Aktion ist gerade nicht möglich.",
+  "onlineErrorInvalidData": "Der Raum-Server hat ungültige Daten gesendet.",
+  "onlineErrorTimeout": "Der Raum-Server hat nicht rechtzeitig geantwortet.",
+  "onlineErrorUnavailable": "Der Raum-Server ist nicht erreichbar. Prüfe Adresse und Verbindung."
 }

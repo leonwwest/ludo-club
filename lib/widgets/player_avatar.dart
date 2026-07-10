@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:ludo_club/constants/app_colors.dart';
 import 'package:ludo_club/constants/assets.dart';
+import 'package:ludo_club/l10n/app_localizations.dart';
+import 'package:ludo_club/l10n/player_color_localizations.dart';
 import 'package:ludo_club/models/ludo_models.dart';
 import 'package:ludo_club/theme/player_palette.dart';
 
@@ -24,7 +26,9 @@ class PlayerAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final paint = color.paint;
     return Semantics(
-      label: semanticLabel ?? color.label,
+      label: semanticLabel ??
+          avatarId?.label ??
+          localizedPlayerColor(AppLocalizations.of(context)!, color),
       image: true,
       excludeSemantics: true,
       child: Container(

@@ -4,16 +4,28 @@ import 'package:ludo_club/constants/app_colors.dart';
 import 'package:ludo_club/constants/app_dimensions.dart';
 import 'package:ludo_club/l10n/app_localizations.dart';
 import 'package:ludo_club/providers/game_controller.dart';
+import 'package:ludo_club/services/app_settings.dart';
 import 'package:ludo_club/ui/game_screen.dart';
 import 'package:provider/provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final savedState = await GameController.loadSavedState();
+  final (savedGame, appSettings) = await (
+    GameController.loadSavedGame(),
+    AppSettingsController.load(),
+  ).wait;
 
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => GameController(initialState: savedState),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (_) => GameController(
+            initialState: savedGame?.state,
+            initialHistory: savedGame?.history ?? const [],
+          ),
+        ),
+        ChangeNotifierProvider.value(value: appSettings),
+      ],
       child: const LudoClubApp(),
     ),
   );
@@ -24,6 +36,7 @@ class LudoClubApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final settings = context.watch<AppSettingsController>();
     return MaterialApp(
       onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
       debugShowCheckedModeBanner: false,
@@ -34,7 +47,7 @@ class LudoClubApp extends StatelessWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: AppLocalizations.supportedLocales,
-      locale: const Locale('de'),
+      locale: settings.locale,
       theme: ThemeData(
         useMaterial3: true,
         scaffoldBackgroundColor: AppColors.surface,

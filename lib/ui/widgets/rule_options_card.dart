@@ -6,11 +6,13 @@ class RuleOptionsCard extends StatelessWidget {
   const RuleOptionsCard({
     required this.state,
     required this.onRulesChanged,
+    this.enabled = true,
     super.key,
   });
 
   final LudoGameState state;
   final ValueChanged<RuleOptions> onRulesChanged;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -23,6 +25,48 @@ class RuleOptionsCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(l10n.rules, style: Theme.of(context).textTheme.titleMedium),
+            if (!enabled) ...[
+              const SizedBox(height: 10),
+              Semantics(
+                liveRegion: true,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color:
+                        Theme.of(context).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.lock_outline, size: 20),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                l10n.rulesLockedTitle,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelLarge
+                                    ?.copyWith(fontWeight: FontWeight.w800),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                l10n.rulesLockedBody,
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
             SegmentedButton<OpenRollRule>(
               segments: [
@@ -36,52 +80,89 @@ class RuleOptionsCard extends StatelessWidget {
                 ),
               ],
               selected: {rules.openRollRule},
-              onSelectionChanged: (selection) {
-                onRulesChanged(rules.copyWith(openRollRule: selection.first));
-              },
+              onSelectionChanged: enabled
+                  ? (selection) {
+                      onRulesChanged(
+                        rules.copyWith(openRollRule: selection.first),
+                      );
+                    }
+                  : null,
             ),
             const SizedBox(height: 8),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: Text(l10n.mustLeaveBaseOnSix),
               value: rules.mustLeaveBaseOnSix,
-              onChanged: (value) =>
-                  onRulesChanged(rules.copyWith(mustLeaveBaseOnSix: value)),
+              onChanged: enabled
+                  ? (value) => onRulesChanged(
+                        rules.copyWith(mustLeaveBaseOnSix: value),
+                      )
+                  : null,
             ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: Text(l10n.blockOwnFields),
               value: rules.blockOwnFields,
-              onChanged: (value) =>
-                  onRulesChanged(rules.copyWith(blockOwnFields: value)),
+              onChanged: enabled
+                  ? (value) =>
+                      onRulesChanged(rules.copyWith(blockOwnFields: value))
+                  : null,
             ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: Text(l10n.extraTurnOnFinish),
               value: rules.extraTurnOnFinish,
-              onChanged: (value) =>
-                  onRulesChanged(rules.copyWith(extraTurnOnFinish: value)),
+              onChanged: enabled
+                  ? (value) =>
+                      onRulesChanged(rules.copyWith(extraTurnOnFinish: value))
+                  : null,
             ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: Text(l10n.extraTurnOnCapture),
               value: rules.extraTurnOnCapture,
-              onChanged: (value) =>
-                  onRulesChanged(rules.copyWith(extraTurnOnCapture: value)),
+              onChanged: enabled
+                  ? (value) =>
+                      onRulesChanged(rules.copyWith(extraTurnOnCapture: value))
+                  : null,
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(l10n.extraTurnOnSixNoMove),
+              value: rules.extraTurnOnSixNoMove,
+              onChanged: enabled
+                  ? (value) => onRulesChanged(
+                        rules.copyWith(extraTurnOnSixNoMove: value),
+                      )
+                  : null,
             ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: Text(l10n.threeSixesEndTurn),
               value: rules.threeSixesEndTurn,
-              onChanged: (value) =>
-                  onRulesChanged(rules.copyWith(threeSixesEndTurn: value)),
+              onChanged: enabled
+                  ? (value) =>
+                      onRulesChanged(rules.copyWith(threeSixesEndTurn: value))
+                  : null,
             ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: Text(l10n.mustCapture),
               value: rules.mustCapture,
-              onChanged: (value) =>
-                  onRulesChanged(rules.copyWith(mustCapture: value)),
+              onChanged: enabled
+                  ? (value) =>
+                      onRulesChanged(rules.copyWith(mustCapture: value))
+                  : null,
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(l10n.doublePieceBlockades),
+              value: rules.doublePieceBlockades,
+              onChanged: enabled
+                  ? (value) => onRulesChanged(
+                        rules.copyWith(doublePieceBlockades: value),
+                      )
+                  : null,
             ),
           ],
         ),

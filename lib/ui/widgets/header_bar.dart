@@ -8,56 +8,65 @@ class HeaderBar extends StatelessWidget {
   const HeaderBar({
     required this.playerCount,
     required this.canUndo,
-    required this.onPlayerCountChanged,
-    required this.onRestart,
+    required this.onNewGame,
     required this.onUndo,
     required this.onClearSave,
+    required this.onOpenSettings,
+    required this.onOpenStats,
     super.key,
   });
 
   final int playerCount;
   final bool canUndo;
-  final ValueChanged<int> onPlayerCountChanged;
-  final VoidCallback onRestart;
+  final VoidCallback onNewGame;
   final VoidCallback onUndo;
   final VoidCallback onClearSave;
+  final VoidCallback onOpenSettings;
+  final VoidCallback onOpenStats;
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isCompact = constraints.maxWidth < 620;
-        return DecoratedBox(
-          decoration: BoxDecoration(
-            color: AppColors.headerPanel,
-            borderRadius:
-                BorderRadius.circular(AppDimensions.borderRadiusSmall),
-            border: Border.all(color: AppColors.brassHairline),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x66000000),
-                blurRadius: 24,
-                offset: Offset(0, 12),
-              ),
-            ],
-          ),
-          child: Padding(
-            padding: EdgeInsets.all(isCompact ? 10 : 12),
-            child: isCompact
-                ? _CompactHeaderContent(
-                    canUndo: canUndo,
-                    onRestart: onRestart,
-                    onUndo: onUndo,
-                    onClearSave: onClearSave,
-                  )
-                : _WideHeaderContent(
-                    playerCount: playerCount,
-                    canUndo: canUndo,
-                    onPlayerCountChanged: onPlayerCountChanged,
-                    onRestart: onRestart,
-                    onUndo: onUndo,
-                    onClearSave: onClearSave,
-                  ),
+        final isCompact = constraints.maxWidth < 980;
+        return Semantics(
+          container: true,
+          header: true,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: AppColors.headerPanel,
+              borderRadius:
+                  BorderRadius.circular(AppDimensions.borderRadiusSmall),
+              border: Border.all(color: AppColors.brassHairline),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x66000000),
+                  blurRadius: 24,
+                  offset: Offset(0, 12),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: EdgeInsets.all(isCompact ? 10 : 12),
+              child: isCompact
+                  ? _CompactHeaderContent(
+                      canUndo: canUndo,
+                      onNewGame: onNewGame,
+                      onUndo: onUndo,
+                      onClearSave: onClearSave,
+                      onOpenSettings: onOpenSettings,
+                      onOpenStats: onOpenStats,
+                    )
+                  : _WideHeaderContent(
+                      playerCount: playerCount,
+                      canUndo: canUndo,
+                      onNewGame: onNewGame,
+                      onUndo: onUndo,
+                      onClearSave: onClearSave,
+                      onOpenSettings: onOpenSettings,
+                      onOpenStats: onOpenStats,
+                    ),
+            ),
           ),
         );
       },
@@ -69,81 +78,85 @@ class _WideHeaderContent extends StatelessWidget {
   const _WideHeaderContent({
     required this.playerCount,
     required this.canUndo,
-    required this.onPlayerCountChanged,
-    required this.onRestart,
+    required this.onNewGame,
     required this.onUndo,
     required this.onClearSave,
+    required this.onOpenSettings,
+    required this.onOpenStats,
   });
 
   final int playerCount;
   final bool canUndo;
-  final ValueChanged<int> onPlayerCountChanged;
-  final VoidCallback onRestart;
+  final VoidCallback onNewGame;
   final VoidCallback onUndo;
   final VoidCallback onClearSave;
+  final VoidCallback onOpenSettings;
+  final VoidCallback onOpenStats;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final toolbarButtonStyle = _toolbarButtonStyle();
 
-    return Wrap(
-      spacing: 12,
-      runSpacing: 12,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      alignment: WrapAlignment.spaceBetween,
+    return Row(
       children: [
-        const _HeaderBrand(showSubtitle: true),
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            SegmentedButton<int>(
-              style: ButtonStyle(
-                backgroundColor: WidgetStateProperty.resolveWith((states) {
-                  if (states.contains(WidgetState.selected)) {
-                    return AppColors.brass;
-                  }
-                  return Colors.white.withValues(alpha: 0.08);
-                }),
-                foregroundColor: WidgetStateProperty.resolveWith((states) {
-                  if (states.contains(WidgetState.selected)) {
-                    return AppColors.ink;
-                  }
-                  return AppColors.paper;
-                }),
-                side: WidgetStateProperty.all(
-                  const BorderSide(color: AppColors.brassHairline),
+        const Expanded(child: _HeaderBrand(showSubtitle: true)),
+        const SizedBox(width: 18),
+        Flexible(
+          child: Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            alignment: WrapAlignment.end,
+            children: [
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: AppColors.brass.withValues(alpha: 0.16),
+                  borderRadius:
+                      BorderRadius.circular(AppDimensions.borderRadiusSmall),
+                  border: Border.all(color: AppColors.brassHairline),
+                ),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  child: Text(
+                    l10n.playerCountLabel(playerCount),
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: AppColors.paper,
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
                 ),
               ),
-              segments: const [
-                ButtonSegment(value: 2, label: Text('2')),
-                ButtonSegment(value: 3, label: Text('3')),
-                ButtonSegment(value: 4, label: Text('4')),
-              ],
-              selected: {playerCount},
-              onSelectionChanged: (selection) =>
-                  onPlayerCountChanged(selection.first),
-            ),
-            OutlinedButton.icon(
-              style: toolbarButtonStyle,
-              onPressed: canUndo ? onUndo : null,
-              icon: const Icon(Icons.undo),
-              label: Text(l10n.undo),
-            ),
-            OutlinedButton.icon(
-              style: toolbarButtonStyle,
-              onPressed: onRestart,
-              icon: const Icon(Icons.refresh),
-              label: Text(l10n.newGame),
-            ),
-            _HeaderIconButton(
-              tooltip: l10n.clearSave,
-              icon: Icons.delete_outline,
-              onPressed: onClearSave,
-            ),
-          ],
+              OutlinedButton.icon(
+                style: toolbarButtonStyle,
+                onPressed: canUndo ? onUndo : null,
+                icon: const Icon(Icons.undo),
+                label: Text(l10n.undo),
+              ),
+              OutlinedButton.icon(
+                style: toolbarButtonStyle,
+                onPressed: onNewGame,
+                icon: const Icon(Icons.add_circle_outline),
+                label: Text(l10n.newGameSetup),
+              ),
+              _HeaderIconButton(
+                tooltip: l10n.statistics,
+                icon: Icons.bar_chart_outlined,
+                onPressed: onOpenStats,
+              ),
+              _HeaderIconButton(
+                tooltip: l10n.settings,
+                icon: Icons.settings_outlined,
+                onPressed: onOpenSettings,
+              ),
+              _HeaderMenuButton(
+                onClearSave: onClearSave,
+                onOpenSettings: onOpenSettings,
+                includeSettings: false,
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -153,15 +166,19 @@ class _WideHeaderContent extends StatelessWidget {
 class _CompactHeaderContent extends StatelessWidget {
   const _CompactHeaderContent({
     required this.canUndo,
-    required this.onRestart,
+    required this.onNewGame,
     required this.onUndo,
     required this.onClearSave,
+    required this.onOpenSettings,
+    required this.onOpenStats,
   });
 
   final bool canUndo;
-  final VoidCallback onRestart;
+  final VoidCallback onNewGame;
   final VoidCallback onUndo;
   final VoidCallback onClearSave;
+  final VoidCallback onOpenSettings;
+  final VoidCallback onOpenStats;
 
   @override
   Widget build(BuildContext context) {
@@ -178,19 +195,84 @@ class _CompactHeaderContent extends StatelessWidget {
         const SizedBox(width: 6),
         _HeaderIconButton(
           tooltip: l10n.newGame,
-          icon: Icons.refresh,
-          onPressed: onRestart,
+          icon: Icons.add_circle_outline,
+          onPressed: onNewGame,
         ),
         const SizedBox(width: 6),
         _HeaderIconButton(
-          tooltip: l10n.clearSave,
-          icon: Icons.delete_outline,
-          onPressed: onClearSave,
+          tooltip: l10n.statistics,
+          icon: Icons.bar_chart_outlined,
+          onPressed: onOpenStats,
+        ),
+        const SizedBox(width: 6),
+        _HeaderMenuButton(
+          onClearSave: onClearSave,
+          onOpenSettings: onOpenSettings,
+          includeSettings: true,
         ),
       ],
     );
   }
 }
+
+class _HeaderMenuButton extends StatelessWidget {
+  const _HeaderMenuButton({
+    required this.onClearSave,
+    required this.onOpenSettings,
+    required this.includeSettings,
+  });
+
+  final VoidCallback onClearSave;
+  final VoidCallback onOpenSettings;
+  final bool includeSettings;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return PopupMenuButton<_HeaderMenuAction>(
+      tooltip: MaterialLocalizations.of(context).moreButtonTooltip,
+      color: AppColors.paper,
+      onSelected: (action) {
+        switch (action) {
+          case _HeaderMenuAction.settings:
+            onOpenSettings();
+          case _HeaderMenuAction.clearSave:
+            onClearSave();
+        }
+      },
+      itemBuilder: (context) => [
+        if (includeSettings)
+          PopupMenuItem<_HeaderMenuAction>(
+            value: _HeaderMenuAction.settings,
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.settings_outlined),
+              title: Text(l10n.settings),
+            ),
+          ),
+        PopupMenuItem<_HeaderMenuAction>(
+          value: _HeaderMenuAction.clearSave,
+          child: ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.delete_outline),
+            title: Text(l10n.clearSave),
+          ),
+        ),
+      ],
+      icon: const Icon(Icons.more_horiz),
+      style: IconButton.styleFrom(
+        backgroundColor: Colors.white.withValues(alpha: 0.06),
+        foregroundColor: AppColors.paper,
+        side: const BorderSide(color: AppColors.brassHairline),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppDimensions.borderRadiusSmall),
+        ),
+      ),
+    );
+  }
+}
+
+enum _HeaderMenuAction { settings, clearSave }
 
 class _HeaderBrand extends StatelessWidget {
   const _HeaderBrand({required this.showSubtitle});

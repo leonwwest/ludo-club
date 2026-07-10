@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ludo_club/l10n/app_localizations.dart';
 import 'package:ludo_club/main.dart';
 import 'package:ludo_club/providers/game_controller.dart';
+import 'package:ludo_club/services/app_settings.dart';
 import 'package:ludo_club/services/game_storage.dart';
 import 'package:ludo_club/ui/widgets/mobile_action_dock.dart';
 import 'package:ludo_club/ui/widgets/move_log_card.dart';
@@ -13,41 +12,42 @@ import 'package:ludo_club/widgets/ludo_board.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-Widget _wrappedApp(GameController controller) {
-  return ChangeNotifierProvider.value(
-    value: controller,
-    child: const MaterialApp(
-      localizationsDelegates: [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: AppLocalizations.supportedLocales,
-      locale: Locale('de'),
-      home: LudoClubApp(),
-    ),
+Widget _wrappedApp(
+  GameController controller,
+  AppSettingsController settings,
+) {
+  return MultiProvider(
+    providers: [
+      ChangeNotifierProvider.value(value: controller),
+      ChangeNotifierProvider.value(value: settings),
+    ],
+    child: const LudoClubApp(),
   );
 }
 
 void main() {
-  setUp(() {
+  late AppSettingsController settings;
+
+  setUp(() async {
     SharedPreferences.setMockInitialValues({});
+    settings = await AppSettingsController.load();
+    await settings.setLocaleMode(AppLocaleMode.german);
+    await settings.completeTutorial();
   });
 
   testWidgets('renders the rebuilt game screen', (tester) async {
     final controller = GameController(
       diceRoller: () => 6,
-      storage: GameStorage(debounceDelay: Duration.zero),
+      storage: GameStorage(),
     );
     addTearDown(controller.dispose);
 
-    await tester.pumpWidget(_wrappedApp(controller));
+    await tester.pumpWidget(_wrappedApp(controller, settings));
+    await tester.pumpAndSettle();
 
     expect(find.text('Ludo Club'), findsOneWidget);
-    expect(find.text('Neu starten'), findsOneWidget);
-    expect(find.text('Zurück'), findsOneWidget);
-    expect(find.text('Schlankes lokales Brettspiel'), findsOneWidget);
+    expect(find.byIcon(Icons.add_circle_outline), findsOneWidget);
+    expect(find.byIcon(Icons.undo), findsOneWidget);
     expect(find.text('Partie einrichten'), findsOneWidget);
     expect(find.text('Partie starten'), findsOneWidget);
   });
@@ -62,12 +62,16 @@ void main() {
     final controller = GameController(
       diceRoller: () => 6,
       initialPlayerCount: 2,
-      storage: GameStorage(debounceDelay: Duration.zero),
+      storage: GameStorage(),
     );
     addTearDown(controller.dispose);
 
-    await tester.pumpWidget(_wrappedApp(controller));
-    await tester.tap(find.text('Partie starten'));
+    await tester.pumpWidget(_wrappedApp(controller, settings));
+    await tester.pumpAndSettle();
+    final startButton = find.text('Partie starten');
+    await tester.ensureVisible(startButton);
+    await tester.pumpAndSettle();
+    await tester.tap(startButton);
     await tester.pumpAndSettle();
 
     expect(find.byType(LudoBoard), findsOneWidget);
@@ -76,19 +80,19 @@ void main() {
     expect(find.byType(RuleOptionsCard), findsNothing);
     expect(find.byType(MoveLogCard), findsNothing);
 
-    await tester.tap(find.byTooltip('Spieler-Setup'));
+    await tester.tap(find.text('Spieler'));
     await tester.pumpAndSettle();
     expect(find.byType(SetupCard), findsOneWidget);
     await tester.tap(find.byIcon(Icons.close));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('Regeln'));
+    await tester.tap(find.text('Regeln'));
     await tester.pumpAndSettle();
     expect(find.byType(RuleOptionsCard), findsOneWidget);
     await tester.tap(find.byIcon(Icons.close));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('Zugprotokoll'));
+    await tester.tap(find.text('Zugprotokoll'));
     await tester.pumpAndSettle();
     expect(find.byType(MoveLogCard), findsOneWidget);
   });

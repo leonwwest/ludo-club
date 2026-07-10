@@ -7,8 +7,12 @@ import 'package:ludo_club/constants/app_durations.dart';
 import 'package:ludo_club/constants/assets.dart';
 import 'package:ludo_club/logic/ludo_board_geometry.dart';
 import 'package:ludo_club/logic/ludo_rules.dart';
+import 'package:ludo_club/l10n/app_localizations.dart';
+import 'package:ludo_club/l10n/move_hint_formatter.dart';
+import 'package:ludo_club/l10n/player_color_localizations.dart';
 import 'package:ludo_club/models/ludo_models.dart';
 import 'package:ludo_club/providers/game_controller.dart';
+import 'package:ludo_club/services/app_settings.dart';
 import 'package:ludo_club/theme/player_palette.dart';
 import 'package:ludo_club/widgets/ludo_board_painter.dart';
 import 'package:provider/provider.dart';
@@ -34,6 +38,9 @@ class LudoBoard extends StatelessWidget {
           );
           final pieces =
               state.players.expand((player) => player.pieces).toList();
+          final playerNames = {
+            for (final player in state.players) player.color: player.name,
+          };
           final canInteract = !controller.isBotTurn;
           final stackCounts = _stackCountsFor(pieces);
           final stackIndexes = <String, int>{};
@@ -108,13 +115,14 @@ class LudoBoard extends StatelessWidget {
                         ),
                         size: pieceSize,
                         color: piece.color.paint,
-                        hint: controller.moveHintFor(piece),
+                        hint: MoveHintFormatter.format(context, state, piece),
                         onTap: canInteract
                             ? () => controller.movePiece(piece)
                             : null,
                       ),
                   for (final piece in pieces)
                     _buildPiece(
+                      context,
                       controller,
                       piece,
                       size,
@@ -124,6 +132,11 @@ class LudoBoard extends StatelessWidget {
                       stackIndexes,
                       canInteract,
                       state.moveSummary,
+                      playerNames[piece.color] ??
+                          localizedPlayerColor(
+                            AppLocalizations.of(context)!,
+                            piece.color,
+                          ),
                     ),
                 ],
               ),
@@ -135,6 +148,7 @@ class LudoBoard extends StatelessWidget {
   }
 
   Widget _buildPiece(
+    BuildContext context,
     GameController controller,
     LudoPiece piece,
     Size size,
@@ -144,6 +158,7 @@ class LudoBoard extends StatelessWidget {
     Map<String, int> stackIndexes,
     bool canInteract,
     MoveSummary? moveSummary,
+    String playerName,
   ) {
     final key = _positionKey(piece);
     final stackCount = stackCounts[key] ?? 1;
@@ -158,13 +173,13 @@ class LudoBoard extends StatelessWidget {
         : BoardGeometry.stackJitter(stackIndex, stackCount, pieceSize);
     final offset = baseOffset + jitter;
     final isMovable = canInteract && controller.isMovable(piece);
-    final moveHint = controller.moveHintFor(piece);
+    final moveHint = MoveHintFormatter.format(context, controller.state, piece);
     final isRecentMove = moveSummary?.mover == piece.color &&
         moveSummary?.pieceId == piece.id &&
         moveSummary?.toSteps == piece.steps;
 
     return AnimatedPositioned(
-      duration: AppDurations.slow,
+      duration: AppMotionSettings.duration(context, AppDurations.slow),
       curve: Curves.easeOutCubic,
       left: offset.dx - pieceHitSize / 2,
       top: offset.dy - pieceHitSize / 2,
@@ -179,6 +194,7 @@ class LudoBoard extends StatelessWidget {
         isRecentCapture: isRecentMove && moveSummary?.didCapture == true,
         isRecentFinish: isRecentMove && moveSummary?.finished == true,
         moveHint: moveHint,
+        playerName: playerName,
         onTap: isMovable ? () => controller.movePiece(piece) : null,
       ),
     );
@@ -321,6 +337,7 @@ class _PieceChip extends StatelessWidget {
     required this.isRecentCapture,
     required this.isRecentFinish,
     required this.moveHint,
+    required this.playerName,
     required this.onTap,
   });
 
@@ -331,14 +348,16 @@ class _PieceChip extends StatelessWidget {
   final bool isRecentCapture;
   final bool isRecentFinish;
   final String? moveHint;
+  final String playerName;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final color = piece.color.paint;
     final semanticLabel = moveHint == null
-        ? '${piece.color.label} Figur ${piece.id + 1}'
-        : '${piece.color.label}: $moveHint';
+        ? l10n.playerPiece(playerName, piece.id + 1)
+        : '$playerName: $moveHint';
     final effectSize = isRecentCapture
         ? visualSize + 26
         : isRecentFinish
@@ -351,7 +370,7 @@ class _PieceChip extends StatelessWidget {
       enabled: isMovable,
       label: semanticLabel,
       child: AnimatedScale(
-        duration: AppDurations.fast,
+        duration: AppMotionSettings.duration(context, AppDurations.fast),
         scale: isMovable
             ? 1.14
             : isRecentMove

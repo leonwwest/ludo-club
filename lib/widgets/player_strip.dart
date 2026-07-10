@@ -4,8 +4,10 @@ import 'package:ludo_club/constants/app_dimensions.dart';
 import 'package:ludo_club/constants/app_durations.dart';
 import 'package:ludo_club/constants/assets.dart';
 import 'package:ludo_club/l10n/app_localizations.dart';
+import 'package:ludo_club/l10n/player_color_localizations.dart';
 import 'package:ludo_club/logic/ludo_rules.dart';
 import 'package:ludo_club/models/ludo_models.dart';
+import 'package:ludo_club/services/app_settings.dart';
 import 'package:ludo_club/theme/player_palette.dart';
 import 'package:ludo_club/widgets/player_avatar.dart';
 
@@ -46,7 +48,7 @@ class _PlayerProgressTile extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final color = player.color.paint;
     return AnimatedContainer(
-      duration: AppDurations.normal,
+      duration: AppMotionSettings.duration(context, AppDurations.normal),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: isCurrent
@@ -67,6 +69,7 @@ class _PlayerProgressTile extends StatelessWidget {
                 color: player.color,
                 avatarId: player.avatarId,
                 size: 34,
+                semanticLabel: player.name,
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -78,7 +81,7 @@ class _PlayerProgressTile extends StatelessWidget {
                       style: Theme.of(context).textTheme.labelLarge,
                     ),
                     Text(
-                      player.color.colorLabel,
+                      localizedPlayerColor(l10n, player.color),
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
                             color: AppColors.slate500,
                           ),

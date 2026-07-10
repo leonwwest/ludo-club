@@ -1,16 +1,15 @@
 import 'package:ludo_club/models/ludo_models.dart';
 
 abstract final class AssetMapper {
-  static const String background = 'assets/backgrounds/club_table_v3.png';
-  static const String setupHero = 'assets/backgrounds/setup_hero_v4.png';
+  static const String background = 'assets/backgrounds/club_table_v3.webp';
+  static const String setupHero = 'assets/backgrounds/setup_hero_v4.webp';
   static const String tableSkinClassic =
-      'assets/backgrounds/table_skin_classic_v4.png';
+      'assets/backgrounds/table_skin_classic_v4.webp';
   static const String tableSkinNight =
-      'assets/backgrounds/table_skin_night_v4.png';
+      'assets/backgrounds/table_skin_night_v4.webp';
   static const String branding = 'assets/branding/ludo_club_mark_v3.png';
-  static const String dice = 'assets/dice/roll_dice_v3.png';
   static const String diceIdle = 'assets/dice/dice_idle_v4.png';
-  static const String boardTexture = 'assets/textures/felt_grain_v3.png';
+  static const String boardTexture = 'assets/textures/felt_grain_v3.webp';
   static const String centerMedallion = 'assets/board/center_medallion_v4.png';
   static const String safeFieldStar = 'assets/board/safe_field_star_v4.png';
   static const String moveTargetRing = 'assets/effects/move_target_ring_v4.png';

@@ -13,21 +13,32 @@ class SidePanel extends StatelessWidget {
   const SidePanel({
     required this.state,
     required this.isBotTurn,
+    required this.isRemoteTurn,
+    required this.isWaitingForPlayers,
+    required this.isOnlineMatch,
+    required this.canEditRules,
     required this.onRoll,
     required this.onPlayerNameChanged,
     required this.onPlayerKindChanged,
     required this.onPlayerAvatarChanged,
+    required this.onBotDifficultyChanged,
     required this.onRulesChanged,
     super.key,
   });
 
   final LudoGameState state;
   final bool isBotTurn;
+  final bool isRemoteTurn;
+  final bool isWaitingForPlayers;
+  final bool isOnlineMatch;
+  final bool canEditRules;
   final VoidCallback onRoll;
   final void Function(PlayerColor color, String name) onPlayerNameChanged;
   final void Function(PlayerColor color, PlayerKind kind) onPlayerKindChanged;
   final void Function(PlayerColor color, PlayerAvatarId avatarId)
       onPlayerAvatarChanged;
+  final void Function(PlayerColor color, BotDifficulty difficulty)
+      onBotDifficultyChanged;
   final ValueChanged<RuleOptions> onRulesChanged;
 
   @override
@@ -43,6 +54,8 @@ class SidePanel extends StatelessWidget {
             child: DicePanel(
               state: state,
               isBotTurn: isBotTurn,
+              isRemoteTurn: isRemoteTurn,
+              isWaitingForPlayers: isWaitingForPlayers,
               onRoll: onRoll,
             ),
           ),
@@ -55,14 +68,21 @@ class SidePanel extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppDimensions.sectionSpacing),
-        SetupCard(
+        if (!isOnlineMatch) ...[
+          SetupCard(
+            state: state,
+            onPlayerNameChanged: onPlayerNameChanged,
+            onPlayerKindChanged: onPlayerKindChanged,
+            onPlayerAvatarChanged: onPlayerAvatarChanged,
+            onBotDifficultyChanged: onBotDifficultyChanged,
+          ),
+          const SizedBox(height: AppDimensions.sectionSpacing),
+        ],
+        RuleOptionsCard(
           state: state,
-          onPlayerNameChanged: onPlayerNameChanged,
-          onPlayerKindChanged: onPlayerKindChanged,
-          onPlayerAvatarChanged: onPlayerAvatarChanged,
+          onRulesChanged: onRulesChanged,
+          enabled: canEditRules,
         ),
-        const SizedBox(height: AppDimensions.sectionSpacing),
-        RuleOptionsCard(state: state, onRulesChanged: onRulesChanged),
         const SizedBox(height: AppDimensions.sectionSpacing),
         MoveLogCard(state: state),
       ],

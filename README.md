@@ -1,70 +1,117 @@
 # Ludo Club
 
-A rebuilt Flutter Ludo app with a lean codebase, Material 3 UI, pure Dart game
-rules, and a custom-painted board. The app no longer depends on image, SVG,
-audio, database, AI, or statistics layers.
+Ludo Club is a Flutter Ludo game for local 2-4 player matches. Rules and bot
+selection are kept outside the widgets, while the UI uses Material 3 and a
+custom-painted 15x15 board across phones, browsers, and desktop windows.
 
-## What is included
+## Features
 
-- Local 2-4 player Ludo match
-- Exact finish, safe fields, captures, extra turn on six or capture
-- Optional rule variants for opening rolls, mandatory base exits, own-field blocks, capture bonuses, finish bonuses, third-six penalties, and mandatory captures
-- Editable local player names, legal-move target explanations, undo, and a compact move log
-- Automatic local save/resume via shared preferences with an explicit clear-save action
-- Responsive 15x15 Ludo board rendered with Flutter canvas and widgets
-- Mobile-first play surface with sticky action dock, bottom-sheet setup/rules/log, larger touch targets, target taps, auto single-move turns, and haptic feedback
-- Generated brand mark, native/web app icons, avatars, dice art, and background texture
-- Single controller based on `ChangeNotifier`
-- Focused tests for rules, controller behavior, and app rendering
+- Human and computer-controlled seats with editable names and fictional avatars
+- Easy, normal, and hard bots: random play, tactical priorities, and additional
+  capture-risk/look-ahead scoring respectively
+- Configurable opening rolls, base-exit priority, own-field blocks, exact
+  finishes, capture/finish bonuses, third-six penalties, and capture priority
+- Move targets and explanations, undo, a bounded move log, and automatic play
+  when only one legal move exists
+- Persistent current-match and per-player statistics: rolls, moves, captures,
+  sixes, elapsed time, wins, and up to 50 completed-match records
+- Automatic local save/resume of the current match and bounded undo history,
+  plus a visible clear-save action
+- Sound effects and haptics with independent toggles
+- Reduced-motion support that also honors the operating system preference
+- German, English, or system-language selection
+- Private room-code matches through the bundled authoritative WebSocket server,
+  including reconnects, host-controlled rematches, and paused turns when a
+  player disconnects
+- Responsive board layouts, mobile action sheets, keyboard/screen-reader
+  semantics, and large touch targets
+- Compressed WebP backgrounds and textures; all bundled assets total about
+  1.1 MB instead of the previous 17.1 MB
 
-## Project layout
+## Architecture
 
-```text
-lib/
-├── logic/          # Pure Ludo rules
-├── models/         # Immutable game state and domain models
-├── providers/      # Thin UI controller
-├── theme/          # UI palette helpers
-├── ui/             # Main game screen
-├── widgets/        # Board, dice, player progress widgets
-└── main.dart       # App entry
+- `lib/logic/` contains deterministic rules, geometry, and bot strategy.
+- `lib/models/` contains immutable, backward-compatible JSON state models.
+- `lib/providers/` coordinates turns, bots, undo, and persistence.
+- `lib/services/` owns app preferences, feedback, and game storage.
+- `lib/online/` contains the versioned room protocol, reconnecting client, and
+  authoritative in-memory room server.
+- `lib/ui/` and `lib/widgets/` contain responsive presentation components.
+- `test/` mirrors the production boundaries with logic, model, provider,
+  service, and widget tests.
 
-assets/
-├── avatars/        # Generated fictional player portraits
-├── backgrounds/    # Generated in-app background art
-├── branding/       # Generated brand mark used by the UI and web icons
-├── dice/           # Generated roll-dice HUD artwork
-└── pins/           # Generated player pin artwork
-
-test/
-├── logic/
-├── providers/
-└── widget/
-```
+Game persistence is serialized in call order. Each operation gets a revision,
+so an older slow write cannot overwrite or clear newer state. `flush()` waits
+for every revision queued before it and reports a failure of the latest write.
+Synchronous `dispose()` rejects new work but leaves already queued operations
+running; an asynchronous application lifecycle hook should await `flush()`
+when it must guarantee durability before shutdown returns.
 
 ## Development
 
 ```sh
 flutter pub get
-dart format .
+dart format --output=none --set-exit-if-changed .
 flutter analyze
 flutter test
 flutter run -d chrome
 ```
 
-## Device checks
+Useful build checks:
 
 ```sh
-flutter build ios --debug --no-codesign
+flutter build web --release
 flutter build apk --debug
+flutter build ios --debug --no-codesign
 ```
 
-iPhone builds are portrait-first. Android builds require a local Android SDK
-and `ANDROID_HOME`; release distribution also needs a real release signing
-configuration instead of debug signing.
+## Private online rooms
 
-## Notes
+Start the bundled development room server in a second terminal:
 
-The native Flutter platform folders are intentionally kept. They are scaffold
-and integration files, not disposable build artifacts. Generated build output
-is cleaned with `flutter clean`.
+```sh
+dart run bin/room_server.dart
+```
+
+The app uses `ws://127.0.0.1:8080/ws` by default. To test with phones on a
+trusted local network, expose the server deliberately and enter the computer's
+reachable LAN address in the room sheet:
+
+```sh
+LUDO_ROOM_HOST=0.0.0.0 dart run bin/room_server.dart
+```
+
+For a hosted build, configure the app at compile time:
+
+```sh
+flutter build web --release \
+  --dart-define=LUDO_ROOM_SERVER=wss://games.example.com/ws
+```
+
+The bundled server keeps rooms only in memory. It defaults to loopback and is
+intended for local development or deployment behind a TLS reverse proxy with
+origin checks and rate limiting. A room code is an invitation token, not an
+account system; do not expose the raw `ws://` server directly to the internet.
+
+Android commands require a configured Android SDK. iOS commands require Xcode
+and CocoaPods on macOS.
+
+## Android release signing
+
+1. Create or obtain a private upload keystore. Keep it outside the repository.
+2. Copy `android/key.properties.example` to `android/key.properties`.
+3. Replace every placeholder. `storeFile` may be an absolute path or a path
+   relative to `android/`.
+4. Build the signed Play Store bundle with `flutter build appbundle --release`.
+
+`android/key.properties`, `*.jks`, and `*.keystore` are ignored. The Gradle
+configuration never falls back to the debug certificate for release builds.
+
+## CI
+
+GitHub Actions installs dependencies, checks formatting, analyzes the project,
+runs the full test suite with coverage, and performs an Android debug smoke
+build. Pushes to `main` additionally build and retain the release web bundle.
+
+Generated folders such as `.dart_tool/`, `build/`, and `coverage/` remain
+untracked. Use `flutter clean` when a local platform build needs a clean slate.
