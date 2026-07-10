@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
@@ -67,12 +68,13 @@ void main() {
       socket.destroy();
     });
 
+    final webSocketKey = base64Encode(utf8.encode('the sample nonce'));
     socket.write(
       'GET /ws HTTP/1.1\r\n'
       'Host: 127.0.0.1:${server.boundPort}\r\n'
       'Upgrade: websocket\r\n'
       'Connection: Upgrade\r\n'
-      'Sec-WebSocket-Key: dGhlIHNhbXBsZSBu' 'b25jZQ==\r\n'
+      'Sec-WebSocket-Key: $webSocketKey\r\n'
       'Sec-WebSocket-Version: 13\r\n'
       '\r\n',
     );
