@@ -45,6 +45,7 @@ class BoardArena extends StatelessWidget {
         final corners = _cornerPlacements(state);
 
         return SizedBox(
+          width: boardSize,
           height: arenaHeight,
           child: Stack(
             clipBehavior: Clip.none,

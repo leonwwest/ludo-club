@@ -4,6 +4,14 @@ Ludo Club is a Flutter Ludo game for local 2-4 player matches. Rules and bot
 selection are kept outside the widgets, while the UI uses Material 3 and a
 custom-painted 15x15 board across phones, browsers, and desktop windows.
 
+## Product demo
+
+[![Watch the 50-second Ludo Club product demo](docs/demo/board-magic-demo-poster.png)](docs/demo/board-magic-demo.mp4)
+
+**[Watch the 50-second product demo](docs/demo/board-magic-demo.mp4).** It shows
+a local two-bot match, the Club rules preset and live match statistics. No
+account, network service or private data is used.
+
 ## Features
 
 - Human and computer-controlled seats with editable names and fictional avatars
