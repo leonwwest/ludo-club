@@ -75,6 +75,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(LudoBoard), findsOneWidget);
+    final boardSize = tester.getSize(find.byType(LudoBoard));
+    expect(boardSize.width, greaterThan(300));
+    expect(boardSize.height, boardSize.width);
     expect(find.byType(MobileActionDock), findsOneWidget);
     expect(find.byType(SetupCard), findsNothing);
     expect(find.byType(RuleOptionsCard), findsNothing);
